@@ -222,10 +222,8 @@ class NibProxyObject(NibObject):
 class CompilationContext:
     def __init__(self):
         self.class_set = set()
-        self.serial_set = (
-            set()
-        )  # a set of serial numbers for objects that have been added to the object list.
-
+        # a set of serial numbers for objects that have been added to the object list.
+        self.serial_set = set()
         self.object_list = []
 
     def addBinObject(self, obj):
@@ -390,5 +388,4 @@ def CompileNibObjects(objects):
     ctx = CompilationContext()
     ctx.addObjects(objects)
     t = ctx.makeTuples()
-
     return nibencoding.WriteNib(t)

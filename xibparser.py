@@ -26,9 +26,8 @@ def ParseXIBObjects(element, context=None, resolveConnections=True, parent=None)
 
     root = NibObject("NSObject")
     root["UINibTopLevelObjectsKey"] = toplevel
-    root["UINibConnectionsKey"] = (
-        context.connections
-    )  # __xibparser_resolveConnections(ib_connections, ib_objects)
+    # __xibparser_resolveConnections(ib_connections, ib_objects)
+    root["UINibConnectionsKey"] = context.connections
     root["UINibObjectsKey"] = list(toplevel)
     root["UINibObjectsKey"].extend(context.extraNibObjects)
 
@@ -103,9 +102,8 @@ def CompileStoryboard(tree, foldername):
         view = viewController.properties.get("UIView")
         if view:
             del viewController.properties["UIView"]
-            context.extraNibObjects.remove(
-                view
-            )  # Don't encode the view in the scene nib's objects.
+            # Don't encode the view in the scene nib's objects.
+            context.extraNibObjects.remove(view)
 
             view.extend("UISubviews", context.viewControllerLayoutGuides)
 
@@ -223,7 +221,8 @@ def CompileStoryboard(tree, foldername):
 
     import plistlib
 
-    plistlib.writePlist(storyboard_info, foldername + "/Info.plist")
+    with open(foldername + "/Info.plist", "wb") as f:
+        plistlib.dump(storyboard_info, f)
 
 
 def makexibid():
@@ -244,9 +243,8 @@ def makePlaceholderIdentifier():
 class ArchiveContext:
     def __init__(self):
         self.connections = []
-        self.objects = (
-            {}
-        )  # When parsing a storyboard, this doesn't include the main view or any of its descendant objects.
+        # When parsing a storyboard, this doesn't include the main view or any of its descendant objects.
+        self.objects = {}
         self.toplevel = []
 
         self.extraNibObjects = []
@@ -266,9 +264,8 @@ class ArchiveContext:
 
         self.upstreamPlaceholders = {}
         self.parentContext = None
-        self.viewReferences = (
-            []
-        )  # List of tuples ( view id, referencing object, referencing key )
+        # List of tuples (view id, referencing object, referencing key)
+        self.viewReferences = []
         self.viewControllerLayoutGuides = []
         # self.view = None
         # self.viewController = None
@@ -285,9 +282,9 @@ class ArchiveContext:
         dct[objid] = obj
 
         # if self.isParsingStoryboardView:
-        # 	self.viewObjects[objid] = obj
+        #     self.viewObjects[objid] = obj
         # else:
-        # 	self.objects[objid] = obj
+        #     self.objects[objid] = obj
 
     # to be used for objects that are known to be in the same context, given a valid document. (For possibly
     # unkown values, use getObject)
@@ -558,17 +555,17 @@ buttonType="roundedRect"
 
 
 Started
-	key  -  'view' (for view controllers)
+    key  -  'view' (for view controllers)
 
 Done
-	contentMode - TODO: Make sure the string values we check are correct.
-	customClass
-	restorationIdentifier
-	translatesAutoresizingMaskIntoConstraints
+    contentMode - TODO: Make sure the string values we check are correct.
+    customClass
+    restorationIdentifier
+    translatesAutoresizingMaskIntoConstraints
 
 WontDo
-	fixedFrame - I think this is only for interface builder. (it gets set on UISearchBar)
-	id - Not arhived in nib.
+    fixedFrame - I think this is only for interface builder. (it gets set on UISearchBar)
+    id - Not arhived in nib.
 """
 
 
@@ -755,21 +752,21 @@ dataMode="prototypes" style="plain" separatorStyle="default" rowHeight="44" sect
 
 Default UITableView in UITableViewController:
 
-	UIBounds = (8) (0.0, 0.0, 600.0, 600.0)
-	UICenter = (8) (300.0, 300.0)
-	UIBackgroundColor = (10) @2
-	UIOpaque = (5) True
-	UIAutoresizeSubviews = (5) True
-	UIAutoresizingMask = (0) 36
-	UIClipsToBounds = (5) True
-	UIBouncesZoom = (5) True
-	UIAlwaysBounceVertical = (5) True
-	UIContentSize = (8) (600.0, 0.0)
-	UISeparatorStyle = (0) 1
-	UISeparatorStyleIOS5AndLater = (0) 1
-	UISectionHeaderHeight = (6) 22.0
-	UISectionFooterHeight = (6) 22.0
-	UIShowsSelectionImmediatelyOnTouchBegin = (5) True
+    UIBounds = (8) (0.0, 0.0, 600.0, 600.0)
+    UICenter = (8) (300.0, 300.0)
+    UIBackgroundColor = (10) @2
+    UIOpaque = (5) True
+    UIAutoresizeSubviews = (5) True
+    UIAutoresizingMask = (0) 36
+    UIClipsToBounds = (5) True
+    UIBouncesZoom = (5) True
+    UIAlwaysBounceVertical = (5) True
+    UIContentSize = (8) (600.0, 0.0)
+    UISeparatorStyle = (0) 1
+    UISeparatorStyleIOS5AndLater = (0) 1
+    UISectionHeaderHeight = (6) 22.0
+    UISectionFooterHeight = (6) 22.0
+    UIShowsSelectionImmediatelyOnTouchBegin = (5) True
 
 
 """
@@ -813,9 +810,8 @@ def _xibparser_parse_state(ctx, elem, parent):
         elem.attrib["key"]
     )
     if statevalue:
-        statevalue = 1 << (
-            statevalue - 1
-        )  # Translates 0, 1, 2, 3 to 0, 1 << 0, 1 << 1, 1 << 2
+        # Translates 0, 1, 2, 3 to 0, 1 << 0, 1 << 1, 1 << 2
+        statevalue = 1 << (statevalue - 1)
 
     buttonstates = parent.get("UIButtonStatefulContent")
     if not buttonstates:
@@ -1169,7 +1165,7 @@ def _xibparser_get_constraint(ctx, elem, parent):
         "trailing": 6,
         "width": 7,
         "height": 8,
-        # todo: verify these constants.
+        # TODO: verify these constants.
         "centerX": 9,
         "centerY": 10,
         "baseline": 11,
@@ -1313,20 +1309,20 @@ def _xibparser_get_color(elem):
     obj["UIGreen"] = g
     obj["UIBlue"] = b
     obj["UIAlpha"] = a
-    obj["UIColorSpace"] = NibByte(2)  # todo: figure out what color spaces there are.
+    obj["UIColorSpace"] = NibByte(2)  # TODO: figure out what color spaces there are.
     obj["NSRGB"] = NibInlineString(f"{r:.3f} {g:.3f} {b:.3f}")
     return obj
 
 
 """ Maybe NSColorSpace 4 is calibratedWhiteColorSpace ?
  25: UIColor
-	UISystemColorName = (10) @34
-	UIColorComponentCount = (0) 2
-	UIWhite = (6) 0.0
-	UIAlpha = (6) 1.0
-	NSWhite = (8) 0
-	NSColorSpace = (0) 4
-	"""
+    UISystemColorName = (10) @34
+    UIColorComponentCount = (0) 2
+    UIWhite = (6) 0.0
+    UIAlpha = (6) 1.0
+    NSWhite = (8) 0
+    NSColorSpace = (0) 4
+    """
 
 
 def _xibparser_parse_color(ctx, elem, parent):

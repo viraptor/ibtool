@@ -170,13 +170,12 @@ def readValues(bytes, valuesSection, debugKeys=[]):
         elif encoding == 0x09:  # nil?
             value = None
         elif encoding == 0x0A:  # object
-            value = "@" + str(
-                rword(bytes[ptr : ptr + 4])
-            )  # object is stored as a 4 byte index.
+            # object is stored as a 4 byte index.
+            value = "@" + str(rword(bytes[ptr : ptr + 4]))
             ptr += 4
         else:
             # print "dumping classes:", globals()['classes']
-            print("dumping keys:")  # , globals()['keys']
+            print("dumping keys:")
             for n, key in enumerate(globals()["keys"]):
                 print(f"{n:X}\t{(n | 0x80):X}\t{key}")
             raise Exception(
@@ -220,8 +219,8 @@ def fancyPrintObjects(nib, prefix="", showencoding=False):
                     print(prefix + "\t" + k_str + " =", v_str)
 
             # if k_str == 'NS.bytes' and len(v_str) > 200:
-            # 	with open('embedded.nib', 'wb') as f:
-            # 		f.write(v[1])
+            #     with open('embedded.nib', 'wb') as f:
+            #         f.write(v[1])
 
 
 def readNibSectionsFromBytes(bytes):

@@ -14,7 +14,7 @@ NIB_TYPE_OBJECT = 0x0A
 # Output: A byte array containing the binary representation of the nib archive.
 def WriteNib(nib):
     bytes = bytearray()
-    bytes.extend("NIBArchive")
+    bytes.extend(b"NIBArchive")
     bytes.extend([1, 0, 0, 0])
     bytes.extend([9, 0, 0, 0])
 
@@ -78,8 +78,9 @@ def _nibWriteObjectsSection(objects):
 def _nibWriteKeysSection(keys):
     bytes = bytearray()
     for key in keys:
+        print(key)
         _nibWriteFlexNumber(bytes, len(key))
-        bytes.extend(key)
+        bytes.extend(key.encode("utf-8"))
     return bytes
 
 
@@ -88,7 +89,7 @@ def _nibWriteClassesSection(classes):
     for cls in classes:
         _nibWriteFlexNumber(bytes, len(cls) + 1)
         bytes.append(0x80)
-        bytes.extend(cls)
+        bytes.extend(cls.encode("utf-8"))
         bytes.append(0x00)
     return bytes
 
