@@ -1,4 +1,13 @@
-from genlib import *
+from genlib import (
+    CompileNibObjects,
+    NibByte,
+    NibData,
+    NibInlineString,
+    NibNSNumber,
+    NibObject,
+    NibProxyObject,
+    NibString,
+)
 
 """
 TODO:
@@ -199,11 +208,11 @@ def CompileStoryboard(tree, foldername):
                 rootViewController["UIParentViewController"] = viewController
                 # Maybe also set a default UINavigationItem?
 
-        bytes = CompileNibObjects([root])
+        b = CompileNibObjects([root])
         with open(
             "{}/{}{}".format(foldername, viewControllerNibName, ".nib"), "wb"
         ) as fl:
-            fl.write(bytes)
+            fl.write(b)
 
         for viewController, oldProperties in resetProperties:
             viewController.properties = oldProperties
@@ -415,7 +424,7 @@ class ArchiveContext:
             obj = self.objects[obj_id]
             externObjects[ph_id] = obj
 
-        if len(externObjects):
+        if externObjects:
             self.storyboardViewController["UIExternalObjectsTableForViewLoading"] = (
                 externObjects
             )
@@ -430,15 +439,15 @@ class ArchiveContext:
 
 def classSwapper(func):
     def inner(ctx, elem, parent, *args, **kwargs):
-        object = func(ctx, elem, parent, *args, **kwargs)
-        if object:
+        obj = func(ctx, elem, parent, *args, **kwargs)
+        if obj:
             customClass = elem.attrib.get("customClass")
             if customClass:
-                object["UIOriginalClassName"] = object.classname()
-                object["UIClassName"] = customClass
-                object.setclassname("UIClassSwapper")
+                obj["UIOriginalClassName"] = obj.classname()
+                obj["UIClassName"] = customClass
+                obj.setclassname("UIClassSwapper")
 
-        return object
+        return obj
 
     return inner
 
@@ -447,7 +456,7 @@ def __xibparser_ParseXIBObject(ctx, elem, parent):
     tag = elem.tag
     fnname = "_xibparser_parse_" + tag
     parsefn = globals().get(fnname)
-    # print "----- PARSETHING: " + tag, parsefn
+    # print("----- PARSETHING:", tag, parsefn)
     if parsefn:
         obj = parsefn(ctx, elem, parent)
         if obj and isinstance(obj, XibObject):
@@ -799,7 +808,7 @@ def _xibparser_parse_state(ctx, elem, parent):
             "'state' tag currently only supported for UIButtons. given",
             parent.originalclassname(),
         )
-        return None
+        return
 
     content = NibObject("UIButtonContent")
     content["UITitle"] = elem.attrib.get("title")
@@ -856,7 +865,7 @@ def _xibparser_parse_prototypes(ctx, elem, parent):
             externObjects[ph_id] = NibProxyObject(phid_to_parent)
             ctx.upstreamPlaceholders[phid_to_parent] = obj_id
 
-        if len(externObjects):
+        if externObjects:
             prototypeExternalObjects[rid] = externObjects
 
         prototypeNibData = CompileNibObjects([root])
@@ -867,10 +876,10 @@ def _xibparser_parse_prototypes(ctx, elem, parent):
 
         prototypes[tableViewCell.attrib["reuseIdentifier"]] = prototypeNib
 
-    if len(prototypeExternalObjects):
+    if prototypeExternalObjects:
         parent["UITableViewCellPrototypeNibExternalObjects"] = prototypeExternalObjects
 
-    if not len(prototypes):
+    if not prototypes:
         return
 
     parent["UITableViewCellPrototypeNibs"] = prototypes
@@ -1002,7 +1011,7 @@ def _xibparser_parse_segue(ctx, elem, parent):
                 "overFullScreen": 5,
                 "overCurrentContext": 6,
             }
-            segue["UIModalPresentationStyle"] = enum.get(
+            template["UIModalPresentationStyle"] = enum.get(
                 elem.attrib["modalPresentationStyle"]
             )
 
@@ -1013,12 +1022,12 @@ def _xibparser_parse_segue(ctx, elem, parent):
                 "crossDissolve": 2,
                 "partialCurl": 3,
             }
-            segue["UIModalTransitionStyle"] = enum.get(
+            template["UIModalTransitionStyle"] = enum.get(
                 elem.attrib["modalTransitionStyle"]
             )
 
         if elem.attrib.get("animates") == "NO":
-            segue["UIAnimates"] = False
+            template["UIAnimates"] = False
 
     if kind == "show":
         template.setclassname("UIStoryboardShowSegueTemplate")
@@ -1031,7 +1040,7 @@ def _xibparser_parse_segue(ctx, elem, parent):
     elif kind == "presentation":
         template.setclassname("UIStoryboardPresentationSegueTemplate")
 
-    ## Deprecated segue types
+    # Deprecated segue types
 
     elif kind == "push":
         template.setclassname("UIStoryboardPushSegueTemplate")
@@ -1049,7 +1058,7 @@ def _xibparser_parse_segue(ctx, elem, parent):
             "splitViewControllerTargetIndex"
         )
 
-    ## Custom segue
+    # Custom segue
 
     elif kind == "custom":
         template.setclassname("UIStoryboardSegueTemplate")
@@ -1476,7 +1485,7 @@ def _xibparser_parse_fontDescription(ctx, elem, parent):
             size = 14.0
             font["UISystemFont"] = True
 
-    elif fonttype == "custom" or fonttype == None:
+    elif fonttype == "custom" or fonttype is None:
         # family = elem.attrib.get('family')
         name = elem.attrib["name"]
         font["UISystemFont"] = False

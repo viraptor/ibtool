@@ -4,30 +4,30 @@ import struct
 import sys
 
 
-def rword(bytes):
-    return struct.unpack("<I", bytes)[0]
+def rword(b):
+    return struct.unpack("<I", b)[0]
 
 
-def rquad(bytes):
-    return struct.unpack("<q", bytes)[0]
+def rquad(b):
+    return struct.unpack("<q", b)[0]
 
 
-def rdouble(bytes):
-    return struct.unpack("<d", bytes)[0]
+def rdouble(b):
+    return struct.unpack("<d", b)[0]
 
 
-def rsingle(bytes):
-    return struct.unpack("<f", bytes)[0]
+def rsingle(b):
+    return struct.unpack("<f", b)[0]
 
 
 # Reads a flexible number from the bytes array and returns a tuple
 # containing the number read and the number of bytes read.
-def readFlexNumber(bytes, addr):
+def readFlexNumber(b, addr):
     number = 0
     shift = 0
     ptr = addr
     while True:
-        num = ord(bytes[ptr])
+        num = ord(b[ptr])
         ptr += 1
 
         number |= (num & 0x7F) << shift
@@ -40,45 +40,42 @@ def readFlexNumber(bytes, addr):
     return (number, ptr - addr)
 
 
-def readHeader(bytes, start):
-    hsize = rword(bytes[start : start + 4])
-    # print "Header size (words): " + str(hsize)
+def readHeader(b, start):
+    hsize = rword(b[start : start + 4])
+    # print("Header size (words):", str(hsize))
     sections = []
     sectionDataStart = start + 4
-    for section in range(0, (hsize - 1) / 2):
+    for section in range((hsize - 1) / 2):
         objcount = rword(
-            bytes[sectionDataStart + section * 8 : sectionDataStart + section * 8 + 4]
+            b[sectionDataStart + section * 8 : sectionDataStart + section * 8 + 4]
         )
         address = rword(
-            bytes[
-                sectionDataStart + section * 8 + 4 : sectionDataStart + section * 8 + 8
-            ]
+            b[sectionDataStart + section * 8 + 4 : sectionDataStart + section * 8 + 8]
         )
         sections += [(objcount, address)]
     return sections
 
 
-def readKeys(bytes, keysSection):
+def readKeys(b, keysSection):
     count, ptr = keysSection
     keys = []
-    for i in range(0, count):
-
-        rd = readFlexNumber(bytes, ptr)
+    for i in range(count):
+        rd = readFlexNumber(b, ptr)
         length = rd[0]
         ptr += rd[1]
 
-        keys.append(str(bytes[ptr : ptr + length]))
+        keys.append(str(b[ptr : ptr + length]))
         ptr += length
     return keys
 
 
-def readObjects(bytes, objectsSection):
+def readObjects(b, objectsSection):
     count, ptr = objectsSection
     objects = []
-    for i in range(0, count):
-        r0 = readFlexNumber(bytes, ptr)
-        r1 = readFlexNumber(bytes, ptr + r0[1])
-        r2 = readFlexNumber(bytes, ptr + r0[1] + r1[1])
+    for i in range(count):
+        r0 = readFlexNumber(b, ptr)
+        r1 = readFlexNumber(b, ptr + r0[1])
+        r2 = readFlexNumber(b, ptr + r0[1] + r1[1])
 
         class_idx = r0[0]
         start_idx = r1[0]
@@ -90,26 +87,26 @@ def readObjects(bytes, objectsSection):
     return objects
 
 
-def readClasses(bytes, classSection):
+def readClasses(b, classSection):
     count, addr = classSection
     classes = []
     ptr = addr
-    for i in range(0, count):
-        r = readFlexNumber(bytes, ptr)
+    for i in range(count):
+        r = readFlexNumber(b, ptr)
         length = r[0]
         ptr += r[1]
 
-        tp = ord(bytes[ptr])
+        tp = ord(b[ptr])
         ptr += 1
 
         unknown = None
         assert tp in [0x80, 0x81]
         if tp == 0x81:
-            unknown = rword(bytes[ptr : ptr + 4])
+            unknown = rword(b[ptr : ptr + 4])
             ptr += 4
             print("readClasses: Mystery value:", unknown, "(", end=" ")
 
-        classes.append(str(bytes[ptr : ptr + length - 1]))
+        classes.append(str(b[ptr : ptr + length - 1]))
 
         if unknown:
             print(classes[-1], ")")
@@ -119,27 +116,30 @@ def readClasses(bytes, classSection):
     return classes
 
 
-def readValues(bytes, valuesSection, debugKeys=[]):
+def readValues(b, valuesSection, debugKeys=None):
+    if debugKeys is None:
+        debugKeys = []
+
     count, addr = valuesSection
     values = []
     ptr = addr
-    for i in range(0, count):
-        r = readFlexNumber(bytes, ptr)
+    for i in range(count):
+        r = readFlexNumber(b, ptr)
         key_idx = r[0]
         ptr += r[1]
 
-        encoding = ord(bytes[ptr])
+        encoding = ord(b[ptr])
         ptr += 1
 
         value = None
         if encoding == 0x00:  # single byte
-            value = ord(bytes[ptr])
+            value = ord(b[ptr])
             ptr += 1
         elif encoding == 0x01:  # short
-            value = struct.unpack("<H", bytes[ptr : ptr + 2])[0]
+            value = struct.unpack("<H", b[ptr : ptr + 2])[0]
             ptr += 2
         elif encoding == 0x03:  # 8 byte integer
-            value = rquad(bytes[ptr : ptr + 8])
+            value = rquad(b[ptr : ptr + 8])
             ptr += 8
         elif encoding == 0x04:
             value = False
@@ -147,34 +147,34 @@ def readValues(bytes, valuesSection, debugKeys=[]):
             value = True
         elif encoding == 0x06:  # word
             # if len(debugKeys):
-            # print "Found encoding with 0x6", debugKeys[key_idx]
-            value = rsingle(bytes[ptr : ptr + 4])
+            #     print("Found encoding with 0x6", debugKeys[key_idx])
+            value = rsingle(b[ptr : ptr + 4])
             ptr += 4
         elif encoding == 0x07:  # floating point
-            value = rdouble(bytes[ptr : ptr + 8])
+            value = rdouble(b[ptr : ptr + 8])
             ptr += 8
         elif encoding == 0x08:  # string
-            r = readFlexNumber(bytes, ptr)
+            r = readFlexNumber(b, ptr)
             length = r[0]
             ptr += r[1]
-            if length and ord(bytes[ptr]) == 0x07:
+            if length and ord(b[ptr]) == 0x07:
                 if length == 17:
-                    value = struct.unpack("<dd", bytes[ptr + 1 : ptr + 17])
+                    value = struct.unpack("<dd", b[ptr + 1 : ptr + 17])
                 elif length == 33:
-                    value = struct.unpack("<dddd", bytes[ptr + 1 : ptr + 33])
+                    value = struct.unpack("<dddd", b[ptr + 1 : ptr + 33])
                 else:
                     raise Exception("Well this is weird.")
             else:
-                value = str(bytes[ptr : ptr + length])
+                value = str(b[ptr : ptr + length])
             ptr += length
         elif encoding == 0x09:  # nil?
             value = None
         elif encoding == 0x0A:  # object
             # object is stored as a 4 byte index.
-            value = "@" + str(rword(bytes[ptr : ptr + 4]))
+            value = "@" + str(rword(b[ptr : ptr + 4]))
             ptr += 4
         else:
-            # print "dumping classes:", globals()['classes']
+            # print("dumping classes:", globals()["classes"])
             print("dumping keys:")
             for n, key in enumerate(globals()["keys"]):
                 print(f"{n:X}\t{(n | 0x80):X}\t{key}")
@@ -189,15 +189,15 @@ def readValues(bytes, valuesSection, debugKeys=[]):
 
 def fancyPrintObjects(nib, prefix="", showencoding=False):
     objects, keys, values, classes = nib
-    for o_idx, object in enumerate(objects):
+    for o_idx, obj in enumerate(objects):
         # print object
-        classname = classes[object[0]]
-        obj_values = values[object[1] : object[1] + object[2]]
+        classname = classes[obj[0]]
+        obj_values = values[obj[1] : obj[1] + obj[2]]
 
         print(prefix + "%3d: %s" % (o_idx, classname))
 
         for v in obj_values:
-            # print v
+            # print(v)
             k_str = keys[v[0]]
             v_str = str(v[1])
 
@@ -223,16 +223,16 @@ def fancyPrintObjects(nib, prefix="", showencoding=False):
             #         f.write(v[1])
 
 
-def readNibSectionsFromBytes(bytes):
-    sections = readHeader(bytes, 14)
+def readNibSectionsFromBytes(b):
+    sections = readHeader(b, 14)
     # print sections
-    classes = readClasses(bytes, sections[3])
+    classes = readClasses(b, sections[3])
     # print classes
-    objects = readObjects(bytes, sections[0])
+    objects = readObjects(b, sections[0])
     # print objects
-    keys = readKeys(bytes, sections[1])
+    keys = readKeys(b, sections[1])
     # print keys
-    values = readValues(bytes, sections[2])
+    values = readValues(b, sections[2])
     # print values
     return (objects, keys, values, classes)
 

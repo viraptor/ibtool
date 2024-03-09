@@ -13,10 +13,10 @@ NIB_TYPE_OBJECT = 0x0A
 # Input: Tuple of the four nib components. (Objects, Keys, Values, Classes)
 # Output: A byte array containing the binary representation of the nib archive.
 def WriteNib(nib):
-    bytes = bytearray()
-    bytes.extend(b"NIBArchive")
-    bytes.extend([1, 0, 0, 0])
-    bytes.extend([9, 0, 0, 0])
+    b = bytearray()
+    b.extend(b"NIBArchive")
+    b.extend([1, 0, 0, 0])
+    b.extend([9, 0, 0, 0])
 
     objs = nib[0]
     keys = nib[1]
@@ -44,14 +44,14 @@ def WriteNib(nib):
         len(clss),
         clss_start,
     ]:
-        bytes.extend(struct.pack("<I", num))
+        b.extend(struct.pack("<I", num))
 
-    bytes.extend(objs_section)
-    bytes.extend(keys_section)
-    bytes.extend(vals_section)
-    bytes.extend(clss_section)
+    b.extend(objs_section)
+    b.extend(keys_section)
+    b.extend(vals_section)
+    b.extend(clss_section)
 
-    return bytes
+    return b
 
 
 def _nibWriteFlexNumber(btarray, number):
@@ -67,40 +67,40 @@ def _nibWriteFlexNumber(btarray, number):
 
 
 def _nibWriteObjectsSection(objects):
-    bytes = bytearray()
+    b = bytearray()
     for obj in objects:
-        _nibWriteFlexNumber(bytes, obj[0])
-        _nibWriteFlexNumber(bytes, obj[1])
-        _nibWriteFlexNumber(bytes, obj[2])
-    return bytes
+        _nibWriteFlexNumber(b, obj[0])
+        _nibWriteFlexNumber(b, obj[1])
+        _nibWriteFlexNumber(b, obj[2])
+    return b
 
 
 def _nibWriteKeysSection(keys):
-    bytes = bytearray()
+    b = bytearray()
     for key in keys:
-        print(key)
-        _nibWriteFlexNumber(bytes, len(key))
-        bytes.extend(key.encode("utf-8"))
-    return bytes
+        # print(key)
+        _nibWriteFlexNumber(b, len(key))
+        b.extend(key.encode("utf-8"))
+    return b
 
 
 def _nibWriteClassesSection(classes):
-    bytes = bytearray()
+    b = bytearray()
     for cls in classes:
-        _nibWriteFlexNumber(bytes, len(cls) + 1)
-        bytes.append(0x80)
-        bytes.extend(cls.encode("utf-8"))
-        bytes.append(0x00)
-    return bytes
+        _nibWriteFlexNumber(b, len(cls) + 1)
+        b.append(0x80)
+        b.extend(cls.encode("utf-8"))
+        b.append(0x00)
+    return b
 
 
 def _nibWriteValuesSection(values):
-    bytes = bytearray()
+    b = bytearray()
     for value in values:
         keyidx = value[0]
         encoding_type = value[1]
-        _nibWriteFlexNumber(bytes, keyidx)
-        bytes.append(encoding_type)
+        _nibWriteFlexNumber(b, keyidx)
+        b.append(encoding_type)
 
         if encoding_type == NIB_TYPE_FALSE:
             continue
@@ -108,19 +108,19 @@ def _nibWriteValuesSection(values):
             continue
         if encoding_type == NIB_TYPE_OBJECT:
             try:
-                bytes.extend(struct.pack("<I", value[2]))
+                b.extend(struct.pack("<I", value[2]))
             except struct.error:
                 print("Encoding object not in object list:", value[3])
                 raise
             continue
         if encoding_type == NIB_TYPE_WORD:
-            bytes.extend(struct.pack("<I", value[2]))
+            b.extend(struct.pack("<I", value[2]))
             continue
         if encoding_type == NIB_TYPE_BYTE:
-            bytes.append(value[2])
+            b.append(value[2])
             continue
         if encoding_type == NIB_TYPE_SHORT:
-            bytes.append(struct.pack("<H", value[2]))
+            b.append(struct.pack("<H", value[2]))
             continue
         if (
             encoding_type == NIB_TYPE_STRING
@@ -128,13 +128,13 @@ def _nibWriteValuesSection(values):
             v = value[2]
             if isinstance(v, str):
                 v = v.encode("utf-8")
-            _nibWriteFlexNumber(bytes, len(v))
-            bytes.extend(v)
+            _nibWriteFlexNumber(b, len(v))
+            b.extend(v)
             continue
         if encoding_type == NIB_TYPE_DOUBLE:
-            bytes.extend(struct.pack("<d", value[2]))
+            b.extend(struct.pack("<d", value[2]))
             continue
 
         raise Exception("Bad encoding type: " + str(encoding_type))
 
-    return bytes
+    return b

@@ -105,7 +105,7 @@ class NibData(NibObject):
         self._data = data
 
     def getKeyValuePairs(self):
-        # print "MARCO YOLO", type(self._data)
+        # print("MARCO YOLO", type(self._data))
         # raise Exception("EVERYTHING IS OK")
         return [("NS.bytes", self._data)]
 
@@ -132,12 +132,14 @@ class NibNil:
 
 
 def NibFloatToWord(num):
-    bytes = struct.pack("<f", num)
-    return struct.unpack("<I", bytes)[0]
+    b = struct.pack("<f", num)
+    return struct.unpack("<I", b)[0]
 
 
 class NibList(NibObject):
-    def __init__(self, items=[]):
+    def __init__(self, items=None):
+        if items is None:
+            items = []
         NibObject.__init__(self, "NSArray")
         self._items = items
 
@@ -256,16 +258,16 @@ class CompilationContext:
 
         if isinstance(obj, NibDictionaryImpl):
             # objects = obj._objects
-            # for i in range(0, len(objects))
+            # for i in range(len(objects))
             # self.addObjects(obj._objects)
 
-            keyset = list(range(0, len(obj._objects)))
+            keyset = list(range(len(obj._objects)))
             objectset = obj._objects
 
         elif isinstance(obj, NibList):
             # self.addObjects(obj._items)
 
-            keyset = list(range(0, len(obj._items)))
+            keyset = list(range(len(obj._items)))
             objectset = obj._items
 
         else:
@@ -312,9 +314,9 @@ class CompilationContext:
             out_keys.append(key)
             return len(out_keys) - 1
 
-        for object in self.object_list:
+        for obj in self.object_list:
             obj_values_start = len(out_values)
-            kvpairs = object.getKeyValuePairs()
+            kvpairs = obj.getKeyValuePairs()
             for k, v in kvpairs:
                 if isinstance(v, NibObject):
                     key_idx = idx_of_key(k)
@@ -369,7 +371,7 @@ class CompilationContext:
                     )
 
             obj_values_end = len(out_values)
-            class_idx = idx_of_class(object.classname())
+            class_idx = idx_of_class(obj.classname())
             out_objects.append(
                 (class_idx, obj_values_start, obj_values_end - obj_values_start)
             )

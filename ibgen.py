@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-from genlib import *
+from genlib import CompileNibObjects, NibObject
 
 view = NibObject("UIView")
 viewController = NibObject("UINavigationController")
