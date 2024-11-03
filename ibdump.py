@@ -27,7 +27,7 @@ def readFlexNumber(b, addr):
     shift = 0
     ptr = addr
     while True:
-        num = ord(b[ptr])
+        num = b[ptr]
         ptr += 1
 
         number |= (num & 0x7F) << shift
@@ -45,7 +45,7 @@ def readHeader(b, start):
     # print("Header size (words):", str(hsize))
     sections = []
     sectionDataStart = start + 4
-    for section in range((hsize - 1) / 2):
+    for section in range((hsize - 1) // 2):
         objcount = rword(
             b[sectionDataStart + section * 8 : sectionDataStart + section * 8 + 4]
         )
@@ -96,7 +96,7 @@ def readClasses(b, classSection):
         length = r[0]
         ptr += r[1]
 
-        tp = ord(b[ptr])
+        tp = b[ptr]
         ptr += 1
 
         unknown = None
@@ -128,12 +128,12 @@ def readValues(b, valuesSection, debugKeys=None):
         key_idx = r[0]
         ptr += r[1]
 
-        encoding = ord(b[ptr])
+        encoding = b[ptr]
         ptr += 1
 
         value = None
         if encoding == 0x00:  # single byte
-            value = ord(b[ptr])
+            value = b[ptr]
             ptr += 1
         elif encoding == 0x01:  # short
             value = struct.unpack("<H", b[ptr : ptr + 2])[0]
@@ -157,7 +157,7 @@ def readValues(b, valuesSection, debugKeys=None):
             r = readFlexNumber(b, ptr)
             length = r[0]
             ptr += r[1]
-            if length and ord(b[ptr]) == 0x07:
+            if length and b[ptr] == 0x07:
                 if length == 17:
                     value = struct.unpack("<dd", b[ptr + 1 : ptr + 17])
                 elif length == 33:
@@ -242,13 +242,13 @@ def ibdump(filename, showencoding=None):
         filebytes = file.read()
 
     pfx = filebytes[0:10]
-    print("Prefix: " + pfx)
+    print("Prefix:", pfx)
 
     headers = filebytes[10 : 10 + 4]
     headers = rword(headers)
-    print("Headers: " + str(headers))
+    print("Headers:", headers)
 
-    if str(pfx) != "NIBArchive":
+    if pfx != b"NIBArchive":
         print('"%s" is not a NIBArchive file.' % (filename))
         return
 
