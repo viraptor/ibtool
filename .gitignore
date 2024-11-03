@@ -9,3 +9,4 @@
 *.storyboardc
 *.txt
 
+!samples/**
