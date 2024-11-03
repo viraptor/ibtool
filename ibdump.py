@@ -138,6 +138,9 @@ def readValues(b, valuesSection, debugKeys=None):
         elif encoding == 0x01:  # short
             value = struct.unpack("<H", b[ptr : ptr + 2])[0]
             ptr += 2
+        elif encoding == 0x02:  # 4 byte integer
+            value = struct.unpack("<I", b[ptr : ptr + 4])[0]
+            ptr += 4
         elif encoding == 0x03:  # 8 byte integer
             value = rquad(b[ptr : ptr + 8])
             ptr += 8
@@ -176,8 +179,8 @@ def readValues(b, valuesSection, debugKeys=None):
         else:
             # print("dumping classes:", globals()["classes"])
             print("dumping keys:")
-            for n, key in enumerate(globals()["keys"]):
-                print(f"{n:X}\t{(n | 0x80):X}\t{key}")
+            for n, val in enumerate(debugKeys):
+                print(f"{n:X}\t{(n | 0x80):X}\t{val}")
             raise Exception(
                 "Unknown value encoding (key %d idx %d addr %d): "
                 % (key_idx, i, ptr - 1)
@@ -232,7 +235,7 @@ def readNibSectionsFromBytes(b):
     # print objects
     keys = readKeys(b, sections[1])
     # print keys
-    values = readValues(b, sections[2])
+    values = readValues(b, sections[2], keys)
     # print values
     return (objects, keys, values, classes)
 
