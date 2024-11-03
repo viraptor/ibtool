@@ -5,7 +5,7 @@ NIB_TYPE_SHORT = 0x01
 NIB_TYPE_LONG = 0x02
 NIB_TYPE_FALSE = 0x04
 NIB_TYPE_TRUE = 0x05
-NIB_TYPE_WORD = 0x06
+NIB_TYPE_FLOAT = 0x06
 NIB_TYPE_DOUBLE = 0x07
 NIB_TYPE_STRING = 0x08  # Can also be used for tuples. e.g. CGPoint/Size/Rect
 NIB_TYPE_OBJECT = 0x0A
@@ -114,8 +114,8 @@ def _nibWriteValuesSection(values):
                 print("Encoding object not in object list:", value[3])
                 raise
             continue
-        if encoding_type == NIB_TYPE_WORD:
-            b.extend(struct.pack("<I", value[2]))
+        if encoding_type == NIB_TYPE_FLOAT:
+            b.extend(struct.pack("<f", value[2]))
             continue
         if encoding_type == NIB_TYPE_BYTE:
             b.append(value[2])
