@@ -8,6 +8,9 @@ from genlib import (
     NibProxyObject,
     NibString,
     NibNil,
+    NibList,
+    NibMutableList,
+    NibMutableSet,
 )
 
 """
@@ -34,15 +37,36 @@ def ParseXIBObjects(element, context=None, resolveConnections=True, parent=None)
     if resolveConnections:
         context.resolveConnections()
 
+    return createTopLevel(toplevel, context.connections, context.extraNibObjects)
+
+def createTopLevel(rootObject, connections, extraObjects):
+    rootData = NibObject("NSIBObjectData")
+    rootData["NSRoot"] = rootObject[0]
+    rootData["VisibleWindows"] = NibMutableSet()
+    rootData["NSConnections"] = NibMutableList()
+    rootData["NSObjectsKeys"] = NibList()
+    rootData["NSObjectsValues"] = NibList()
+    rootData["NSOidsKeys"] = NibList([
+        rootObject[0],
+        NibObject("NSCustomObject", {"NSClassName": rootObject[0]["NSClassName"]})
+    ]),
+    rootData["NSOidsValues"] = NibList([1, 2])
+    rootData["NSAccessibilityConnectors"] = NibMutableList(),
+    rootData["NSAccessibilityOidsKeys"] = NibList(),
+    rootData["NSAccessibilityOidsValues"] = NibList(),
+    return NibObject("NSObject", {
+        "IB.objectdata": rootData,
+        "IB.systemFontUpdateVersion": 1,
+    })
+
+# original, not sure which version/type uses it
+def old_top_level():
     root = NibObject("NSObject")
     root["UINibTopLevelObjectsKey"] = toplevel
     # __xibparser_resolveConnections(ib_connections, ib_objects)
     root["UINibConnectionsKey"] = context.connections
     root["UINibObjectsKey"] = list(toplevel)
     root["UINibObjectsKey"].extend(context.extraNibObjects)
-
-    return root
-
 
 def CompileStoryboard(tree, foldername):
     import os

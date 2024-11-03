@@ -8,14 +8,15 @@ import nibencoding
 class NibObject:
     _total = 1000
 
-    def __init__(self, classnme="NSObject"):
+    def __init__(self, classnme="NSObject", initProperties={}):
         self._classname = classnme
         self._serial = NibObject._total
         NibObject._total += 1
         self.properties = {}
         self._nibidx = -1
         self._repr = None
-        pass
+        for k, v in initProperties.items():
+            self[k] = v
 
     def setclassname(self, newname):
         self._classname = newname
@@ -141,6 +142,32 @@ class NibList(NibObject):
         if items is None:
             items = []
         NibObject.__init__(self, "NSArray")
+        self._items = items
+
+    def getKeyValuePairs(self):
+        return [("NSInlinedValue", True)] + [
+            ("UINibEncoderEmptyKey", item) for item in self._items
+        ]
+
+
+class NibMutableList(NibObject):
+    def __init__(self, items=None):
+        if items is None:
+            items = []
+        NibObject.__init__(self, "NSMutableArray")
+        self._items = items
+
+    def getKeyValuePairs(self):
+        return [("NSInlinedValue", True)] + [
+            ("UINibEncoderEmptyKey", item) for item in self._items
+        ]
+
+
+class NibMutableSet(NibObject):
+    def __init__(self, items=None):
+        if items is None:
+            items = []
+        NibObject.__init__(self, "NSMutableSet")
         self._items = items
 
     def getKeyValuePairs(self):
