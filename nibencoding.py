@@ -8,6 +8,7 @@ NIB_TYPE_TRUE = 0x05
 NIB_TYPE_FLOAT = 0x06
 NIB_TYPE_DOUBLE = 0x07
 NIB_TYPE_STRING = 0x08  # Can also be used for tuples. e.g. CGPoint/Size/Rect
+NIB_TYPE_NIL = 0x09
 NIB_TYPE_OBJECT = 0x0A
 
 
@@ -106,6 +107,8 @@ def _nibWriteValuesSection(values):
         if encoding_type == NIB_TYPE_FALSE:
             continue
         if encoding_type == NIB_TYPE_TRUE:
+            continue
+        if encoding_type == NIB_TYPE_NIL:
             continue
         if encoding_type == NIB_TYPE_OBJECT:
             try:

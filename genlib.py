@@ -365,6 +365,8 @@ class CompilationContext:
                     out_values.append((idx_of_key(k), nibencoding.NIB_TYPE_TRUE))
                 elif v is False:
                     out_values.append((idx_of_key(k), nibencoding.NIB_TYPE_FALSE))
+                elif isinstance(v, NibNil):
+                    out_values.append((idx_of_key(k), nibencoding.NIB_TYPE_NIL))
                 elif isinstance(v, float):
                     out_values.append((idx_of_key(k), nibencoding.NIB_TYPE_DOUBLE, v))
                 elif isinstance(v, int):
