@@ -990,7 +990,7 @@ def _xibparser_parse_action(ctx, elem, parent):
     con = NibObject("UIRuntimeEventConnection")
     con["UILabel"] = elem.attrib["selector"]
     con["UISource"] = parent
-    con["UIDestination"] = elem.attrib["destination"]
+    con["UIDestination"] = elem.attrib.get("destination") or elem.attrib.get("target")
     con["UIEventMask"] = mask
 
     ctx.connections.append(con)
