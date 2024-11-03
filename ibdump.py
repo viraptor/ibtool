@@ -64,7 +64,7 @@ def readKeys(b, keysSection):
         length = rd[0]
         ptr += rd[1]
 
-        keys.append(str(b[ptr : ptr + length]))
+        keys.append(b[ptr : ptr + length].decode('utf-8'))
         ptr += length
     return keys
 
@@ -106,7 +106,7 @@ def readClasses(b, classSection):
             ptr += 4
             print("readClasses: Mystery value:", unknown, "(", end=" ")
 
-        classes.append(str(b[ptr : ptr + length - 1]))
+        classes.append(b[ptr : ptr + length - 1].decode('utf-8'))
 
         if unknown:
             print(classes[-1], ")")
@@ -242,15 +242,15 @@ def ibdump(filename, showencoding=None):
         filebytes = file.read()
 
     pfx = filebytes[0:10]
-    print("Prefix:", pfx)
+    if pfx != b"NIBArchive":
+        print('"%s" is not a NIBArchive file.' % (filename))
+        return
+
+    print("Prefix:", pfx.decode('utf-8'))
 
     headers = filebytes[10 : 10 + 4]
     headers = rword(headers)
     print("Headers:", headers)
-
-    if pfx != b"NIBArchive":
-        print('"%s" is not a NIBArchive file.' % (filename))
-        return
 
     nib = readNibSectionsFromBytes(filebytes)
     fancyPrintObjects(nib, showencoding=showencoding)
