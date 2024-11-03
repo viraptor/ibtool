@@ -18,7 +18,7 @@ def WriteNib(nib):
     b = bytearray()
     b.extend(b"NIBArchive")
     b.extend([1, 0, 0, 0])
-    b.extend([9, 0, 0, 0])
+    b.extend([10, 0, 0, 0])
 
     objs = nib[0]
     keys = nib[1]
