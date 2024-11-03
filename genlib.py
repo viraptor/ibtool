@@ -351,9 +351,13 @@ class CompilationContext:
                         out_values.append(
                             (idx_of_key(k), nibencoding.NIB_TYPE_SHORT, v)
                         )
+                    elif v < 0x100000000:
+                        out_values.append(
+                            (idx_of_key(k), nibencoding.NIB_TYPE_LONG, v)
+                        )
                     else:
                         raise Exception(
-                            "Encoding integers larger than short is not supported yet."
+                            "Encoding integers larger than long is not supported yet."
                         )
 
                 elif isinstance(v, tuple):

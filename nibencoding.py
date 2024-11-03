@@ -2,6 +2,7 @@ import struct
 
 NIB_TYPE_BYTE = 0x00
 NIB_TYPE_SHORT = 0x01
+NIB_TYPE_LONG = 0x02
 NIB_TYPE_FALSE = 0x04
 NIB_TYPE_TRUE = 0x05
 NIB_TYPE_WORD = 0x06
@@ -120,7 +121,10 @@ def _nibWriteValuesSection(values):
             b.append(value[2])
             continue
         if encoding_type == NIB_TYPE_SHORT:
-            b.append(struct.pack("<H", value[2]))
+            b.extend(struct.pack("<H", value[2]))
+            continue
+        if encoding_type == NIB_TYPE_LONG:
+            b.extend(struct.pack("<I", value[2]))
             continue
         if (
             encoding_type == NIB_TYPE_STRING
