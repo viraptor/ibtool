@@ -41,19 +41,18 @@ def ParseXIBObjects(element, context=None, resolveConnections=True, parent=None)
 
 def createTopLevel(rootObject, connections, extraObjects):
     rootData = NibObject("NSIBObjectData")
+    appClass = NibObject("NSCustomObject", {"NSClassName": rootObject[0]["NSClassName"]})
     rootData["NSRoot"] = rootObject[0]
-    rootData["VisibleWindows"] = NibMutableSet()
+    rootData["NSVisibleWindows"] = NibMutableSet()
     rootData["NSConnections"] = NibMutableList()
-    rootData["NSObjectsKeys"] = NibList()
-    rootData["NSObjectsValues"] = NibList()
-    rootData["NSOidsKeys"] = NibList([
-        rootObject[0],
-        NibObject("NSCustomObject", {"NSClassName": rootObject[0]["NSClassName"]})
-    ]),
-    rootData["NSOidsValues"] = NibList([1, 2])
-    rootData["NSAccessibilityConnectors"] = NibMutableList(),
-    rootData["NSAccessibilityOidsKeys"] = NibList(),
-    rootData["NSAccessibilityOidsValues"] = NibList(),
+    rootData["NSObjectsKeys"] = NibList([appClass])
+    rootData["NSObjectsValues"] = NibList([rootObject[0]])
+    rootData["NSOidsKeys"] = NibList([rootObject[0], appClass])
+    rootData["NSOidsValues"] = NibList([NibNSNumber(1), NibNSNumber(2)])
+    rootData["NSAccessibilityConnectors"] = NibMutableList()
+    emptyList = NibList()
+    rootData["NSAccessibilityOidsKeys"] = emptyList
+    rootData["NSAccessibilityOidsValues"] = emptyList
     return NibObject("NSObject", {
         "IB.objectdata": rootData,
         "IB.systemFontUpdateVersion": 1,
@@ -1574,12 +1573,12 @@ def _xibparser_parse_customObject(ctx, elem, parent):
     item.xibid = elem.attrib["id"]
     ctx.addObject(item.xibid, item)
     className = NibString(elem.attrib.get("customClass"))
-    item["NSClassName"] = className
     classRef = XibObject("IBClassReference")
     classRef["IBClassName"] = className
-    classRef["IBModuleName"] = NibNil() # TODO nils don't save
+    classRef["IBModuleName"] = NibNil()
     classRef["IBModuleProvider"] = NibNil()
     item["IBClassReference"] = classRef
+    item["NSClassName"] = className
     __xibparser_ParseChildren(ctx, elem, item)
     return item
 
