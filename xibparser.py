@@ -460,9 +460,12 @@ def __xibparser_ParseXIBObject(ctx, elem, parent):
     if parsefn:
         obj = parsefn(ctx, elem, parent)
         if obj and isinstance(obj, XibObject):
+            if elem.attrib.get("id") == None:
+                raise Exception(f"Unknown id for {elem} (parent {parent})")
             obj.xibid = elem.attrib["id"]
         return obj
-    return None
+    else:
+        raise Exception(f"Unknown type {tag}")
 
 
 def __xibparser_ParseChildren(ctx, elem, obj):
