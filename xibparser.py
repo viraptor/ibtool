@@ -7,6 +7,7 @@ from genlib import (
     NibObject,
     NibProxyObject,
     NibString,
+    NibNil,
 )
 
 """
@@ -1532,3 +1533,88 @@ def _xibparser_parse_fontDescription(ctx, elem, parent):
     font["NSSize"] = size
 
     parent["UIFont"] = font
+
+def _xibparser_parse_window(ctx, elem, parent):
+    item = XibObject("NSWindowTemplate")
+    item.xibid = elem.attrib["id"]
+    ctx.addObject(item.xibid, item)
+    item["NSWindowTitle"] = NibString(elem.attrib.get("title"))
+    item["NSWindowIsRestorable"] = elem.attrib.get("restorable") == "YES"
+    item["NSWindowTabbingMode"] = {"disallowed": 2}[elem.attrib.get("tabbingMode")]
+    item["NSViewClass"] = None # TODO
+    __xibparser_ParseChildren(ctx, elem, item)
+    return item
+
+def _xibparser_parse_customObject(ctx, elem, parent):
+    item = XibObject("NSCustomObject")
+    item.xibid = elem.attrib["id"]
+    ctx.addObject(item.xibid, item)
+    className = NibString(elem.attrib.get("customClass"))
+    item["NSClassName"] = className
+    classRef = XibObject("IBClassReference")
+    classRef["IBClassName"] = className
+    classRef["IBModuleName"] = NibNil() # TODO nils don't save
+    classRef["IBModuleProvider"] = NibNil()
+    item["IBClassReference"] = classRef
+    __xibparser_ParseChildren(ctx, elem, item)
+    return item
+
+def _xibparser_parse_windowStyleMask(ctx, elem, parent):
+    maskmap = {
+        "titled": 1 << 0,
+        "closable": 1 << 1,
+        "miniaturizable": 1 << 2,
+    }
+    value = sum((elem.attrib[attr] == "YES") * val for attr, val in maskmap.items())
+    parent["NSWindowStyleMask"] = value
+
+def _xibparser_parse_windowPositionMask(ctx, elem, parent):
+    maskmap = {
+        "leftStrut": 1 << 0,
+        "bottomStrut": 1 << 1,
+    }
+    value = sum((elem.attrib[attr] == "YES") * val for attr, val in maskmap.items())
+    parent["NSWindowPositionMask"] = value
+
+def _xibparser_parse_textField(ctx, elem, parent):
+    obj = _xibparser_parse_view(ctx, elem, parent, uikit_class="NSTextField")
+    return obj
+
+def _xibparser_parse_textFieldCell(ctx, elem, parent):
+    obj = _xibparser_parse_view(ctx, elem, parent, uikit_class="NSTextFieldCell")
+    return obj
+
+def _xibparser_parse_progressIndicator(ctx, elem, parent):
+    obj = _xibparser_parse_view(ctx, elem, parent, uikit_class="NSProgressIndicator")
+    return obj
+
+def _xibparser_parse_buttonCell(ctx, elem, parent):
+    obj = _xibparser_parse_view(ctx, elem, parent, uikit_class="NSButtonCell")
+    return obj
+
+def _xibparser_parse_font(ctx, elem, parent):
+    item = NibObject("NSFont")
+    assert elem.attrib["metaFont"] == "system" # other options unknown
+    item["NSName"] = NibString(".AppleSystemUIFont")
+    item["NSSize"] = 13.0
+    item["NSfFlags"] = 1044
+    parent["NSSupport"] = item
+    return item
+
+def _xibparser_parse_behavior(ctx, elem, parent):
+    assert parent.classname() == "NSButtonCell"
+    maskmap = {
+        "pushIn": 1<<31,
+        "lightByBackground": 1<<26,
+        "lightByGray": 1<<25,
+    }
+    value = sum((elem.attrib[attr] == "YES") * val for attr, val in maskmap.items())
+    if value == sum(maskmap.values()):
+        parent["NSAuxButtonType"] = 7
+    else:
+        parent["NSAuxButtonType"] = 0
+    parent["NSButtonFlags"] = 0x804000 + value
+
+def _xibparser_parse_string(ctx, elem, parent):
+    assert parent.classname() == "NSButtonCell"
+    parent["NSContents"] = NibString(elem.attrib.get(""))
