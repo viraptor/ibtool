@@ -1595,6 +1595,8 @@ def _xibparser_parse_window(ctx, elem, parent):
     item["NSWindowTabbingMode"] = {"disallowed": 2}[elem.attrib.get("tabbingMode")]
     return item
 
+DEFAULT_NSAPPLICATION_STRING = NibString("NSApplication")
+
 def _xibparser_parse_customObject(ctx, elem, parent):
     item = XibObject("NSCustomObject")
     item.xibid = elem.attrib["id"]
@@ -1607,11 +1609,11 @@ def _xibparser_parse_customObject(ctx, elem, parent):
         classRef["IBModuleProvider"] = NibNil()
         item["IBClassReference"] = classRef
         if int(item.xibid) == -3:
-            item["NSClassName"] = NibString("NSApplication")
+            item["NSClassName"] = DEFAULT_NSAPPLICATION_STRING
         else:
             item["NSClassName"] = className
     elif int(item.xibid) < 0:
-        item["NSClassName"] = NibString("NSApplication")
+        item["NSClassName"] = DEFAULT_NSAPPLICATION_STRING
     else:
         item["NSClassName"] = NibString("NSObject")
     __xibparser_ParseChildren(ctx, elem, item)
