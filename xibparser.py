@@ -1393,13 +1393,12 @@ def _xibparser_parse_color(ctx, elem, parent):
 
 # TODO: I think this function might need more logic when the bounds aren't set at 0, 0
 def _xibparser_parse_rect(ctx, elem, parent):
-    x = float(elem.attrib.get("x"))
-    y = float(elem.attrib.get("y"))
-    w = float(elem.attrib.get("width"))
-    h = float(elem.attrib.get("height"))
-
     key = elem.attrib.get("key")
     if key == "frame":
+        x = float(elem.attrib.get("x"))
+        y = float(elem.attrib.get("y"))
+        w = float(elem.attrib.get("width"))
+        h = float(elem.attrib.get("height"))
 
         cx = float(x + w / 2)
         cy = float(y + h / 2)
@@ -1411,7 +1410,14 @@ def _xibparser_parse_rect(ctx, elem, parent):
         bounds = (bx, by, bw, bh)
         parent["UICenter"] = center
         parent["UIBounds"] = bounds
-
+    elif key == "contentRect":
+        x = int(elem.attrib.get("x"))
+        y = int(elem.attrib.get("y"))
+        w = int(elem.attrib.get("width"))
+        h = int(elem.attrib.get("height"))
+        parent["NSWindowRect"] = "{{" + str(x) + ", " + str(y) + "}, {" + str(w) + ", " + str(h) + "}}"
+    else:
+        raise Exception(f"unknown rect key {key}")
 
 def _xibparser_parse_inset(ctx, elem, parent):
     key = elem.attrib.get("key")
