@@ -616,7 +616,7 @@ WontDo
 
 @classSwapper
 def _xibparser_parse_view(ctx, elem, parent, **kwargs):
-    obj = XibObject(kwargs.get("uikit_class") or "UIView")
+    obj = XibObject(kwargs.get("uikit_class") or "NSView")
     obj.setrepr(elem)
 
     key = elem.get("key")
@@ -629,14 +629,18 @@ def _xibparser_parse_view(ctx, elem, parent, **kwargs):
         parent["UITableHeaderView"] = obj
         parent.append("UISubviews", obj)
     elif key == "contentView":
-        if parent.originalclassname() != "UIVisualEffectView":
-            print(
+        if parent.originalclassname() == "UIVisualEffectView":
+            parent["UIVisualEffectViewContentView"] = obj
+            obj.setclassname("_UIVisualEffectContentView")
+        elif parent.originalclassname() == "NSWindowTemplate":
+            parent["NSWindowView"] = obj
+        else:
+            raise Exception(
                 "Unhandled class '%s' to take UIView with key 'contentView'"
                 % (parent.originalclassname())
             )
-        else:
-            parent["UIVisualEffectViewContentView"] = obj
-            obj.setclassname("_UIVisualEffectContentView")
+    else:
+        raise Exception(f"view in unknown key {key} (parent {parent.repr()})")
 
     isMainView = key == "view"  # and isinstance(parent, XibViewController)?
 
@@ -870,7 +874,7 @@ def _xibparser_parse_state(ctx, elem, parent):
 def _xibparser_parse_subviews(ctx, elem, parent):
     # Do we need to pass 'parent' here? Is there anything in XIBs where any of the subviews have a "key" attribute. Table views maybe?
     views = __xibparser_ParseChildren(ctx, elem, parent)
-    parent.extend("UISubviews", views)
+    parent["NSSubviews"] = NibMutableList(views)
 
 
 def _xibparser_parse_prototypes(ctx, elem, parent):
@@ -1599,7 +1603,8 @@ def _xibparser_parse_window(ctx, elem, parent):
     item["NSWindowClass"] = NibString("NSWindow")
     item["NSViewClass"] = NibNil() # TODO
     item["NSUserInterfaceItemIdentifier"] = NibNil() # TODO
-    item["NSWindowView"] = NibNil() # TODO
+    if not item.get("NSWindowView"):
+        item["NSWindowView"] = NibNil()
     if not item.get("NSWindowRect"):
         item["NSScreenRect"] = '{{0, 0}, {0, 0}}'
     item["NSMaxSize"] = '{10000000000000, 10000000000000}'
