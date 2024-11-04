@@ -113,9 +113,8 @@ def _nibWriteValuesSection(values):
         if encoding_type == NIB_TYPE_OBJECT:
             try:
                 b.extend(struct.pack("<I", value[2]))
-            except struct.error:
-                print("Encoding object not in object list:", value[3])
-                raise
+            except struct.error as err:
+                raise Exception(f"Encoding object not in object list: {value[3]} failed at value: {value[2]}") from err
             continue
         if encoding_type == NIB_TYPE_FLOAT:
             b.extend(struct.pack("<f", value[2]))
