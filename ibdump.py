@@ -190,6 +190,55 @@ def readValues(b, valuesSection, debugKeys=None):
     return values
 
 
+def treePrintObjects(nib, prefix="", showencoding=False, alreadyPrinted=set(), obj_id=None):
+    objects, keys, values, classes = nib
+    if obj_id:
+        to_print = [o for i,o in enumerate(objects) if i == obj_id]
+    else:
+        to_print = objects
+
+    for o_idx, obj in enumerate(objects):
+        if obj not in to_print:
+            continue
+        if not prefix and o_idx in alreadyPrinted:
+            continue
+        alreadyPrinted.add(o_idx)
+
+        # print object
+        classname = classes[obj[0]]
+        obj_values = values[obj[1] : obj[1] + obj[2]]
+
+        print(prefix + "%3d: %s" % (o_idx, classname))
+
+        for v in obj_values:
+            k_str = keys[v[0]]
+            v_str = str(v[1])
+
+            printSubNib = (
+                k_str == "NS.bytes"
+                and len(v_str) > 40
+                and v_str.startswith("NIBArchive")
+            )
+
+            if printSubNib:
+                print(prefix + "\t" + k_str + " = Encoded NIB Archive")
+                nib = readNibSectionsFromBytes(v[1])
+                fancyPrintObjects(nib, prefix + "\t", showencoding)
+
+            elif v[2] == 10:
+                if showencoding:
+                    print(prefix + "\t" + k_str + " = (" + str(v[2]) + ")")
+                else:
+                    print(prefix + "\t" + k_str + " =")
+                treePrintObjects(nib, prefix + "\t", showencoding, alreadyPrinted, int(v[1][1:]))
+
+            else:
+                if showencoding:
+                    print(prefix + "\t" + k_str + " = (" + str(v[2]) + ")", v_str)
+                else:
+                    print(prefix + "\t" + k_str + " =", v_str)
+
+
 def fancyPrintObjects(nib, prefix="", showencoding=False):
     objects, keys, values, classes = nib
     for o_idx, obj in enumerate(objects):
@@ -240,7 +289,7 @@ def readNibSectionsFromBytes(b):
     return (objects, keys, values, classes)
 
 
-def ibdump(filename, showencoding=None):
+def ibdump(filename, showencoding=None, showTree=False):
     with open(filename, "rb") as file:
         filebytes = file.read()
 
@@ -256,7 +305,10 @@ def ibdump(filename, showencoding=None):
     print("Headers:", headers)
 
     nib = readNibSectionsFromBytes(filebytes)
-    fancyPrintObjects(nib, showencoding=showencoding)
+    if showTree:
+        treePrintObjects(nib, showencoding=showencoding)
+    else:
+        fancyPrintObjects(nib, showencoding=showencoding)
 
 
 if __name__ == "__main__":

@@ -15,7 +15,7 @@ class IBCommands:
 
 
 def main():
-    ops, args = getopt.getopt(sys.argv[1:], "e", ["compile=", "write=", "dump"])
+    ops, args = getopt.getopt(sys.argv[1:], "et", ["compile=", "write=", "dump"])
     if len(args) == 0:
         print("Error: No input file given.")
         sys.exit(1)
@@ -40,6 +40,8 @@ def main():
             command = IBCommands.Dump
         elif option == "-e":
             shortflags.append("e")
+        elif option == "-t":
+            shortflags.append("t")
 
     if command is None:
         print("Error: No command given.")
@@ -93,7 +95,8 @@ def ib_compile_storyboard(inpath, outpath):
 
 def ib_dump(inpath, shortflags):
     showencoding = "e" in shortflags
-    ibdump.ibdump(inpath, showencoding)
+    showTree = "t" in shortflags
+    ibdump.ibdump(inpath, showencoding, showTree)
 
 
 if __name__ == "__main__":
