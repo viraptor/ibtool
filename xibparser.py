@@ -40,15 +40,23 @@ def ParseXIBObjects(element, context=None, resolveConnections=True, parent=None)
     return createTopLevel(toplevel, context.connections, context.extraNibObjects)
 
 def createTopLevel(rootObject, connections, extraObjects):
+    #for obj in rootObject:
+    #    print('---', obj, obj.xibid)
+    #    for t in obj.getKeyValuePairs():
+    #        print(t)
+
+    applicationObject = [o for o in rootObject if int(o.xibid)==-3][0]
+    filesOwner = [o for o in rootObject if int(o.xibid)==-2][0]
+
     rootData = NibObject("NSIBObjectData")
-    appClass = NibObject("NSCustomObject", {"NSClassName": rootObject[0]["NSClassName"]})
     rootData["NSRoot"] = rootObject[0]
     rootData["NSVisibleWindows"] = NibMutableSet()
     rootData["NSConnections"] = NibMutableList()
-    rootData["NSObjectsKeys"] = NibList([appClass])
-    rootData["NSObjectsValues"] = NibList([rootObject[0]])
-    rootData["NSOidsKeys"] = NibList([rootObject[0], appClass])
-    rootData["NSOidsValues"] = NibList([NibNSNumber(1), NibNSNumber(2)])
+    rootData["NSObjectsKeys"] = NibList([applicationObject] + rootObject[3:])
+    rootData["NSObjectsValues"] = NibList([filesOwner])
+    oid_objects = [filesOwner, applicationObject] + rootObject[3:]
+    rootData["NSOidsKeys"] = NibList(oid_objects)
+    rootData["NSOidsValues"] = NibList([NibNSNumber(x+1) for x,_ in enumerate(oid_objects)])
     rootData["NSAccessibilityConnectors"] = NibMutableList()
     emptyList = NibList()
     rootData["NSAccessibilityOidsKeys"] = emptyList
@@ -1561,24 +1569,45 @@ def _xibparser_parse_window(ctx, elem, parent):
     item = XibObject("NSWindowTemplate")
     item.xibid = elem.attrib["id"]
     ctx.addObject(item.xibid, item)
-    item["NSWindowTitle"] = NibString(elem.attrib.get("title"))
-    item["NSWindowIsRestorable"] = elem.attrib.get("restorable") == "YES"
-    item["NSWindowTabbingMode"] = {"disallowed": 2}[elem.attrib.get("tabbingMode")]
-    item["NSViewClass"] = None # TODO
     __xibparser_ParseChildren(ctx, elem, item)
+    item["NSWindowBacking"] = 2
+    if not item.get("NSWindowRect"):
+        item["NSWindowRect"] = '{{0, 0}, {0, 0}}'
+    item["NSWTFlags"] = 0x20000000 # TODO
+    item["NSWindowTitle"] = NibString(elem.attrib.get("title"))
+    item["NSWindowSubtitle"] = ""
+    item["NSWindowClass"] = NibString("NSWindow")
+    item["NSViewClass"] = NibNil() # TODO
+    item["NSUserInterfaceItemIdentifier"] = NibNil() # TODO
+    item["NSWindowView"] = NibNil() # TODO
+    item["NSScreenRect"] = '{{0, 0}, {0, 0}}'
+    item["NSMaxSize"] = '{10000000000000, 10000000000000}'
+    item["NSWindowIsRestorable"] = elem.attrib.get("restorable") == "YES"
+    default_content_size = NibData('{{0, 0}, {0, 0}}')
+    item["NSMinFullScreenContentSize"] = default_content_size
+    item["NSMaxFullScreenContentSize"] = default_content_size
+    item["NSWindowTabbingMode"] = {"disallowed": 2}[elem.attrib.get("tabbingMode")]
     return item
 
 def _xibparser_parse_customObject(ctx, elem, parent):
     item = XibObject("NSCustomObject")
     item.xibid = elem.attrib["id"]
     ctx.addObject(item.xibid, item)
-    className = NibString(elem.attrib.get("customClass"))
-    classRef = XibObject("IBClassReference")
-    classRef["IBClassName"] = className
-    classRef["IBModuleName"] = NibNil()
-    classRef["IBModuleProvider"] = NibNil()
-    item["IBClassReference"] = classRef
-    item["NSClassName"] = className
+    if elem.attrib.get("customClass"):
+        classRef = XibObject("IBClassReference")
+        className = NibString(elem.attrib.get("customClass"))
+        classRef["IBClassName"] = className
+        classRef["IBModuleName"] = NibNil()
+        classRef["IBModuleProvider"] = NibNil()
+        item["IBClassReference"] = classRef
+        if int(item.xibid) == -3:
+            item["NSClassName"] = NibString("NSApplication")
+        else:
+            item["NSClassName"] = className
+    elif int(item.xibid) < 0:
+        item["NSClassName"] = NibString("NSApplication")
+    else:
+        item["NSClassName"] = NibString("NSObject")
     __xibparser_ParseChildren(ctx, elem, item)
     return item
 
