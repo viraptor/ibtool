@@ -1660,19 +1660,45 @@ def _xibparser_parse_windowPositionMask(ctx, elem, parent):
     parent["NSWindowPositionMask"] = value
 
 def _xibparser_parse_textField(ctx, elem, parent):
-    obj = _xibparser_parse_view(ctx, elem, parent, uikit_class="NSTextField")
+    obj = XibObject("NSTextField")
+    __xibparser_ParseChildren(ctx, elem, obj)
+    obj["NSNextResponder"] = NibNil() # TODO
+    obj["NSNibTouchBar"] = NibNil() # TODO
+    obj["NSvFlags"] = 0x10c # TODO
+    obj["NSFrame"] = NibNil() # TODO
+    obj["NSSuperview"] = NibNil() # TODO
+    obj["NSViewWantsBestResolutionOpenGLSurface"] = True
+    obj["IBNSSafeAreaLayoutGuide"] = NibNil()
+    obj["IBNSLayoutMarginsGuide"] = NibNil()
+    obj["IBNSClipsToBounds"] = 0
+    obj["NSEnabled"] = True
+    obj["NSCell"] = NibNil() # TODO
+    obj["NSAllowsLogicalLayoutDirection"] = False
+    obj["NSControlSize"] = 0
+    obj["NSControlSize2"] = 0
+    obj["NSControlContinuous"] = False
+    obj["NSControlRefusesFirstResponder"] = False
+    obj["NSControlUsesSingleLineMode"] = False
+    obj["NSControlTextAlignment"] = 4
+    obj["NSControlLineBreakMode"] = 4
+    obj["NSControlWritingDirection"] = -1
+    obj["NSControlSendActionMask"] = 4
+    obj["NSTextFieldAlignmentRectInsetsVersion"] = 2
     return obj
 
 def _xibparser_parse_textFieldCell(ctx, elem, parent):
-    obj = _xibparser_parse_view(ctx, elem, parent, uikit_class="NSTextFieldCell")
+    obj = XibObject("NSTextFieldCell")
+    __xibparser_ParseChildren(ctx, elem, obj)
     return obj
 
 def _xibparser_parse_progressIndicator(ctx, elem, parent):
-    obj = _xibparser_parse_view(ctx, elem, parent, uikit_class="NSProgressIndicator")
+    obj = XibObject("NSProgressIndicator")
+    __xibparser_ParseChildren(ctx, elem, obj)
     return obj
 
 def _xibparser_parse_buttonCell(ctx, elem, parent):
-    obj = _xibparser_parse_view(ctx, elem, parent, uikit_class="NSButtonCell")
+    obj = XibObject("NSButtonCell")
+    __xibparser_ParseChildren(ctx, elem, obj)
     return obj
 
 def _xibparser_parse_font(ctx, elem, parent):
