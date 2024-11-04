@@ -1417,6 +1417,12 @@ def _xibparser_parse_rect(ctx, elem, parent):
         w = int(elem.attrib.get("width"))
         h = int(elem.attrib.get("height"))
         parent["NSWindowRect"] = "{{" + str(x) + ", " + str(y) + "}, {" + str(w) + ", " + str(h) + "}}"
+    elif key == "screenRect":
+        x = int(float(elem.attrib.get("x")))
+        y = int(float(elem.attrib.get("y")))
+        w = int(elem.attrib.get("width"))
+        h = int(elem.attrib.get("height"))
+        parent["NSScreenRect"] = "{{" + str(x) + ", " + str(y) + "}, {" + str(w) + ", " + str(h) + "}}"
     else:
         raise Exception(f"unknown rect key {key}")
 
@@ -1594,7 +1600,8 @@ def _xibparser_parse_window(ctx, elem, parent):
     item["NSViewClass"] = NibNil() # TODO
     item["NSUserInterfaceItemIdentifier"] = NibNil() # TODO
     item["NSWindowView"] = NibNil() # TODO
-    item["NSScreenRect"] = '{{0, 0}, {0, 0}}'
+    if not item.get("NSWindowRect"):
+        item["NSScreenRect"] = '{{0, 0}, {0, 0}}'
     item["NSMaxSize"] = '{10000000000000, 10000000000000}'
     item["NSWindowIsRestorable"] = elem.attrib.get("restorable", "YES") == "YES"
     default_content_size = NibData('{{0, 0}, {0, 0}}')
