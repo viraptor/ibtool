@@ -1579,7 +1579,14 @@ def _xibparser_parse_window(ctx, elem, parent):
     item["NSWindowBacking"] = 2
     if not item.get("NSWindowRect"):
         item["NSWindowRect"] = '{{0, 0}, {0, 0}}'
-    item["NSWTFlags"] = 0x20000000 # TODO
+    flags = 0x20000000
+
+    if elem.attrib.get("allowsToolTipsWhenApplicationIsInactive", "YES") == "YES":
+        flags |= 0x2000
+    if elem.attrib.get("autorecalculatesKeyViewLoop", "YES") == "YES":
+        flags |= 0x800
+    item["NSWTFlags"] = flags
+
     item["NSWindowTitle"] = NibString(elem.attrib.get("title"))
     item["NSWindowSubtitle"] = ""
     item["NSWindowClass"] = NibString("NSWindow")
