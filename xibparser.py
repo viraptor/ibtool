@@ -716,37 +716,43 @@ def _xibparser_parse_label(ctx, elem, parent):
 
 
 def _xibparser_parse_button(ctx, elem, parent):
-    button = _xibparser_parse_view(ctx, elem, parent, uikit_class="UIButton")
+    obj = XibObject("NSButton")
+    __xibparser_ParseChildren(ctx, elem, obj)
+    return obj
 
-    btn_type = elem.attrib.get("buttonType")
-    if btn_type:
-        # Todo: Verify these string constants.
-        idx = [
-            "custom",
-            "system",
-            "detailDisclosure",
-            "infoLight",
-            "infoDark",
-            "contactAdd",
-            "roundedRect",
-        ].index(btn_type)
-        # From iOS 7 onward, roundedRect buttons become system buttons.
-        idx = 1 if idx == 6 else idx
-        button["UIButtonType"] = NibByte(idx)
 
-    content = elem.attrib.get("")
-
-    button["UIAdjustsImageWhenHighlighted"] = True
-    button["UIAdjustsImageWhenDisabled"] = True
-    # Todo: Default button font.
-
-    # UIButtonStatefulContent = (10) @23
-    # {
-    # 0 : @35: UIButtonContent
-    # UITitle = @12 Shout!
-    # UIShadowColor = @55  ( 0.5 0.5 0.5 1)
-    # }
-    return button
+#def _xibparser_parse_button(ctx, elem, parent):
+#    button = _xibparser_parse_view(ctx, elem, parent, uikit_class="UIButton")
+#
+#    btn_type = elem.attrib.get("buttonType")
+#    if btn_type:
+#        # Todo: Verify these string constants.
+#        idx = [
+#            "custom",
+#            "system",
+#            "detailDisclosure",
+#            "infoLight",
+#            "infoDark",
+#            "contactAdd",
+#            "roundedRect",
+#        ].index(btn_type)
+#        # From iOS 7 onward, roundedRect buttons become system buttons.
+#        idx = 1 if idx == 6 else idx
+#        button["UIButtonType"] = NibByte(idx)
+#
+#    content = elem.attrib.get("")
+#
+#    button["UIAdjustsImageWhenHighlighted"] = True
+#    button["UIAdjustsImageWhenDisabled"] = True
+#    # Todo: Default button font.
+#
+#    # UIButtonStatefulContent = (10) @23
+#    # {
+#    # 0 : @35: UIButtonContent
+#    # UITitle = @12 Shout!
+#    # UIShadowColor = @55  ( 0.5 0.5 0.5 1)
+#    # }
+#    return button
 
 
 def _xibparser_parse_navigationBar(ctx, elem, parent):
