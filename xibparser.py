@@ -37,9 +37,9 @@ def ParseXIBObjects(element, context=None, resolveConnections=True, parent=None)
     if resolveConnections:
         context.resolveConnections()
 
-    return createTopLevel(toplevel, context.connections, context.extraNibObjects)
+    return createTopLevel(toplevel, context, context.extraNibObjects)
 
-def createTopLevel(rootObject, connections, extraObjects):
+def createTopLevel(rootObject, context, extraObjects):
     #for obj in rootObject:
     #    print('---', obj, obj.xibid)
     #    for t in obj.getKeyValuePairs():
@@ -50,7 +50,7 @@ def createTopLevel(rootObject, connections, extraObjects):
 
     rootData = NibObject("NSIBObjectData")
     rootData["NSRoot"] = rootObject[0]
-    rootData["NSVisibleWindows"] = NibMutableSet()
+    rootData["NSVisibleWindows"] = NibMutableSet(context.visibleWindows)
     rootData["NSConnections"] = NibMutableList()
     rootData["NSObjectsKeys"] = NibList([applicationObject] + rootObject[3:])
     rootData["NSObjectsValues"] = NibList([filesOwner])
@@ -300,6 +300,7 @@ class ArchiveContext:
         self.segueConnections = []
 
         self.isPrototypeList = False
+        self.visibleWindows = []
 
         # What I plan on using after the context revision:
 
@@ -1595,11 +1596,14 @@ def _xibparser_parse_window(ctx, elem, parent):
     item["NSWindowView"] = NibNil() # TODO
     item["NSScreenRect"] = '{{0, 0}, {0, 0}}'
     item["NSMaxSize"] = '{10000000000000, 10000000000000}'
-    item["NSWindowIsRestorable"] = elem.attrib.get("restorable") == "YES"
+    item["NSWindowIsRestorable"] = elem.attrib.get("restorable", "YES") == "YES"
     default_content_size = NibData('{{0, 0}, {0, 0}}')
     item["NSMinFullScreenContentSize"] = default_content_size
     item["NSMaxFullScreenContentSize"] = default_content_size
-    item["NSWindowTabbingMode"] = {"disallowed": 2}[elem.attrib.get("tabbingMode")]
+    if elem.attrib.get("tabbingMode"):
+        item["NSWindowTabbingMode"] = {"disallowed": 2}[elem.attrib["tabbingMode"]]
+    if elem.attrib.get("visibleAtLaunch", "YES") == "YES":
+        ctx.visibleWindows.append(item)
     return item
 
 DEFAULT_NSAPPLICATION_STRING = NibString("NSApplication")
