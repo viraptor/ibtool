@@ -86,6 +86,10 @@ class NibObject:
     def __setitem__(self, key: str, item: Optional[PropValue]) -> None:
         if item is None:
             return
+        elif isinstance(item, str):
+            item = NibString(item)
+        elif isinstance(item, bytes):
+            item = NibData(item)
         self.properties[key] = item
 
     def __delitem__(self, item: str) -> None:
@@ -252,9 +256,10 @@ class CompilationContext:
     def addBinObject(self, obj):
         pass
 
-    def addObjects(self, objects: list[NibObject]):
+    def addObjects(self, objects: list[PropValue]):
         for o in objects:
-            self.addObject(o)
+            if isinstance(o, NibObject):
+                self.addObject(o)
 
     def addObject(self, obj: NibObject):
         if not isinstance(obj, NibObject):
@@ -273,49 +278,14 @@ class CompilationContext:
         obj._nibidx = len(self.object_list)
         self.object_list.append(obj)
 
-        # Determine the set of objects to convert/add
-        keyset: Sequence[Union[int,str]] = []
-        objectset: Any = None
-
         if isinstance(obj, NibDictionaryImpl):
-            # objects = obj._objects
-            # for i in range(len(objects))
-            # self.addObjects(obj._objects)
-
-            keyset = list(range(len(obj._objects)))
-            objectset = obj._objects
+            self.addObjects(obj._objects)
 
         elif isinstance(obj, ArrayLike):
-            # self.addObjects(obj._items)
-
-            keyset = list(range(len(obj._items)))
-            objectset = obj._items
+            self.addObjects(obj._items)
 
         else:
-            keyset = list(obj.properties.keys())
-            objectset = obj.properties
-
-        # Add all the subobjects to the object set.
-
-        for key in keyset:
-            value = objectset[key]
-
-            if isinstance(value, NibObject):
-                self.addObject(value)
-            elif isinstance(value, list):
-                for itm in value:
-                    self.addObject(itm)
-                value = NibList(value)
-                self.addObject(value)
-                objectset[key] = value
-            elif isinstance(value, str):
-                value = NibString(value)
-                self.addObject(value)
-                objectset[key] = value
-            elif isinstance(value, dict):
-                value = NibDictionaryImpl(value)
-                self.addObject(value)
-                objectset[key] = value
+            self.addObjects(obj.properties.values())
 
     def makeTuples(self) -> tuple[
             list[tuple[int,int,int]],
