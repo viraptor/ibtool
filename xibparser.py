@@ -395,15 +395,16 @@ def _xibparser_common_view_attributes(ctx: ArchiveContext, elem: Element, parent
     obj.setIfEmpty("NSvFlags", 0x100)
     obj["NSViewWantsBestResolutionOpenGLSurface"] = True
     obj.setIfEmpty("NSNextResponder", parent.get("NSNextResponder") or parent)
+    obj.extraContext["verticalHuggingPriority"] = elem.attrib.get("verticalHuggingPriority")
+    obj.extraContext["horizontalHuggingPriority"] = elem.attrib.get("horizontalHuggingPriority")
 
 
 def _xibparser_parse_button(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> XibObject:
     obj = XibObject("NSButton", elem.attrib["id"])
     ctx.addObject(obj.xibid, obj)
-    obj.extraContext["verticalHuggingPriority"] = elem.attrib.get("verticalHuggingPriority")
 
-    __xibparser_ParseChildren(ctx, elem, obj)
     _xibparser_common_view_attributes(ctx, elem, parent, obj)
+    __xibparser_ParseChildren(ctx, elem, obj)
     obj["NSNibTouchBar"] = NibNil()
     obj.setIfEmpty("NSFrame", NibNil())
     obj.setIfEmpty("NSSuperview", parent.get("NSSuperview") or parent)
@@ -595,18 +596,15 @@ def _xibparser_parse_windowPositionMask(ctx: ArchiveContext, elem: Element, pare
 def _xibparser_parse_textField(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
     obj = XibObject("NSTextField", elem.attrib["id"])
     ctx.addObject(obj.xibid, obj)
-    obj["NSvFlags"] = 0x10c
+
+    _xibparser_common_view_attributes(ctx, elem, parent, obj)
     __xibparser_ParseChildren(ctx, elem, obj)
-    obj["NSNextResponder"] = NibNil() # TODO
     obj["NSNibTouchBar"] = NibNil() # TODO
-    obj["NSFrame"] = NibNil() # TODO
-    obj["NSSuperview"] = NibNil() # TODO
+    obj.setIfEmpty("NSFrame", NibNil())
+    obj.setIfEmpty("NSSuperview", parent.get("NSSuperview") or parent)
     obj["NSViewWantsBestResolutionOpenGLSurface"] = True
-    obj["IBNSSafeAreaLayoutGuide"] = NibNil()
-    obj["IBNSLayoutMarginsGuide"] = NibNil()
-    obj["IBNSClipsToBounds"] = 0
     obj["NSEnabled"] = True
-    obj["NSCell"] = NibNil() # TODO
+    obj.setIfEmpty("NSCell", NibNil())
     obj["NSAllowsLogicalLayoutDirection"] = False
     obj["NSControlSize"] = 0
     obj["NSControlSize2"] = 0
@@ -623,14 +621,24 @@ def _xibparser_parse_textField(ctx: ArchiveContext, elem: Element, parent: NibOb
 def _xibparser_parse_textFieldCell(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
     obj = XibObject("NSTextFieldCell", elem.attrib["id"])
     ctx.addObject(obj.xibid, obj)
-    obj["NSCellFlags"] = 0x4000040 # TODO
-    obj["NSCellFlags2"] = 0x10400800 # TODO
+
+    sendsAction = elem.attrib.get("sendsActionOnEndEditing", "NO") == "YES"
+    sendsActionMask = 0x400000 if sendsAction else 0
+    lineBreakMode = elem.attrib.get("lineBreakMode")
+    lineBreakModeMask = {None: 0, "truncatingTail": 0x800}[lineBreakMode]
+    lineBreakModeMask2 = {None: 0, "truncatingTail": 0x40}[lineBreakMode]
+
+    obj["NSCellFlags"] = (obj.get("NSCellFlags2") or 0) | lineBreakModeMask2
+    obj["NSCellFlags2"] = (obj.get("NSCellFlags2") or 0) | sendsActionMask | lineBreakModeMask2
     obj["NSControlSize2"] = 0
     obj["NSContents"] = NibNil() # TODO
     obj["NSSupport"] = NibNil() # TODO
     obj["NSControlView"] = NibNil() # TODO
     obj["NSCharacterPickerEnabled"] = True
     __xibparser_ParseChildren(ctx, elem, obj)
+
+    parent["NSCell"] = obj
+    parent["NSControlLineBreakMode"] = {None: 0, "truncatingTail": 4}[lineBreakMode]
     return obj
 
 def _xibparser_parse_progressIndicator(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
@@ -654,6 +662,8 @@ def _xibparser_parse_buttonCell(ctx: ArchiveContext, elem: Element, parent: NibO
     bezelStyle = {None: 0, "rounded": 1}[bezelStyle]
     borderStyle = elem.attrib.get("borderStyle")
     borderStyleMask = {None: 0, "border": 0x800000}[borderStyle]
+    imageScaling = elem.attrib.get("imageScaling")
+    imageScalingMask = {None: 0, "proportionallyDown": 0x80}[imageScaling]
 
     __xibparser_ParseChildren(ctx, elem, obj)
     obj["NSCellFlags"] = 67108864
@@ -667,7 +677,7 @@ def _xibparser_parse_buttonCell(ctx: ArchiveContext, elem: Element, parent: NibO
         })
     obj["NSControlView"] = parent
     obj["NSButtonFlags"] = (obj.get("NSButtonFlags") or 0) | inset | buttonTypeMask | borderStyleMask
-    obj["NSButtonFlags2"] = 0x81
+    obj["NSButtonFlags2"] = (obj.get("NSButtonFlags2") or 0x1) | imageScalingMask
     if buttonType == "radio":
         obj["NSAlternateContents"] = NibObject("NSButtonImageSource", {
             "NSImageName": "NSRadioButton"
