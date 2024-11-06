@@ -283,6 +283,7 @@ class XibObject(NibObject):
         self.xibid: Optional[XibId] = None
         if xibid is not None:
             self.xibid = XibId(xibid)
+        self.extraContext = {}
 
     def originalclassname(self) -> Optional[str]:
         if not self.classname():
@@ -399,6 +400,8 @@ def _xibparser_common_view_attributes(ctx: ArchiveContext, elem: Element, parent
 def _xibparser_parse_button(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> XibObject:
     obj = XibObject("NSButton", elem.attrib["id"])
     ctx.addObject(obj.xibid, obj)
+    obj.extraContext["verticalHuggingPriority"] = elem.attrib.get("verticalHuggingPriority")
+
     __xibparser_ParseChildren(ctx, elem, obj)
     _xibparser_common_view_attributes(ctx, elem, parent, obj)
     obj["NSNibTouchBar"] = NibNil()
@@ -639,10 +642,22 @@ def _xibparser_parse_progressIndicator(ctx: ArchiveContext, elem: Element, paren
 def _xibparser_parse_buttonCell(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
     obj = XibObject("NSButtonCell", elem.attrib["id"])
     ctx.addObject(obj.xibid, obj)
+
+    inset = int(elem.attrib.get("inset", "0"))
+    inset = min(max(inset, 0), 3)
+    inset = {0: 0, 1: 0x2000, 2: 0x4000, 3: 0x6000}[inset]
+    buttonType = elem.attrib.get("type", "push")
+    buttonTypeMask = {"push": 0, "radio": 0x100}[buttonType]
+    textAlignment = elem.attrib.get("alignment")
+    textAlignmentMask = {None: 0x10000000, "left": 0, "center": 0x8000000, "right": 0x4000000}[textAlignment]
+    bezelStyle = elem.attrib.get("bezelStyle")
+    bezelStyle = {None: 0, "rounded": 1}[bezelStyle]
+    borderStyle = elem.attrib.get("borderStyle")
+    borderStyleMask = {None: 0, "border": 0x800000}[borderStyle]
+
     __xibparser_ParseChildren(ctx, elem, obj)
     obj["NSCellFlags"] = 67108864
-    textAlignment = elem.attrib.get("alignment")
-    obj["NSCellFlags2"] = {None: 0x10000000, "left": 0, "center": 0x8000000, "right": 0x4000000}[textAlignment]
+    obj["NSCellFlags2"] = textAlignmentMask
     obj["NSControlSize2"] = 0
     obj["NSContents"] = elem.attrib["title"]
     obj["NSSupport"] = NibObject("NSFont", {
@@ -651,12 +666,13 @@ def _xibparser_parse_buttonCell(ctx: ArchiveContext, elem: Element, parent: NibO
         "NSfFlags": 1044,
         })
     obj["NSControlView"] = parent
-    inset = int(elem.attrib.get("inset", "0"))
-    inset = min(max(inset, 0), 3)
-    inset = {0: 0, 1: 0x2000, 2: 0x4000, 3: 0x6000}[inset]
-    obj["NSButtonFlags"] = (obj.get("NSButtonFlags") or 0) | inset
+    obj["NSButtonFlags"] = (obj.get("NSButtonFlags") or 0) | inset | buttonTypeMask | borderStyleMask
     obj["NSButtonFlags2"] = 0x81
-    obj["NSBezelStyle"] = 1
+    if buttonType == "radio":
+        obj["NSAlternateContents"] = NibObject("NSButtonImageSource", {
+            "NSImageName": "NSRadioButton"
+            })
+    obj["NSBezelStyle"] = bezelStyle
     unknown = NibString('')
     obj["NSAlternateContents"] = unknown
     obj["NSKeyEquivalent"] = unknown
@@ -666,6 +682,9 @@ def _xibparser_parse_buttonCell(ctx: ArchiveContext, elem: Element, parent: NibO
     parent["NSCell"] = obj
 
     parent["NSControlTextAlignment"] = {"left": 0, "center": 1, "right": 2, None: 4}[textAlignment]
+    if borderStyle == "border":
+        v, h = parent.extraContext.get("verticalHuggingPriority", 250), parent.extraContext.get("horizontalHuggingPriority", 250)
+        parent["NSHuggingPriority"] = "{" + str(h) + ", " + str(v) + "}"
 
     return obj
 
