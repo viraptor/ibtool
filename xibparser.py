@@ -416,7 +416,7 @@ def _xibparser_parse_button(ctx: ArchiveContext, elem: Element, parent: Optional
     obj["NSControlContinuous"] = False
     obj["NSControlRefusesFirstResponder"] = False
     obj["NSControlUsesSingleLineMode"] = False
-    obj["NSControlTextAlignment"] = 1
+    obj.setIfEmpty("NSControlTextAlignment", 4)
     obj["NSControlLineBreakMode"] = 0
     obj["NSControlWritingDirection"] = -1
     obj["NSControlSendActionMask"] = 4
@@ -641,7 +641,8 @@ def _xibparser_parse_buttonCell(ctx: ArchiveContext, elem: Element, parent: NibO
     ctx.addObject(obj.xibid, obj)
     __xibparser_ParseChildren(ctx, elem, obj)
     obj["NSCellFlags"] = 67108864
-    obj["NSCellFlags2"] = 134217728
+    textAlignment = elem.attrib.get("alignment")
+    obj["NSCellFlags2"] = {None: 0x10000000, "left": 0, "center": 0x8000000, "right": 0x4000000}[textAlignment]
     obj["NSControlSize2"] = 0
     obj["NSContents"] = elem.attrib["title"]
     obj["NSSupport"] = NibObject("NSFont", {
@@ -650,6 +651,10 @@ def _xibparser_parse_buttonCell(ctx: ArchiveContext, elem: Element, parent: NibO
         "NSfFlags": 1044,
         })
     obj["NSControlView"] = parent
+    inset = int(elem.attrib.get("inset", "0"))
+    inset = min(max(inset, 0), 3)
+    inset = {0: 0, 1: 0x2000, 2: 0x4000, 3: 0x6000}[inset]
+    obj["NSButtonFlags"] = (obj.get("NSButtonFlags") or 0) | inset
     obj["NSButtonFlags2"] = 0x81
     obj["NSBezelStyle"] = 1
     unknown = NibString('')
@@ -659,6 +664,9 @@ def _xibparser_parse_buttonCell(ctx: ArchiveContext, elem: Element, parent: NibO
     obj["NSPeriodicInterval"] = 75
     obj["NSAuxButtonType"] = 7
     parent["NSCell"] = obj
+
+    parent["NSControlTextAlignment"] = {"left": 0, "center": 1, "right": 2, None: 4}[textAlignment]
+
     return obj
 
 def _xibparser_parse_font(ctx: ArchiveContext, elem: Element, parent: NibObject) -> NibObject:
@@ -682,7 +690,7 @@ def _xibparser_parse_behavior(ctx: ArchiveContext, elem: Element, parent: NibObj
         parent["NSAuxButtonType"] = 7
     else:
         parent["NSAuxButtonType"] = 0
-    parent["NSButtonFlags"] = 0x804000 + value
+    parent["NSButtonFlags"] = (parent.get("NSButtonFlags") or 0) | value
 
 def _xibparser_parse_string(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
     assert parent.classname() == "NSButtonCell"
