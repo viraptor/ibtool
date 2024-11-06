@@ -360,19 +360,8 @@ def _xibparser_parse_view(ctx: ArchiveContext, elem: Element, parent: XibObject,
     obj.setrepr(elem)
 
     key = elem.get("key")
-    if key == "view":
-        parent["UIView"] = obj
-    elif key == "tableFooterView":
-        parent["UITableFooterView"] = obj
-        parent.append("UISubviews", obj)
-    elif key == "tableHeaderView":
-        parent["UITableHeaderView"] = obj
-        parent.append("UISubviews", obj)
-    elif key == "contentView":
-        if parent.originalclassname() == "UIVisualEffectView":
-            parent["UIVisualEffectViewContentView"] = obj
-            obj.setclassname("_UIVisualEffectContentView")
-        elif parent.originalclassname() == "NSWindowTemplate":
+    if key == "contentView":
+        if parent.originalclassname() == "NSWindowTemplate":
             parent["NSWindowView"] = obj
         else:
             raise Exception(
@@ -384,50 +373,13 @@ def _xibparser_parse_view(ctx: ArchiveContext, elem: Element, parent: XibObject,
 
     isMainView = key == "view"  # and isinstance(parent, XibViewController)?
 
-    if elem.attrib.get("translatesAutoresizingMaskIntoConstraints") == "NO":
-        obj["UIViewDoesNotTranslateAutoresizingMaskIntoConstraints"] = True
-
-    if "contentMode" in list(elem.attrib.keys()):
-        mode = elem.attrib["contentMode"]
-        enum = [
-            "scaleToFill",
-            "scaleAspectFit",
-            "scaleAspectFill",
-            "redraw",
-            "center",
-            "top",
-            "bottom",
-            "left",
-            "right",
-            "topLeft",
-            "topRight",
-            "bottomLeft",
-            "bottomRight",
-        ]
-        idx = enum.index(mode)
-        if idx:  # It doesn't encode the default value.
-            obj["UIContentMode"] = NibByte(idx)
-
-    obj["UIClipsToBounds"] = elem.attrib.get("clipsSubviews") == "YES"
-
-    # Default Values?
-    obj["UIAutoresizingMask"] = NibByte(36)  # Flexible right + bottom margin.
-    obj["UIAutoresizeSubviews"] = True
-
-    val = elem.attrib.get("text")
-    if val:
-        obj["UIText"] = val
-
-    if isMainView:
-        ctx.isParsingStoryboardView = True
-
     ctx.extraNibObjects.append(obj)
     
-    obj["NSvFlags"] = 0x100
-
     # Parse these props first, in case any of our children point to us.
     _xibparser_parse_interfacebuilder_properties(ctx, elem, parent, obj)
     __xibparser_ParseChildren(ctx, elem, obj)
+
+    _xibparser_common_view_attributes(ctx, elem, parent, obj)
 
     if isMainView:
         ctx.isParsingStoryboardView = False
@@ -435,16 +387,23 @@ def _xibparser_parse_view(ctx: ArchiveContext, elem: Element, parent: XibObject,
     return obj
 
 
-def _xibparser_parse_button(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]):
+def _xibparser_common_view_attributes(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject], obj: XibObject) -> None:
+    obj["IBNSSafeAreaLayoutGuide"] = NibNil()
+    obj["IBNSLayoutMarginsGuide"] = NibNil()
+    obj["IBNSClipsToBounds"] = 0
+    obj.setIfEmpty("NSvFlags", 0x100)
+    obj["NSViewWantsBestResolutionOpenGLSurface"] = True
+    obj.setIfEmpty("NSNextResponder", parent.get("NSNextResponder") or parent)
+
+
+def _xibparser_parse_button(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> XibObject:
     obj = XibObject("NSButton", elem.attrib["id"])
     ctx.addObject(obj.xibid, obj)
     __xibparser_ParseChildren(ctx, elem, obj)
-    obj["NSNextResponder"] = NibNil() # TODO
+    _xibparser_common_view_attributes(ctx, elem, parent, obj)
     obj["NSNibTouchBar"] = NibNil()
-    obj.setIfEmpty("NSvFlags", 0x100)
     obj.setIfEmpty("NSFrame", NibNil())
-    obj["NSSuperview"] = NibNil() # TODO
-    obj["NSViewWantsBestResolutionOpenGLSurface"] = True
+    obj.setIfEmpty("NSSuperview", parent.get("NSSuperview") or parent)
     obj["IBNSSafeAreaLayoutGuide"] = NibNil()
     obj["IBNSLayoutMarginsGuide"] = NibNil()
     obj["IBNSClipsToBounds"] = 0
@@ -684,13 +643,18 @@ def _xibparser_parse_buttonCell(ctx: ArchiveContext, elem: Element, parent: NibO
     obj["NSCellFlags"] = 67108864
     obj["NSCellFlags2"] = 134217728
     obj["NSControlSize2"] = 0
-    obj["NSContents"] = NibNil() # TODO
-    obj["NSSupport"] = NibNil() # TODO
-    obj["NSControlView"] = NibNil() # TODO
+    obj["NSContents"] = elem.attrib["title"]
+    obj["NSSupport"] = NibObject("NSFont", {
+        "NSName": ".AppleSystemUIFont",
+        "NSSize": 13.0,
+        "NSfFlags": 1044,
+        })
+    obj["NSControlView"] = parent
     obj["NSButtonFlags2"] = 0x81
     obj["NSBezelStyle"] = 1
-    obj["NSAlternateContents"] = NibNil() # TODO
-    obj["NSKeyEquivalent"] = NibNil() # TODO
+    unknown = NibString('')
+    obj["NSAlternateContents"] = unknown
+    obj["NSKeyEquivalent"] = unknown
     obj["NSPeriodicDelay"] = 400
     obj["NSPeriodicInterval"] = 75
     obj["NSAuxButtonType"] = 7
