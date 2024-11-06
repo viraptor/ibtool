@@ -770,26 +770,22 @@ def _xibparser_parse_action(ctx: ArchiveContext, elem: Element, parent: NibObjec
 # TODO: I think this function might need more logic when the bounds aren't set at 0, 0
 def _xibparser_parse_rect(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
     key = elem.attrib.get("key")
+    w = int(elem.attrib["width"])
+    h = int(elem.attrib["height"])
     if key == "contentRect":
         assert parent.classname() == "NSWindowTemplate"
         x = int(elem.attrib["x"])
         y = int(elem.attrib["y"])
-        w = int(elem.attrib["width"])
-        h = int(elem.attrib["height"])
         parent["NSWindowRect"] = "{{" + str(x) + ", " + str(y) + "}, {" + str(w) + ", " + str(h) + "}}"
     elif key == "screenRect":
         assert parent.classname() == "NSWindowTemplate"
         x = int(float(elem.attrib["x"]))
         y = int(float(elem.attrib["y"]))
-        w = int(elem.attrib["width"])
-        h = int(elem.attrib["height"])
         parent["NSScreenRect"] = "{{" + str(x) + ", " + str(y) + "}, {" + str(w) + ", " + str(h) + "}}"
     elif key == "frame":
         x = int(float(elem.attrib["x"]))
         y = int(float(elem.attrib["y"]))
-        w = int(elem.attrib["width"])
-        h = int(elem.attrib["height"])
-        parent["NSFrameSize"] = "{{" + str(x) + ", " + str(y) + "}, {" + str(w) + ", " + str(h) + "}}"
+        parent["NSFrame"] = "{{" + str(x) + ", " + str(y) + "}, {" + str(w) + ", " + str(h) + "}}"
     else:
         raise Exception(f"unknown rect key {key}")
 
