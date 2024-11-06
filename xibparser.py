@@ -916,6 +916,13 @@ def _xibparser_parse_textFieldCell(ctx: ArchiveContext, elem: Element, parent: N
     obj = XibObject("NSTextFieldCell")
     obj.xibid = elem.attrib["id"]
     ctx.addObject(obj.xibid, obj)
+    obj["NSCellFlags"] = 0x4000040 # TODO
+    obj["NSCellFlags2"] = 0x10400800 # TODO
+    obj["NSControlSize2"] = 0
+    obj["NSContents"] = NibNil() # TODO
+    obj["NSSupport"] = NibNil() # TODO
+    obj["NSControlView"] = NibNil() # TODO
+    obj["NSCharacterPickerEnabled"] = True
     __xibparser_ParseChildren(ctx, elem, obj)
     return obj
 
