@@ -14,7 +14,7 @@ NIB_TYPE_OBJECT = 0x0A
 
 # Input: Tuple of the four nib components. (Objects, Keys, Values, Classes)
 # Output: A byte array containing the binary representation of the nib archive.
-def WriteNib(nib):
+def WriteNib(nib) -> bytearray:
     b = bytearray()
     b.extend(b"NIBArchive")
     b.extend([1, 0, 0, 0])

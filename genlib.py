@@ -2,69 +2,77 @@ import struct
 
 import nibencoding
 
+from typing import Union, Optional, Sequence, cast, Any, TypeAlias, Iterable
+from xml.etree.ElementTree import Element
+
 """ Base classes for Nib encoding """
+
+PropValue: TypeAlias = Union["NibObject",int,str,bytes,"NibNil","NibByte",bool,float,Iterable["PropValue"]]
+PropPair: TypeAlias = tuple[str,PropValue]
 
 
 class NibObject:
     _total = 1000
 
-    def __init__(self, classnme="NSObject", initProperties={}):
+    def __init__(self, classnme: str ="NSObject", initProperties={}) -> None:
         self._classname = classnme
         self._serial = NibObject._total
         NibObject._total += 1
-        self.properties = {}
+        self.properties: dict[str,PropValue] = {}
         self._nibidx = -1
-        self._repr = None
+        self._repr: Optional[Element] = None
         for k, v in initProperties.items():
             self[k] = v
 
-    def setclassname(self, newname):
+    def setclassname(self, newname: str):
         self._classname = newname
 
-    def classname(self):
+    def classname(self) -> str:
         return self._classname
 
-    def repr(self):
+    def repr(self) -> Optional[Element]:
         return self._repr
 
-    def setrepr(self, r):
+    def setrepr(self, r: Element) -> None:
         self._repr = r
 
-    def nibidx(self):
+    def nibidx(self) -> int:
         return self._nibidx
 
-    def serial(self):
+    def serial(self) -> int:
         return self._serial
 
-    def get(self, key):
+    def get(self, key: str) -> Optional[PropValue]:
         return self.properties.get(key)
 
-    def setIfEmpty(self, key, value):
+    def setIfEmpty(self, key: str, value: PropValue) -> None:
         if key not in self.properties:
             self[key] = value
 
-    def setIfNotDefault(self, key, value, default):
+    def setIfNotDefault(self, key: str, value: PropValue, default: PropValue):
         if value != default:
             self[key] = value
 
-    def append(self, key, value):
+    def append(self, key: str, value: PropValue) -> None:
         if key in self.properties:
-            assert isinstance(self[key], list)
-            self[key].append(value)
+            prop = self[key]
+            assert isinstance(prop, list)
+            prop.append(value)
         else:
             self[key] = [value]
 
-    def extend(self, key, values):
+    def extend(self, key: str, values: list[PropValue]) -> None:
         if key in self.properties:
-            assert isinstance(self[key], list)
-            self[key].extend(values)
+            prop = self[key]
+            assert isinstance(prop, list)
+            prop.extend(values)
         else:
             self[key] = list(values)
 
-    def appendkv(self, dictKeyName, key, value):
+    def appendkv(self, dictKeyName: str, key: str, value: PropValue) -> None:
         if not dictKeyName:
             return
-        d = self.get(dictKeyName)
+        d: Optional[Union[PropValue,dict]] = self.get(dictKeyName)
         if d is not None and not isinstance(d, dict):
             raise Exception("extendkv called non-dictionary NibObject property key")
         if d is None:
@@ -72,105 +80,105 @@ class NibObject:
             self[dictKeyName] = d
         d[key] = value
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: str) -> PropValue:
         return self.properties[key]
 
-    def __setitem__(self, key, item):
+    def __setitem__(self, key: str, item: Optional[PropValue]) -> None:
         if item is None:
             return
         self.properties[key] = item
 
-    def __delitem__(self, item):
+    def __delitem__(self, item: str) -> None:
         del self.properties[item]
 
     # Returns a list of tuples
-    def getKeyValuePairs(self):
+    def getKeyValuePairs(self) -> list[PropPair]:
         return list(self.properties.items())
 
 
 class NibString(NibObject):
-    def __init__(self, text="Hello World"):
+    def __init__(self, text: str = "Hello World") -> None:
         NibObject.__init__(self, "NSString")
         self._text = text
 
-    def getKeyValuePairs(self):
+    def getKeyValuePairs(self) -> list[PropPair]:
         return [("NS.bytes", self._text)]
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"{object.__repr__(self)} {self._text}"
 
 
 class NibData(NibObject):
-    def __init__(self, data):
+    def __init__(self, data: bytes) -> None:
         NibObject.__init__(self, "NSData")
         self._data = data
 
-    def getKeyValuePairs(self):
+    def getKeyValuePairs(self) -> list[PropPair]:
         # print("MARCO YOLO", type(self._data))
         # raise Exception("EVERYTHING IS OK")
         return [("NS.bytes", self._data)]
 
 
 class NibInlineString:
-    def __init__(self, text=""):
+    def __init__(self, text: str ="") -> None:
         self._text = text
 
-    def text(self):
+    def text(self) -> str:
         return self._text
 
 
 class NibByte:
-    def __init__(self, val=0):
+    def __init__(self, val: int = 0) -> None:
         self._val = val
 
-    def val(self):
+    def val(self) -> int:
         return self._val
 
 
 class NibNil:
-    def __init__(self):
+    def __init__(self) -> None:
         pass
 
 
-def NibFloatToWord(num):
+def NibFloatToWord(num: int) -> bytes:
     b = struct.pack("<f", num)
     return struct.unpack("<I", b)[0]
 
 
 class NibList(NibObject):
-    def __init__(self, items=None):
+    def __init__(self, items: Optional[list[NibObject]] = None) -> None:
         if items is None:
             items = []
         NibObject.__init__(self, "NSArray")
         self._items = items
 
-    def getKeyValuePairs(self):
+    def getKeyValuePairs(self) -> list[PropPair]:
         return [("NSInlinedValue", True)] + [
             ("UINibEncoderEmptyKey", item) for item in self._items
         ]
 
 
 class NibMutableList(NibObject):
-    def __init__(self, items=None):
+    def __init__(self, items: Optional[Sequence[PropValue]]=None) -> None:
         if items is None:
             items = []
         NibObject.__init__(self, "NSMutableArray")
         self._items = items
 
-    def getKeyValuePairs(self):
+    def getKeyValuePairs(self) -> list[PropPair]:
         return [("NSInlinedValue", True)] + [
             ("UINibEncoderEmptyKey", item) for item in self._items
         ]
 
 
 class NibMutableSet(NibObject):
-    def __init__(self, items=None):
+    def __init__(self, items: Optional[Sequence[PropValue]]=None) -> None:
         if items is None:
             items = []
         NibObject.__init__(self, "NSMutableSet")
         self._items = items
 
-    def getKeyValuePairs(self):
+    def getKeyValuePairs(self) -> list[PropPair]:
         return [("NSInlinedValue", True)] + [
             ("UINibEncoderEmptyKey", item) for item in self._items
         ]
@@ -240,7 +248,7 @@ class NibDictionaryImpl(NibObject):
 
 
 class NibProxyObject(NibObject):
-    def __init__(self, identifier):
+    def __init__(self, identifier: str) -> None:
         NibObject.__init__(self, "UIProxyObject")
         self["UIProxiedObjectIdentifier"] = identifier
 
@@ -258,11 +266,11 @@ class CompilationContext:
     def addBinObject(self, obj):
         pass
 
-    def addObjects(self, objects):
+    def addObjects(self, objects: list[NibObject]):
         for o in objects:
             self.addObject(o)
 
-    def addObject(self, obj):
+    def addObject(self, obj: NibObject):
         if not isinstance(obj, NibObject):
             print("CompilationContext.addObject: Non-NibObject value:", obj)
             raise Exception("Not supported.")
@@ -280,8 +288,8 @@ class CompilationContext:
         self.object_list.append(obj)
 
         # Determine the set of objects to convert/add
-        keyset = None
-        objectset = None
+        keyset: Sequence[Union[int,str]] = []
+        objectset: Any = None
 
         if isinstance(obj, NibDictionaryImpl):
             # objects = obj._objects
@@ -323,19 +331,24 @@ class CompilationContext:
                 self.addObject(value)
                 objectset[key] = value
 
-    def makeTuples(self):
-        out_objects = []
-        out_keys = []
-        out_values = []
-        out_classes = []
+    def makeTuples(self) -> tuple[
+            list[tuple[int,int,int]],
+            list[str],
+            list[Union[tuple[int,int],tuple[int,int,Union[int,str,bytearray,float]],tuple[int,int,int,PropValue]]],
+            list[str]
+            ]:
+        out_objects: list[tuple[int,int,int]] = []
+        out_keys: list[str] = []
+        out_values: list[Union[tuple[int,int],tuple[int,int,Union[int,str,bytearray,float]],tuple[int,int,int,PropValue]]] = []
+        out_classes: list[str] = []
 
-        def idx_of_class(cls):
+        def idx_of_class(cls: str) -> int:
             if cls in out_classes:
                 return out_classes.index(cls)
             out_classes.append(cls)
             return len(out_classes) - 1
 
-        def idx_of_key(key):
+        def idx_of_key(key: str) -> int:
             if key in out_keys:
                 return out_keys.index(key)
             out_keys.append(key)
@@ -347,16 +360,16 @@ class CompilationContext:
             for k, v in kvpairs:
                 if isinstance(v, NibObject):
                     key_idx = idx_of_key(k)
-                    vtuple = (key_idx, nibencoding.NIB_TYPE_OBJECT, v.nibidx(), v)
-                    out_values.append(vtuple)
+                    vtuple_obj = (key_idx, nibencoding.NIB_TYPE_OBJECT, v.nibidx(), v)
+                    out_values.append(vtuple_obj)
                 elif isinstance(v, str) or isinstance(v, bytearray):
                     key_idx = idx_of_key(k)
-                    vtuple = (key_idx, nibencoding.NIB_TYPE_STRING, v)
-                    out_values.append(vtuple)
+                    vtuple_str = (key_idx, nibencoding.NIB_TYPE_STRING, v)
+                    out_values.append(vtuple_str)
                 elif isinstance(v, NibInlineString):
                     key_idx = idx_of_key(k)
-                    vtuple = (key_idx, nibencoding.NIB_TYPE_STRING, v.text())
-                    out_values.append(vtuple)
+                    vtuple_inline = (key_idx, nibencoding.NIB_TYPE_STRING, v.text())
+                    out_values.append(vtuple_inline)
                 elif isinstance(v, NibByte):
                     out_values.append(
                         (idx_of_key(k), nibencoding.NIB_TYPE_BYTE, v.val())
@@ -419,7 +432,7 @@ This really has (at least) two phases.
 """
 
 
-def CompileNibObjects(objects):
+def CompileNibObjects(objects: list[NibObject]) -> bytes:
     ctx = CompilationContext()
     ctx.addObjects(objects)
     t = ctx.makeTuples()
