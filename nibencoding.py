@@ -3,6 +3,7 @@ import struct
 NIB_TYPE_BYTE = 0x00
 NIB_TYPE_SHORT = 0x01
 NIB_TYPE_LONG = 0x02
+NIB_TYPE_LONG_LONG = 0x03
 NIB_TYPE_FALSE = 0x04
 NIB_TYPE_TRUE = 0x05
 NIB_TYPE_FLOAT = 0x06
@@ -127,6 +128,9 @@ def _nibWriteValuesSection(values):
             continue
         if encoding_type == NIB_TYPE_LONG:
             b.extend(struct.pack("<I", value[2]))
+            continue
+        if encoding_type == NIB_TYPE_LONG_LONG:
+            b.extend(struct.pack("<q", value[2]))
             continue
         if (
             encoding_type == NIB_TYPE_STRING

@@ -145,43 +145,29 @@ def NibFloatToWord(num: int) -> bytes:
     return struct.unpack("<I", b)[0]
 
 
-class NibList(NibObject):
+class ArrayLike(NibObject):
+    def __init__(self, classname: str, items: Optional[list[NibObject]]) -> None:
+        if items is None:
+            items = []
+        NibObject.__init__(self, classname)
+        self._items = items
+
+    def getKeyValuePairs(self) -> list[PropPair]:
+        return [("NSInlinedValue", True)] + [
+            ("UINibEncoderEmptyKey", item) for item in self._items
+        ]
+
+class NibList(ArrayLike):
     def __init__(self, items: Optional[list[NibObject]] = None) -> None:
-        if items is None:
-            items = []
-        NibObject.__init__(self, "NSArray")
-        self._items = items
+        super().__init__("NSArray", items)
 
-    def getKeyValuePairs(self) -> list[PropPair]:
-        return [("NSInlinedValue", True)] + [
-            ("UINibEncoderEmptyKey", item) for item in self._items
-        ]
-
-
-class NibMutableList(NibObject):
+class NibMutableList(ArrayLike):
     def __init__(self, items: Optional[Sequence[PropValue]]=None) -> None:
-        if items is None:
-            items = []
-        NibObject.__init__(self, "NSMutableArray")
-        self._items = items
+        super().__init__("NSMutableArray", items)
 
-    def getKeyValuePairs(self) -> list[PropPair]:
-        return [("NSInlinedValue", True)] + [
-            ("UINibEncoderEmptyKey", item) for item in self._items
-        ]
-
-
-class NibMutableSet(NibObject):
+class NibMutableSet(ArrayLike):
     def __init__(self, items: Optional[Sequence[PropValue]]=None) -> None:
-        if items is None:
-            items = []
-        NibObject.__init__(self, "NSMutableSet")
-        self._items = items
-
-    def getKeyValuePairs(self) -> list[PropPair]:
-        return [("NSInlinedValue", True)] + [
-            ("UINibEncoderEmptyKey", item) for item in self._items
-        ]
+        super().__init__("NSMutableSet", items)
 
 
 class NibNSNumber(NibObject):
@@ -299,7 +285,7 @@ class CompilationContext:
             keyset = list(range(len(obj._objects)))
             objectset = obj._objects
 
-        elif isinstance(obj, NibList):
+        elif isinstance(obj, ArrayLike):
             # self.addObjects(obj._items)
 
             keyset = list(range(len(obj._items)))
@@ -384,8 +370,8 @@ class CompilationContext:
                     out_values.append((idx_of_key(k), nibencoding.NIB_TYPE_DOUBLE, v))
                 elif isinstance(v, int):
                     if v < 0:
-                        raise Exception(
-                            "Encoding negative integers is not supported yet."
+                        out_values.append(
+                            (idx_of_key(k), nibencoding.NIB_TYPE_LONG_LONG, v)
                         )
                     elif v < 0x100:
                         out_values.append((idx_of_key(k), nibencoding.NIB_TYPE_BYTE, v))
@@ -398,8 +384,8 @@ class CompilationContext:
                             (idx_of_key(k), nibencoding.NIB_TYPE_LONG, v)
                         )
                     else:
-                        raise Exception(
-                            "Encoding integers larger than long is not supported yet."
+                        out_values.append(
+                            (idx_of_key(k), nibencoding.NIB_TYPE_LONG_LONG, v)
                         )
 
                 elif isinstance(v, tuple):
