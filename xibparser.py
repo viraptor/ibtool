@@ -439,6 +439,29 @@ def _xibparser_parse_button(ctx: ArchiveContext, elem: Element, parent: Optional
     obj = XibObject("NSButton", elem.attrib["id"])
     ctx.addObject(obj.xibid, obj)
     __xibparser_ParseChildren(ctx, elem, obj)
+    obj["NSNextResponder"] = NibNil() # TODO
+    obj["NSNibTouchBar"] = NibNil()
+    obj.setIfEmpty("NSvFlags", 0x100)
+    obj.setIfEmpty("NSFrame", NibNil())
+    obj["NSSuperview"] = NibNil() # TODO
+    obj["NSViewWantsBestResolutionOpenGLSurface"] = True
+    obj["IBNSSafeAreaLayoutGuide"] = NibNil()
+    obj["IBNSLayoutMarginsGuide"] = NibNil()
+    obj["IBNSClipsToBounds"] = 0
+    obj["NSEnabled"] = True
+    obj.setIfEmpty("NSFrame", NibNil())
+    obj.setIfEmpty("NSCell", NibNil())
+    obj["NSAllowsLogicalLayoutDirection"] = False
+    obj["NSControlSize"] = 0
+    obj["NSControlSize2"] = 0
+    obj["NSControlContinuous"] = False
+    obj["NSControlRefusesFirstResponder"] = False
+    obj["NSControlUsesSingleLineMode"] = False
+    obj["NSControlTextAlignment"] = 1
+    obj["NSControlLineBreakMode"] = 0
+    obj["NSControlWritingDirection"] = -1
+    obj["NSControlSendActionMask"] = 4
+    obj["IBNSShadowedSymbolConfiguration"] = NibNil()
     return obj
 
 
@@ -658,6 +681,20 @@ def _xibparser_parse_buttonCell(ctx: ArchiveContext, elem: Element, parent: NibO
     obj = XibObject("NSButtonCell", elem.attrib["id"])
     ctx.addObject(obj.xibid, obj)
     __xibparser_ParseChildren(ctx, elem, obj)
+    obj["NSCellFlags"] = 67108864
+    obj["NSCellFlags2"] = 134217728
+    obj["NSControlSize2"] = 0
+    obj["NSContents"] = NibNil() # TODO
+    obj["NSSupport"] = NibNil() # TODO
+    obj["NSControlView"] = NibNil() # TODO
+    obj["NSButtonFlags2"] = 0x81
+    obj["NSBezelStyle"] = 1
+    obj["NSAlternateContents"] = NibNil() # TODO
+    obj["NSKeyEquivalent"] = NibNil() # TODO
+    obj["NSPeriodicDelay"] = 400
+    obj["NSPeriodicInterval"] = 75
+    obj["NSAuxButtonType"] = 7
+    parent["NSCell"] = obj
     return obj
 
 def _xibparser_parse_font(ctx: ArchiveContext, elem: Element, parent: NibObject) -> NibObject:
