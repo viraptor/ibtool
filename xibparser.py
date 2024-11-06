@@ -16,6 +16,107 @@ from genlib import (
 )
 from xml.etree.ElementTree import Element, ElementTree
 from typing import Optional, Any, Union, cast, TypeAlias
+from enum import IntEnum, Enum
+
+
+class WTFlags(IntEnum):
+    DEFER = 0x20000000
+    RELEASED_WHEN_CLOSED = 0x40000000
+    HIDES_ON_DEACTIVATE = 0x80000000
+    ALLOWS_TOOL_TIPS_WHEN_APPLICATION_IS_INACTIVE = 0x2000
+    AUTORECALCULATES_KEY_VIEW_LOOP = 0x800
+
+class vFlags(IntEnum):
+    AUTORESIZES_SUBVIEWS = 0x100
+    HIDDEN = 0x80000000
+    NOT_SIZABLE = 0x00
+    MIN_X_MARGIN = 0x01
+    WIDTH_SIZABLE = 0x02
+    MAX_X_MARGIN = 0x04
+    MIN_Y_MARGIN = 0x08
+    HEIGHT_SIZABLE = 0x10
+    MAX_Y_MARGIN = 0x20
+
+class ButtonFlags(IntEnum):
+    IMAGE_ONLY = 0x00400000
+    IMAGE_OVERLAPS = 0x00480000
+    IMAGE_LEFT = 0x00380000
+    IMAGE_RIGHT = 0x00280000
+    IMAGE_BELOW = 0x00180000
+    IMAGE_ABOVE = 0x00080000
+    
+    HIGHLIGHT_PUSH_IN_CELL = 0x80000000
+    STATE_CONTENTS_CELL = 0x40000000
+    STATE_CHANGE_BACKGROUND_CELL = 0x20000000
+    STATE_CHANGE_GRAY_CELL = 0x10000000
+    HIGHLIGHT_CONTENTS_CELL = 0x08000000
+    HIGHLIGHT_CHANGE_BACKGROUND_CELL = 0x04000000
+    HIGHLIGHT_CHANGE_GRAY_CELL = 0x02000000
+
+    BORDERED = 0x00800000
+    TRANSPARENT = 0x00008000
+    IMAGE_DIMS_WHEN_DISABLED = 0x00002000
+
+    TYPE_RADIO = 0x100
+
+    INSET_1 = 0x2000
+    INSET_2 = 0x4000
+
+class ButtonFlags2(IntEnum):
+    BORDER_ONLY_WHILE_MOUSE_INSIDE = 0x8
+    IMAGE_SCALING_PROPORTIONALLY_DOWN = 0x80
+
+
+class CellFlags(IntEnum):
+    STATE_ON = 0x80000000
+    HIGHLIGHTED = 0x40000000
+    ENABLED = 0x20000000
+    EDITABLE = 0x10000000
+    BORDERED = 0x00800000
+    BEZELED = 0x00400000
+    SELECTABLE = 0x00200000
+    SCROLLABLE = 0x00100000
+    CONTINUOUS = 0x00080000
+    ACTION_ON_MOUSE_DOWN = 0x00040000
+    IS_LEAF = 0x00020000
+    INVALID_FONT = 0x00008000
+    RESERVED1 = 0x00001800
+    SINGLE_LINE_MODE = 0x00000400
+    ACTION_ON_MOUSE_DRAG = 0x00000100
+    IS_LOADED = 0x00000080
+    TRUNCATE_LAST_LINE = 0x00000040
+    DONT_ACT_ON_MOUSE_UP = 0x00000020
+    IS_WHITE = 0x00000010
+    USER_KEY_EQUIV = 0x00000008
+    SHOWS_FIRST_RESPONSE = 0x00000004
+    FOCUS_RING_TYPE = 0x00000003
+
+class CellFlags2(IntEnum):
+    SELECTABLE = 0x80000000
+    RICH_TEXT = 0x40000000
+    IMPORTS_GRAPH = 0x10000000
+    
+    TEXT_ALIGN_NONE = 0x10000000
+    TEXT_ALIGN_LEFT = 0x0
+    TEXT_ALIGN_CENTER = 0x8000000
+    TEXT_ALIGN_RIGHT = 0x4000000
+
+    LAYOUT_DIRECTION_RTL = 0x01000000
+    REFUSES_FIRST_RESPONDER = 0x02000000
+    ALLOWS_MIXED_STATE = 0x01000000
+    IN_MIXED_STATE = 0x00800000
+    SENDS_ACTION_ON_END_EDITING = 0x00400000
+    
+    LINE_BREAK_MODE_MASK = 0x00000600
+    CONTROL_SIZE_MASK = 0x000E0000
+
+class LineBreakMode(Enum):
+    BY_WORD_WRAPPING = 0
+    BY_CHAR_WRAPPING = 1
+    BY_CLIPPING = 2
+    BY_TRUNCATING_HEAD = 3
+    BY_TRUNCATING_TAIL = 4
+    BY_TRUNCATING_MIDDLE = 5
 
 
 class XibId:
@@ -392,9 +493,10 @@ def _xibparser_common_view_attributes(ctx: ArchiveContext, elem: Element, parent
     obj["IBNSSafeAreaLayoutGuide"] = NibNil()
     obj["IBNSLayoutMarginsGuide"] = NibNil()
     obj["IBNSClipsToBounds"] = 0
-    obj.setIfEmpty("NSvFlags", 0x100)
+    obj.setIfEmpty("NSvFlags", vFlags.AUTORESIZES_SUBVIEWS)
     obj["NSViewWantsBestResolutionOpenGLSurface"] = True
     obj.setIfEmpty("NSNextResponder", parent.get("NSNextResponder") or parent)
+    obj["NSTouchBar"] = NibNil()
     obj.extraContext["verticalHuggingPriority"] = elem.attrib.get("verticalHuggingPriority")
     obj.extraContext["horizontalHuggingPriority"] = elem.attrib.get("horizontalHuggingPriority")
 
@@ -518,6 +620,7 @@ def _xibparser_parse_autoresizingMask(ctx: ArchiveContext, elem: Element, parent
 def _xibparser_parse_point(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
     point = (float(elem.attrib["x"]), float(elem.attrib["y"]))
 
+
 def _xibparser_parse_window(ctx, elem, parent):
     item = XibObject("NSWindowTemplate", elem.attrib["id"])
     ctx.addObject(item.xibid, item)
@@ -525,13 +628,13 @@ def _xibparser_parse_window(ctx, elem, parent):
     item["NSWindowBacking"] = 2
     if not item.get("NSWindowRect"):
         item["NSWindowRect"] = '{{0, 0}, {0, 0}}'
-    flags = 0x20000000
+    flags = WTFlags.DEFER
 
     if elem.attrib.get("allowsToolTipsWhenApplicationIsInactive", "YES") == "YES":
-        flags |= 0x2000
+        flags |= WTFlags.ALLOWS_TOOL_TIPS_WHEN_APPLICATION_IS_INACTIVE
     if elem.attrib.get("autorecalculatesKeyViewLoop", "YES") == "YES":
-        flags |= 0x800
-    item["NSWTFlags"] = flags
+        flags |= WTFlags.AUTORECALCULATES_KEY_VIEW_LOOP
+    item["NSWTFlags"] = int(flags)
 
     item["NSWindowTitle"] = NibString(elem.attrib.get("title"))
     item["NSWindowSubtitle"] = ""
@@ -641,10 +744,26 @@ def _xibparser_parse_textFieldCell(ctx: ArchiveContext, elem: Element, parent: N
     parent["NSControlLineBreakMode"] = {None: 0, "truncatingTail": 4}[lineBreakMode]
     return obj
 
+
 def _xibparser_parse_progressIndicator(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
     obj = XibObject("NSProgressIndicator", elem.attrib["id"])
     ctx.addObject(obj.xibid, obj)
+
+    bezeled = elem.attrib.get("bezeled", "YES") == "YES"
+    bezeled = 0x1 if bezeled else 0
+    indeterminate = elem.attrib.get("indeterminate", "NO") == "YES"
+    indeterminate = 0x2 if indeterminate else 0
+    style = elem.attrib.get("style", "bar")
+    style = {"bar": 0, "spinning": 0x1000}[style]
+
+    _xibparser_common_view_attributes(ctx, elem, parent, obj)
     __xibparser_ParseChildren(ctx, elem, obj)
+    if elem.attrib.get("maxValue"):
+        obj["NSMaxValue"] = float(elem.attrib["maxValue"])
+    if elem.attrib.get("minValue"):
+        obj["NSMinValue"] = float(elem.attrib["minValue"])
+    obj["NSpiFlags"] = 0x4004 | bezeled | indeterminate | style
+
     return obj
 
 def _xibparser_parse_buttonCell(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
@@ -653,15 +772,15 @@ def _xibparser_parse_buttonCell(ctx: ArchiveContext, elem: Element, parent: NibO
 
     inset = int(elem.attrib.get("inset", "0"))
     inset = min(max(inset, 0), 3)
-    inset = {0: 0, 1: 0x2000, 2: 0x4000, 3: 0x6000}[inset]
+    inset = {0: 0, 1: ButtonFlags.INSET_1, 2: ButtonFlags.INSET_2, 3: (ButtonFlags.INSET_1|ButtonFlags.INSET_2)}[inset]
     buttonType = elem.attrib.get("type", "push")
-    buttonTypeMask = {"push": 0, "radio": 0x100}[buttonType]
+    buttonTypeMask = {"push": 0, "radio": ButtonFlags.TYPE_RADIO}[buttonType]
     textAlignment = elem.attrib.get("alignment")
-    textAlignmentMask = {None: 0x10000000, "left": 0, "center": 0x8000000, "right": 0x4000000}[textAlignment]
+    textAlignmentMask = {None: CellFlags2.TEXT_ALIGN_NONE, "left": CellFlags2.TEXT_ALIGN_LEFT, "center": CellFlags2.TEXT_ALIGN_CENTER, "right": CellFlags2.TEXT_ALIGN_RIGHT}[textAlignment]
     bezelStyle = elem.attrib.get("bezelStyle")
     bezelStyle = {None: 0, "rounded": 1}[bezelStyle]
     borderStyle = elem.attrib.get("borderStyle")
-    borderStyleMask = {None: 0, "border": 0x800000}[borderStyle]
+    borderStyleMask = {None: 0, "border": ButtonFlags.BORDERED}[borderStyle]
     imageScaling = elem.attrib.get("imageScaling")
     imageScalingMask = {None: 0, "proportionallyDown": 0x80}[imageScaling]
 
