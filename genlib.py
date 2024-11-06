@@ -318,7 +318,7 @@ class CompilationContext:
                     key_idx = idx_of_key(k)
                     vtuple_obj = (key_idx, nibencoding.NIB_TYPE_OBJECT, v.nibidx(), v)
                     out_values.append(vtuple_obj)
-                elif isinstance(v, str) or isinstance(v, bytearray):
+                elif isinstance(v, str) or isinstance(v, bytearray) or isinstance(v, bytes):
                     key_idx = idx_of_key(k)
                     vtuple_str = (key_idx, nibencoding.NIB_TYPE_STRING, v)
                     out_values.append(vtuple_str)
