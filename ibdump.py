@@ -190,7 +190,7 @@ def readValues(b, valuesSection, debugKeys=None):
     return values
 
 
-def treePrintObjects(nib, prefix="", showencoding=False, alreadyPrinted=set(), obj_id=None):
+def treePrintObjects(nib, prefix="", showencoding=False, sortKeys=False, alreadyPrinted=set(), obj_id=None):
     objects, keys, values, classes = nib
     if obj_id:
         to_print = [o for i,o in enumerate(objects) if i == obj_id]
@@ -207,6 +207,8 @@ def treePrintObjects(nib, prefix="", showencoding=False, alreadyPrinted=set(), o
         # print object
         classname = classes[obj[0]]
         obj_values = values[obj[1] : obj[1] + obj[2]]
+        if sortKeys:
+            obj_values.sort(key = lambda v: keys[v[0]])
 
         print(prefix + "%3d: %s" % (o_idx, classname))
 
@@ -230,7 +232,7 @@ def treePrintObjects(nib, prefix="", showencoding=False, alreadyPrinted=set(), o
                     print(prefix + "\t" + k_str + " = (" + str(v[2]) + ")")
                 else:
                     print(prefix + "\t" + k_str + " =")
-                treePrintObjects(nib, prefix + "\t", showencoding, alreadyPrinted, int(v[1][1:]))
+                treePrintObjects(nib, prefix + "\t", showencoding, sortKeys, alreadyPrinted, int(v[1][1:]))
 
             else:
                 if showencoding:
@@ -239,7 +241,7 @@ def treePrintObjects(nib, prefix="", showencoding=False, alreadyPrinted=set(), o
                     print(prefix + "\t" + k_str + " =", v_str)
 
 
-def fancyPrintObjects(nib, prefix="", showencoding=False):
+def fancyPrintObjects(nib, prefix="", showencoding=False, sortKeys=False):
     objects, keys, values, classes = nib
     for o_idx, obj in enumerate(objects):
         # print object
@@ -247,6 +249,9 @@ def fancyPrintObjects(nib, prefix="", showencoding=False):
         obj_values = values[obj[1] : obj[1] + obj[2]]
 
         print(prefix + "%3d: %s" % (o_idx, classname))
+        
+        if sortKeys:
+            obj_values.sort(key = lambda v: keys[v[0]])
 
         for v in obj_values:
             # print(v)
@@ -262,7 +267,7 @@ def fancyPrintObjects(nib, prefix="", showencoding=False):
             if printSubNib:
                 print(prefix + "\t" + k_str + " = Encoded NIB Archive")
                 nib = readNibSectionsFromBytes(v[1])
-                fancyPrintObjects(nib, prefix + "\t", showencoding)
+                fancyPrintObjects(nib, prefix + "\t", showencoding, sortKeys)
 
             else:  # Boring regular data.
                 if showencoding:
@@ -289,7 +294,7 @@ def readNibSectionsFromBytes(b):
     return (objects, keys, values, classes)
 
 
-def ibdump(filename, showencoding=None, showTree=False):
+def ibdump(filename, showencoding=None, showTree=False, sortKeys=False):
     with open(filename, "rb") as file:
         filebytes = file.read()
 
@@ -306,9 +311,9 @@ def ibdump(filename, showencoding=None, showTree=False):
 
     nib = readNibSectionsFromBytes(filebytes)
     if showTree:
-        treePrintObjects(nib, showencoding=showencoding)
+        treePrintObjects(nib, showencoding=showencoding, sortKeys=sortKeys)
     else:
-        fancyPrintObjects(nib, showencoding=showencoding)
+        fancyPrintObjects(nib, showencoding=showencoding, sortKeys=sortKeys)
 
 
 if __name__ == "__main__":
