@@ -481,7 +481,7 @@ def _xibparser_parse_view(ctx: ArchiveContext, elem: Element, parent: XibObject,
     _xibparser_parse_interfacebuilder_properties(ctx, elem, parent, obj)
     __xibparser_ParseChildren(ctx, elem, obj)
 
-    _xibparser_common_view_attributes(ctx, elem, parent, obj)
+    _xibparser_common_view_attributes(ctx, elem, parent, obj, topLevelView=(key == "contentView"))
 
     if isMainView:
         ctx.isParsingStoryboardView = False
@@ -489,14 +489,18 @@ def _xibparser_parse_view(ctx: ArchiveContext, elem: Element, parent: XibObject,
     return obj
 
 
-def _xibparser_common_view_attributes(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject], obj: XibObject) -> None:
+def _xibparser_common_view_attributes(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject], obj: XibObject, topLevelView: bool = False) -> None:
     obj["IBNSSafeAreaLayoutGuide"] = NibNil()
     obj["IBNSLayoutMarginsGuide"] = NibNil()
     obj["IBNSClipsToBounds"] = 0
     obj.setIfEmpty("NSvFlags", vFlags.AUTORESIZES_SUBVIEWS)
     obj["NSViewWantsBestResolutionOpenGLSurface"] = True
-    obj.setIfEmpty("NSNextResponder", parent.get("NSNextResponder") or parent)
-    obj["NSTouchBar"] = NibNil()
+    if not topLevelView:
+        obj.setIfEmpty("NSNextResponder", parent.get("NSNextResponder") or parent)
+    else:
+        obj.setIfEmpty("NSNextResponder", NibNil())
+    obj.setIfEmpty("NSSuperview", parent.get("NSSuperview") or parent)
+    obj["NSNibTouchBar"] = NibNil()
     obj.extraContext["verticalHuggingPriority"] = elem.attrib.get("verticalHuggingPriority")
     obj.extraContext["horizontalHuggingPriority"] = elem.attrib.get("horizontalHuggingPriority")
 
@@ -507,15 +511,10 @@ def _xibparser_parse_button(ctx: ArchiveContext, elem: Element, parent: Optional
 
     _xibparser_common_view_attributes(ctx, elem, parent, obj)
     __xibparser_ParseChildren(ctx, elem, obj)
-    obj["NSNibTouchBar"] = NibNil()
     obj.setIfEmpty("NSFrame", NibNil())
-    obj.setIfEmpty("NSSuperview", parent.get("NSSuperview") or parent)
-    obj["IBNSSafeAreaLayoutGuide"] = NibNil()
-    obj["IBNSLayoutMarginsGuide"] = NibNil()
-    obj["IBNSClipsToBounds"] = 0
     obj["NSEnabled"] = True
-    obj.setIfEmpty("NSFrame", NibNil())
     obj.setIfEmpty("NSCell", NibNil())
+    obj["NSvFlags"] = (obj.get("NSvFlags") or 0) | 1 # unknown
     obj["NSAllowsLogicalLayoutDirection"] = False
     obj["NSControlSize"] = 0
     obj["NSControlSize2"] = 0
@@ -543,7 +542,7 @@ def _xibparser_parse_connections(ctx: ArchiveContext, elem: Element, parent: Opt
 
 
 def _xibparser_parse_outlet(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> None:
-    con = XibObject("NSOutletConnection", elem.attrib["id"])
+    con = XibObject("NSNibOutletConnector", elem.attrib["id"])
     con["NSSource"] = parent
     con["NSDestination"] = XibId(elem.attrib.get("destination"))
     con["NSLabel"] = elem.attrib.get("property")
@@ -603,7 +602,10 @@ def _xibparser_parse_rect(ctx: ArchiveContext, elem: Element, parent: NibObject)
     elif key == "frame":
         x = int(float(elem.attrib["x"]))
         y = int(float(elem.attrib["y"]))
-        parent["NSFrame"] = "{{" + str(x) + ", " + str(y) + "}, {" + str(w) + ", " + str(h) + "}}"
+        if x == 0 and y == 0:
+            parent["NSFrameSize"] = "{" + str(w) + ", " + str(h) + "}"
+        else:
+            parent["NSFrame"] = "{{" + str(x) + ", " + str(y) + "}, {" + str(w) + ", " + str(h) + "}}"
     else:
         raise Exception(f"unknown rect key {key}")
 
@@ -611,10 +613,16 @@ def _xibparser_parse_rect(ctx: ArchiveContext, elem: Element, parent: NibObject)
 def _xibparser_parse_autoresizingMask(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
     flexibleMaxX = elem.attrib.get("flexibleMaxX", "NO") == "YES"
     flexibleMaxY = elem.attrib.get("flexibleMaxY", "NO") == "YES"
+    widthSizable = elem.attrib.get("widthSizable", "NO") == "YES"
+    heightSizable = elem.attrib.get("heightSizable", "NO") == "YES"
     if flexibleMaxY:
-        parent["NSvFlags"] &= ~0b100000
+        parent["NSvFlags"] = (parent.get("NSvFlags") or 0) | 0b100000
     if flexibleMaxX:
-        parent["NSvFlags"] &= ~0b1000
+        parent["NSvFlags"] = (parent.get("NSvFlags") or 0) | 0b1000
+    if widthSizable:
+        parent["NSvFlags"] = (parent.get("NSvFlags") or 0) | vFlags.WIDTH_SIZABLE
+    if heightSizable:
+        parent["NSvFlags"] = (parent.get("NSvFlags") or 0) | vFlags.HEIGHT_SIZABLE
 
 
 def _xibparser_parse_point(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
@@ -655,8 +663,6 @@ def _xibparser_parse_window(ctx, elem, parent):
     if elem.attrib.get("visibleAtLaunch", "YES") == "YES":
         ctx.visibleWindows.append(item)
     return item
-
-DEFAULT_NSAPPLICATION_STRING = NibString("NSApplication")
 
 def _xibparser_parse_customObject(ctx, elem, parent):
     item = XibObject("NSCustomObject", elem.attrib["id"])
@@ -702,9 +708,7 @@ def _xibparser_parse_textField(ctx: ArchiveContext, elem: Element, parent: NibOb
 
     _xibparser_common_view_attributes(ctx, elem, parent, obj)
     __xibparser_ParseChildren(ctx, elem, obj)
-    obj["NSNibTouchBar"] = NibNil() # TODO
     obj.setIfEmpty("NSFrame", NibNil())
-    obj.setIfEmpty("NSSuperview", parent.get("NSSuperview") or parent)
     obj["NSViewWantsBestResolutionOpenGLSurface"] = True
     obj["NSEnabled"] = True
     obj.setIfEmpty("NSCell", NibNil())
@@ -782,7 +786,7 @@ def _xibparser_parse_buttonCell(ctx: ArchiveContext, elem: Element, parent: NibO
     borderStyle = elem.attrib.get("borderStyle")
     borderStyleMask = {None: 0, "border": ButtonFlags.BORDERED}[borderStyle]
     imageScaling = elem.attrib.get("imageScaling")
-    imageScalingMask = {None: 0, "proportionallyDown": 0x80}[imageScaling]
+    imageScalingMask = {None: 0, "proportionallyDown": ButtonFlags2.IMAGE_SCALING_PROPORTIONALLY_DOWN}[imageScaling]
 
     __xibparser_ParseChildren(ctx, elem, obj)
     obj["NSCellFlags"] = 67108864
