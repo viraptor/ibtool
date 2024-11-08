@@ -87,9 +87,9 @@ class NibObject:
         if item is None:
             return
         elif isinstance(item, str):
-            item = NibString(item)
+            item = NibString.intern(item)
         elif isinstance(item, bytes):
-            item = NibData(item)
+            item = NibData.intern(item)
         self.properties[key] = item
 
     def __delitem__(self, item: str) -> None:
@@ -101,6 +101,17 @@ class NibObject:
 
 
 class NibString(NibObject):
+    cache = set()
+
+    @classmethod
+    def intern(cls: "NibString", text: str) -> "NibString":
+        for x in cls.cache:
+            if x._text == text:
+                return x
+        newString = NibString(text)
+        cls.cache.add(newString)
+        return newString
+
     def __init__(self, text: str = "Hello World") -> None:
         NibObject.__init__(self, "NSString")
         self._text = text
@@ -113,6 +124,17 @@ class NibString(NibObject):
 
 
 class NibData(NibObject):
+    cache = set()
+
+    @classmethod
+    def intern(cls: "NibData", data: str) -> "NibData":
+        for x in cls.cache:
+            if x._data == data:
+                return x
+        newData = NibData(data)
+        cls.cache.add(newData)
+        return newData
+
     def __init__(self, data: bytes) -> None:
         NibObject.__init__(self, "NSData")
         self._data = data
@@ -208,7 +230,7 @@ def convertToNibObject(obj):
     if isinstance(obj, NibObject):
         return obj  # Yep, here is where we would put recursion. IF WE HAD ANY.
     elif isinstance(obj, str):
-        return NibString(obj)
+        return NibString.intern(obj)
     elif isinstance(obj, int) or isinstance(obj, float):
         return NibNSNumber(obj)
     elif isinstance(obj, NibByte):
