@@ -191,6 +191,8 @@ def readValues(b, valuesSection, debugKeys=None):
 
 
 def treePrintObjects(nib, prefix="", showencoding=False, sortKeys=False, alreadyPrinted=set(), obj_id=None):
+    alreadyPrinted = alreadyPrinted.copy()
+
     objects, keys, values, classes = nib
     if obj_id:
         to_print = [o for i,o in enumerate(objects) if i == obj_id]
@@ -200,7 +202,7 @@ def treePrintObjects(nib, prefix="", showencoding=False, sortKeys=False, already
     for o_idx, obj in enumerate(objects):
         if obj not in to_print:
             continue
-        if not prefix and o_idx in alreadyPrinted:
+        if o_idx in alreadyPrinted:
             continue
         alreadyPrinted.add(o_idx)
 
@@ -210,7 +212,7 @@ def treePrintObjects(nib, prefix="", showencoding=False, sortKeys=False, already
         if sortKeys:
             obj_values.sort(key = lambda v: keys[v[0]])
 
-        print(prefix + "%3d: %s" % (o_idx, classname))
+        print(prefix + "%s" % (classname,))
 
         for v in obj_values:
             k_str = keys[v[0]]
