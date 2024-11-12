@@ -2,7 +2,7 @@
 
 test_out=$(mktemp)
 
-xibs_to_test="samples/minimal.xib samples/blocklist.xib samples/windows.xib samples/window.xib samples/with_view.xib"
+xibs_to_test="samples/minimal.xib samples/blocklist.xib samples/windows.xib samples/window.xib samples/with_view.xib samples/with_app_class.xib"
 
 for xib in $xibs_to_test ; do
 	echo "Testing $xib"
