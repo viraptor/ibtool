@@ -646,17 +646,18 @@ def _xibparser_parse_point(ctx: ArchiveContext, elem: Element, parent: NibObject
 
 def _xibparser_parse_window(ctx, elem, parent):
     item = XibObject("NSWindowTemplate", parent, elem.attrib["id"])
+    item.flagsOr("NSWTFlags", 0x780000) # default initial position mask, can be overriden by children
+
     __xibparser_ParseChildren(ctx, elem, item)
     item["NSWindowBacking"] = 2
     if not item.get("NSWindowRect"):
         item["NSWindowRect"] = '{{0, 0}, {0, 0}}'
-    flags = WTFlags.DEFER
 
+    item.flagsOr("NSWTFlags", WTFlags.DEFER)
     if elem.attrib.get("allowsToolTipsWhenApplicationIsInactive", "YES") == "YES":
-        flags |= WTFlags.ALLOWS_TOOL_TIPS_WHEN_APPLICATION_IS_INACTIVE
+        item.flagsOr("NSWTFlags", WTFlags.ALLOWS_TOOL_TIPS_WHEN_APPLICATION_IS_INACTIVE)
     if elem.attrib.get("autorecalculatesKeyViewLoop", "YES") == "YES":
-        flags |= WTFlags.AUTORECALCULATES_KEY_VIEW_LOOP
-    item["NSWTFlags"] = int(flags)
+        item.flagsOr("NSWTFlags", WTFlags.AUTORECALCULATES_KEY_VIEW_LOOP)
 
     item["NSWindowTitle"] = NibString.intern(elem.attrib.get("title"))
     item["NSWindowSubtitle"] = ""
@@ -707,13 +708,37 @@ def _xibparser_parse_windowStyleMask(ctx: ArchiveContext, elem: Element, parent:
     parent["NSWindowStyleMask"] = value
 
 def _xibparser_parse_windowPositionMask(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
-    maskmap = {
-        "leftStrut": 1 << 0,
-        "bottomStrut": 1 << 1,
+    assert elem.attrib.get("key") == "initialPositionMask"
+
+    struts = {
+        "left": elem.attrib.get("leftStrut", "NO") == "YES",
+        "right": elem.attrib.get("rightStrut", "NO") == "YES",
+        "bottom": elem.attrib.get("bottomStrut", "NO") == "YES",
+        "top": elem.attrib.get("topStrut", "NO") == "YES",
     }
-    value = sum((elem.attrib[attr] == "YES") * val for attr, val in maskmap.items())
-    # TODO I don't know how this works, but it's not:
+    if struts["bottom"] and struts["left"]:
+        flags = 0
+    elif struts["bottom"] and struts["right"]:
+        flags = 0x50000
+    elif struts["top"] and struts["left"]:
+        flags = 0x280000
+    elif struts["top"] and struts["right"]:
+        flags = 0x300000
+    elif struts["left"]:
+        flags = 0x680000
+    elif struts["right"]:
+        flags = 0x700000
+    elif struts["bottom"]:
+        flags = 0x580000
+    elif struts["top"]:
+        flags = 0x380000
+    else:
+        flags = 0x780000
+
+    parent.flagsAnd("NSWTFlags", ~0x780000) # clear the default
+    parent.flagsOr("NSWTFlags", flags)
     #parent["NSWindowPositionMask"] = value
+
 
 def _xibparser_parse_textField(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
     obj = XibObject("NSTextField", parent, elem.attrib["id"])
