@@ -591,7 +591,7 @@ def _xibparser_parse_action(ctx: ArchiveContext, elem: Element, parent: NibObjec
 
     mask = maskmap[etype]
 
-    con = NibObject("NSRuntimeEventConnection", parent)
+    con = NibObject("NSNibControlConnector", parent)
     con["NSLabel"] = elem.attrib["selector"]
     con["NSSource"] = parent
     con["NSDestination"] = XibId(elem.attrib.get("target"))
