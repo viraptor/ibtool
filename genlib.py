@@ -101,16 +101,16 @@ class NibObject:
 
 
 class NibString(NibObject):
-    cache = set()
+    cache: set["NibString"] = set()
 
     @classmethod
-    def intern(cls: "NibString", text: str) -> "NibString":
+    def intern(cls: type["NibString"], text: str) -> "NibString":
         for x in cls.cache:
             if x._text == text:
                 return x
-        newString = NibString(text)
-        cls.cache.add(newString)
-        return newString
+        new_string = NibString(text)
+        cls.cache.add(new_string)
+        return new_string
 
     def __init__(self, text: str = "Hello World") -> None:
         NibObject.__init__(self, "NSString")
@@ -124,16 +124,16 @@ class NibString(NibObject):
 
 
 class NibData(NibObject):
-    cache = set()
+    cache: set["NibData"] = set()
 
     @classmethod
-    def intern(cls: "NibData", data: str) -> "NibData":
+    def intern(cls: type["NibData"], data: str) -> "NibData":
         for x in cls.cache:
             if x._data == data:
                 return x
-        newData = NibData(data)
-        cls.cache.add(newData)
-        return newData
+        new_data = NibData(data)
+        cls.cache.add(new_data)
+        return new_data
 
     def __init__(self, data: bytes) -> None:
         NibObject.__init__(self, "NSData")
