@@ -530,6 +530,7 @@ def _xibparser_parse_button(ctx: ArchiveContext, elem: Element, parent: Optional
     obj.setIfEmpty("NSFrame", NibNil())
     obj["NSEnabled"] = True
     obj.setIfEmpty("NSCell", NibNil())
+    obj["NSSuperview"] = obj.xib_parent()
     obj.flagsOr("NSvFlags", 1) # unknown
     obj["NSAllowsLogicalLayoutDirection"] = False
     obj["NSControlSize"] = 0
@@ -747,6 +748,7 @@ def _xibparser_parse_textField(ctx: ArchiveContext, elem: Element, parent: NibOb
     _xibparser_common_view_attributes(ctx, elem, parent, obj)
     __xibparser_ParseChildren(ctx, elem, obj)
     obj.setIfEmpty("NSFrame", NibNil())
+    obj["NSSuperview"] = obj.xib_parent()
     obj["NSViewWantsBestResolutionOpenGLSurface"] = True
     obj["NSEnabled"] = True
     obj.setIfEmpty("NSCell", NibNil())
@@ -803,6 +805,7 @@ def _xibparser_parse_progressIndicator(ctx: ArchiveContext, elem: Element, paren
     if elem.attrib.get("minValue"):
         obj["NSMinValue"] = float(elem.attrib["minValue"])
     obj.flagsOr("NSpiFlags", 0x4004 | bezeled | indeterminate | style)
+    obj["NSSuperview"] = obj.xib_parent()
 
     return obj
 
