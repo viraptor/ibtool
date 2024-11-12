@@ -1,6 +1,4 @@
 from genlib import (
-    CompileNibObjects,
-    NibByte,
     NibData,
     NibInlineString,
     NibNSNumber,
@@ -14,8 +12,8 @@ from genlib import (
     PropValue,
     PropPair,
 )
-from xml.etree.ElementTree import Element, ElementTree
-from typing import Optional, Any, Union, cast, TypeAlias
+from xml.etree.ElementTree import Element
+from typing import Optional, Any, Union, cast
 from enum import IntEnum, Enum
 
 
