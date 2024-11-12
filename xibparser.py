@@ -477,6 +477,7 @@ def _xibparser_parse_view(ctx: ArchiveContext, elem: Element, parent: XibObject,
     if key == "contentView":
         if parent.originalclassname() == "NSWindowTemplate":
             parent["NSWindowView"] = obj
+            obj.flagsOr("NSvFlags", vFlags.MIN_Y_MARGIN | vFlags.MAX_Y_MARGIN)
         else:
             raise Exception(
                 "Unhandled class '%s' to take UIView with key 'contentView'"
@@ -507,7 +508,7 @@ def _xibparser_common_view_attributes(ctx: ArchiveContext, elem: Element, parent
     obj["IBNSSafeAreaLayoutGuide"] = NibNil()
     obj["IBNSLayoutMarginsGuide"] = NibNil()
     obj["IBNSClipsToBounds"] = 0
-    obj.setIfEmpty("NSvFlags", vFlags.AUTORESIZES_SUBVIEWS)
+    obj.flagsOr("NSvFlags", vFlags.AUTORESIZES_SUBVIEWS)
     obj["NSViewWantsBestResolutionOpenGLSurface"] = True
     if not topLevelView:
         obj.setIfEmpty("NSNextResponder", parent.get("NSNextResponder") or parent)
