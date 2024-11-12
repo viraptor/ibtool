@@ -127,7 +127,7 @@ class NibData(NibObject):
     cache: set["NibData"] = set()
 
     @classmethod
-    def intern(cls: type["NibData"], data: str) -> "NibData":
+    def intern(cls: type["NibData"], data: bytes) -> "NibData":
         for x in cls.cache:
             if x._data == data:
                 return x
