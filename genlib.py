@@ -10,6 +10,11 @@ from xml.etree.ElementTree import Element
 PropValue: TypeAlias = Union["NibObject",int,str,bytes,"NibNil","NibByte",bool,float,Iterable["PropValue"]]
 PropPair: TypeAlias = tuple[str,PropValue]
 
+KNOWN_FLAGS: dict[str,int] = {
+    "NSCellFlags": nibencoding.NIB_TYPE_LONG,
+    "NSButtonFlags": nibencoding.NIB_TYPE_LONG_LONG,
+    "NSButtonFlags2": nibencoding.NIB_TYPE_SHORT,
+}
 
 class NibObject:
     _total = 1000
@@ -373,7 +378,11 @@ class CompilationContext:
                 elif isinstance(v, float):
                     out_values.append((idx_of_key(k), nibencoding.NIB_TYPE_DOUBLE, v))
                 elif isinstance(v, int):
-                    if v < 0:
+                    if k in KNOWN_FLAGS:
+                        out_values.append(
+                            (idx_of_key(k), KNOWN_FLAGS[k], v)
+                        )
+                    elif v < 0:
                         out_values.append(
                             (idx_of_key(k), nibencoding.NIB_TYPE_LONG_LONG, v)
                         )
