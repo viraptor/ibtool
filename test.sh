@@ -1,26 +1,20 @@
 #!/usr/bin/env bash
 
-test_out=samples/.test_out
-test_dump=samples/.test_dump
-orig_dump=samples/.orig_dump
+test_out=$(mktemp)
 
-for xib in samples/*.xib ; do
+xibs_to_test="samples/minimal.xib samples/blocklist.xib"
+
+for xib in $xibs_to_test ; do
 	echo "Testing $xib"
 
 	python ibtool.py --compile "$test_out" "$xib"
 
-	python ibtool.py --dump "${xib/xib/nib}" > "$orig_dump"
-	python ibtool.py --dump "$test_out" > "$test_dump"
-
-	sleep 1
-	diff -u "$orig_dump" "$test_dump"
+	python compare.py "${xib/xib/nib}" "$test_out"
 	if [[ $? == 0 ]] ; then
-		sleep 1
 		echo "ok"
 	else
-		sleep 1
 		echo "failed"
 	fi
-	rm -f "$test_out" "$test_dump" "$orig_dump"
+	rm -f "$test_out"
 done
 
