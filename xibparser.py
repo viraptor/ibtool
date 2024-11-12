@@ -292,7 +292,7 @@ def createTopLevel(rootObject, context, extraObjects) -> NibObject:
     rootData["NSVisibleWindows"] = NibMutableSet(context.visibleWindows)
     rootData["NSConnections"] = NibMutableList(context.connections)
     rootData["NSObjectsKeys"] = NibList([applicationObject] + rootObject[3:] + extraObjects)
-    rootData["NSObjectsValues"] = NibList([filesOwner])
+    rootData["NSObjectsValues"] = NibList([filesOwner, filesOwner])
     oid_objects = [filesOwner, applicationObject] + rootObject[3:]
     rootData["NSOidsKeys"] = NibList(oid_objects)
     rootData["NSOidsValues"] = NibList([NibNSNumber(x+1) for x,_ in enumerate(oid_objects)])
@@ -651,20 +651,19 @@ def _xibparser_parse_window(ctx, elem, parent):
     item["NSUserInterfaceItemIdentifier"] = NibNil() # TODO
     if not item.get("NSWindowView"):
         item["NSWindowView"] = NibNil()
-    if not item.get("NSWindowRect"):
+    if not item.get("NSScreenRect"):
         item["NSScreenRect"] = '{{0, 0}, {0, 0}}'
     item["NSMaxSize"] = '{10000000000000, 10000000000000}'
     item["NSWindowIsRestorable"] = elem.attrib.get("restorable", "YES") == "YES"
-    default_content_size = NibData.intern('{{0, 0}, {0, 0}}')
-    item["NSMinFullScreenContentSize"] = default_content_size
-    item["NSMaxFullScreenContentSize"] = default_content_size
+    item["NSMinFullScreenContentSize"] = NibString.intern('{0, 0}')
+    item["NSMaxFullScreenContentSize"] = NibString.intern('{0, 0}')
     if elem.attrib.get("tabbingMode"):
         item["NSWindowTabbingMode"] = {"disallowed": 2}[elem.attrib["tabbingMode"]]
     if elem.attrib.get("visibleAtLaunch", "YES") == "YES":
         ctx.visibleWindows.append(item)
     return item
 
-def _xibparser_parse_customObject(ctx, elem, parent):
+def _xibparser_parse_customObject(ctx, elem, _parent):
     item = XibObject("NSCustomObject", elem.attrib["id"])
     ctx.addObject(item.xibid, item)
     if elem.attrib.get("customClass"):
@@ -700,7 +699,8 @@ def _xibparser_parse_windowPositionMask(ctx: ArchiveContext, elem: Element, pare
         "bottomStrut": 1 << 1,
     }
     value = sum((elem.attrib[attr] == "YES") * val for attr, val in maskmap.items())
-    parent["NSWindowPositionMask"] = value
+    # TODO I don't know how this works, but it's not:
+    #parent["NSWindowPositionMask"] = value
 
 def _xibparser_parse_textField(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
     obj = XibObject("NSTextField", elem.attrib["id"])

@@ -133,10 +133,10 @@ def diff(lhs: Union[NibValue,NibCollection,NibObject], rhs: Union[NibValue,NibCo
         for key in sorted(all_keys):
             #print(f"{key}, {lhs.entries.get(key)}, {rhs.entries.get(key)}")
             if key not in lhs.entries:
-                yield f"{path} LHS missing key {key}, RHS {rhs.entries.get(key)}"
+                yield f"{path} LHS ({lhs.classname}) missing key {key}, RHS {rhs.entries.get(key)}"
                 continue
             if key not in rhs.entries:
-                yield f"{path} RHS missing key {key}, LHS {lhs.entries.get(key)}"
+                yield f"{path} RHS ({rhs.classname}) missing key {key}, LHS {lhs.entries.get(key)}"
                 continue
             yield from diff(lhs.entries[key], rhs.entries[key], current_path + [key], lhs_path, rhs_path)
     else:
