@@ -2,27 +2,35 @@
 
 import struct
 import sys
+from typing import cast, Optional, TypeAlias, Any
+
+NibStructure: TypeAlias = tuple[
+        list[tuple[int, int, int]],
+        list[str],
+        list[tuple[int,Any,int]],
+        list[str]
+    ]
 
 
-def rword(b):
-    return struct.unpack("<I", b)[0]
+def rword(b: bytes) -> int:
+    return cast(int, struct.unpack("<I", b)[0])
 
 
-def rquad(b):
-    return struct.unpack("<q", b)[0]
+def rquad(b: bytes) -> int:
+    return cast(int, struct.unpack("<q", b)[0])
 
 
-def rdouble(b):
-    return struct.unpack("<d", b)[0]
+def rdouble(b: bytes) -> int:
+    return cast(int, struct.unpack("<d", b)[0])
 
 
-def rsingle(b):
-    return struct.unpack("<f", b)[0]
+def rsingle(b: bytes) -> int:
+    return cast(int, struct.unpack("<f", b)[0])
 
 
 # Reads a flexible number from the bytes array and returns a tuple
 # containing the number read and the number of bytes read.
-def readFlexNumber(b, addr):
+def readFlexNumber(b: bytes, addr: int) -> tuple[int, int]:
     number = 0
     shift = 0
     ptr = addr
@@ -40,7 +48,7 @@ def readFlexNumber(b, addr):
     return (number, ptr - addr)
 
 
-def readHeader(b, start):
+def readHeader(b: bytes, start: int) -> list[tuple[int, int]]:
     hsize = rword(b[start : start + 4])
     # print("Header size (words):", str(hsize))
     sections = []
@@ -56,7 +64,7 @@ def readHeader(b, start):
     return sections
 
 
-def readKeys(b, keysSection):
+def readKeys(b: bytes, keysSection: tuple[int, int]) -> list[str]:
     count, ptr = keysSection
     keys = []
     for i in range(count):
@@ -69,7 +77,7 @@ def readKeys(b, keysSection):
     return keys
 
 
-def readObjects(b, objectsSection):
+def readObjects(b: bytes, objectsSection: tuple[int, int]) -> list[tuple[int, int, int]]:
     count, ptr = objectsSection
     objects = []
     for i in range(count):
@@ -87,7 +95,7 @@ def readObjects(b, objectsSection):
     return objects
 
 
-def readClasses(b, classSection):
+def readClasses(b: bytes, classSection: tuple[int, int]) -> list[str]:
     count, addr = classSection
     classes = []
     ptr = addr
@@ -116,7 +124,7 @@ def readClasses(b, classSection):
     return classes
 
 
-def readValues(b, valuesSection, debugKeys=None):
+def readValues(b: bytes, valuesSection: tuple[int,int], debugKeys: Optional[list[str]]=None) -> list[tuple[int,Any,int]]:
     if debugKeys is None:
         debugKeys = []
 
@@ -131,7 +139,7 @@ def readValues(b, valuesSection, debugKeys=None):
         encoding = b[ptr]
         ptr += 1
 
-        value = None
+        value: Any = None
         if encoding == 0x00:  # single byte
             value = b[ptr]
             ptr += 1
@@ -160,15 +168,15 @@ def readValues(b, valuesSection, debugKeys=None):
             r = readFlexNumber(b, ptr)
             length = r[0]
             ptr += r[1]
-            if length and b[ptr] == 0x07:
-                if length == 17:
-                    value = struct.unpack("<dd", b[ptr + 1 : ptr + 17])
-                elif length == 33:
-                    value = struct.unpack("<dddd", b[ptr + 1 : ptr + 33])
-                else:
-                    raise Exception("Well this is weird.")
-            else:
-                value = str(b[ptr : ptr + length])
+            #if length and b[ptr] == 0x07:
+            #    if length == 17:
+            #        value = struct.unpack("<dd", b[ptr + 1 : ptr + 17])
+            #    elif length == 33:
+            #        value = struct.unpack("<dddd", b[ptr + 1 : ptr + 33])
+            #    else:
+            #        raise Exception("Well this is weird.")
+            #else:
+            value = str(b[ptr : ptr + length])
             ptr += length
         elif encoding == 0x09:  # nil?
             value = None
@@ -190,7 +198,7 @@ def readValues(b, valuesSection, debugKeys=None):
     return values
 
 
-def treePrintObjects(nib, prefix="", showencoding=False, sortKeys=False, alreadyPrinted=set(), obj_id=None):
+def treePrintObjects(nib: NibStructure, prefix: str ="", showencoding: bool=False, sortKeys: bool=False, alreadyPrinted: set[int]=set(), obj_id: Optional[int]=None) -> None:
     alreadyPrinted = alreadyPrinted.copy()
 
     objects, keys, values, classes = nib
@@ -243,7 +251,7 @@ def treePrintObjects(nib, prefix="", showencoding=False, sortKeys=False, already
                     print(prefix + "\t" + k_str + " =", v_str)
 
 
-def fancyPrintObjects(nib, prefix="", showencoding=False, sortKeys=False):
+def fancyPrintObjects(nib: NibStructure, prefix: str="", showencoding: bool=False, sortKeys: bool=False) -> None:
     objects, keys, values, classes = nib
     for o_idx, obj in enumerate(objects):
         # print object
@@ -282,7 +290,11 @@ def fancyPrintObjects(nib, prefix="", showencoding=False, sortKeys=False):
             #         f.write(v[1])
 
 
-def readNibSectionsFromBytes(b):
+class RefPlaceholder(int):
+    pass
+
+
+def readNibSectionsFromBytes(b: bytes) -> NibStructure:
     sections = readHeader(b, 14)
     # print sections
     classes = readClasses(b, sections[3])
@@ -296,22 +308,24 @@ def readNibSectionsFromBytes(b):
     return (objects, keys, values, classes)
 
 
-def ibdump(filename, showencoding=None, showTree=False, sortKeys=False):
+def getNibSections(filename: str) -> NibStructure:
     with open(filename, "rb") as file:
         filebytes = file.read()
 
     pfx = filebytes[0:10]
-    if pfx != b"NIBArchive":
-        print('"%s" is not a NIBArchive file.' % (filename))
-        return
+    assert pfx == b"NIBArchive", f'"{filename}" is not a NIBArchive file.'
 
-    print("Prefix:", pfx.decode('utf-8'))
+    #print("Prefix:", pfx.decode('utf-8'))
 
-    headers = filebytes[10 : 10 + 4]
-    headers = rword(headers)
-    print("Headers:", headers)
+    #headers_bytes = filebytes[10 : 10 + 4]
+    #headers = rword(headers_bytes)
+    #print("Headers:", headers)
 
-    nib = readNibSectionsFromBytes(filebytes)
+    return readNibSectionsFromBytes(filebytes)
+
+
+def ibdump(filename: str, showencoding: bool=False, showTree: bool=False, sortKeys: bool=False) -> None:
+    nib = getNibSections(filename)
     if showTree:
         treePrintObjects(nib, showencoding=showencoding, sortKeys=sortKeys)
     else:
