@@ -72,6 +72,7 @@ class CellFlags(IntEnum):
     HIGHLIGHTED = 0x40000000
     ENABLED = 0x20000000
     EDITABLE = 0x10000000
+    UNKNOWN_TEXT_FIELD = 0x04000000
     BORDERED = 0x00800000
     BEZELED = 0x00400000
     SELECTABLE = 0x00200000
@@ -765,26 +766,31 @@ def _xibparser_parse_textField(ctx: ArchiveContext, elem: Element, parent: NibOb
     obj["NSTextFieldAlignmentRectInsetsVersion"] = 2
     return obj
 
+def __xibparser_cell_flags(elem: Element, obj: NibObject, parent: NibObject) -> None:
+    sendsAction = elem.attrib.get("sendsActionOnEndEditing", "NO") == "YES"
+    sendsActionMask = CellFlags2.SENDS_ACTION_ON_END_EDITING if sendsAction else 0
+    lineBreakMode = elem.attrib.get("lineBreakMode")
+    lineBreakModeMask = {None: 0, "truncatingTail": 0x40}[lineBreakMode]
+    lineBreakModeMask2 = {None: 0, "truncatingTail": 0x800}[lineBreakMode]
+    textAlignment = elem.attrib.get("alignment")
+    textAlignmentMask = {None: CellFlags2.TEXT_ALIGN_NONE, "left": CellFlags2.TEXT_ALIGN_LEFT, "center": CellFlags2.TEXT_ALIGN_CENTER, "right": CellFlags2.TEXT_ALIGN_RIGHT}[textAlignment]
+
+    obj.flagsOr("NSCellFlags", lineBreakModeMask | CellFlags.UNKNOWN_TEXT_FIELD)
+    obj.flagsOr("NSCellFlags2", textAlignmentMask | sendsActionMask | lineBreakModeMask2)
+    parent["NSControlLineBreakMode"] = {None: 0, "truncatingTail": 4}[lineBreakMode]
+
 def _xibparser_parse_textFieldCell(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
     obj = XibObject("NSTextFieldCell", parent, elem.attrib["id"])
+    __xibparser_cell_flags(elem, obj, parent)
 
-    sendsAction = elem.attrib.get("sendsActionOnEndEditing", "NO") == "YES"
-    sendsActionMask = 0x400000 if sendsAction else 0
-    lineBreakMode = elem.attrib.get("lineBreakMode")
-    lineBreakModeMask = {None: 0, "truncatingTail": 0x800}[lineBreakMode]
-    lineBreakModeMask2 = {None: 0, "truncatingTail": 0x40}[lineBreakMode]
-
-    obj.flagsOr("NSCellFlags", lineBreakModeMask2)
-    obj.flagsOr("NSCellFlags2", sendsActionMask | lineBreakModeMask2)
     obj["NSControlSize2"] = 0
-    obj["NSContents"] = NibNil() # TODO
+    obj["NSContents"] = elem.attrib.get("title", NibString.intern(''))
     obj["NSSupport"] = NibNil() # TODO
-    obj["NSControlView"] = NibNil() # TODO
+    obj["NSControlView"] = obj.xib_parent()
     obj["NSCharacterPickerEnabled"] = True
     __xibparser_ParseChildren(ctx, elem, obj)
 
     parent["NSCell"] = obj
-    parent["NSControlLineBreakMode"] = {None: 0, "truncatingTail": 4}[lineBreakMode]
     return obj
 
 
@@ -838,7 +844,7 @@ def _xibparser_parse_buttonCell(ctx: ArchiveContext, elem: Element, parent: NibO
         "NSfFlags": 1044,
         })
     obj["NSControlView"] = parent
-    obj.flagsOr("NSButtonFlags", inset | buttonTypeMask | borderStyleMask)
+    obj.flagsOr("NSButtonFlags", inset | buttonTypeMask | borderStyleMask | 0xffffffff00000000)
     obj.flagsOr("NSButtonFlags2", 0x1 | imageScalingMask)
     if buttonType == "radio":
         obj["NSAlternateContents"] = NibObject("NSButtonImageSource", None, {
