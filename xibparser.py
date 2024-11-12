@@ -616,13 +616,13 @@ def _xibparser_parse_autoresizingMask(ctx: ArchiveContext, elem: Element, parent
     widthSizable = elem.attrib.get("widthSizable", "NO") == "YES"
     heightSizable = elem.attrib.get("heightSizable", "NO") == "YES"
     if flexibleMaxY:
-        parent["NSvFlags"] = (parent.get("NSvFlags") or 0) | 0b100000
+        parent["NSvFlags"] = (cast(int, parent.get("NSvFlags")) or 0) | 0b100000
     if flexibleMaxX:
-        parent["NSvFlags"] = (parent.get("NSvFlags") or 0) | 0b1000
+        parent["NSvFlags"] = (cast(int, parent.get("NSvFlags")) or 0) | 0b1000
     if widthSizable:
-        parent["NSvFlags"] = (parent.get("NSvFlags") or 0) | vFlags.WIDTH_SIZABLE
+        parent["NSvFlags"] = (cast(int, parent.get("NSvFlags")) or 0) | vFlags.WIDTH_SIZABLE
     if heightSizable:
-        parent["NSvFlags"] = (parent.get("NSvFlags") or 0) | vFlags.HEIGHT_SIZABLE
+        parent["NSvFlags"] = (cast(int, parent.get("NSvFlags")) or 0) | vFlags.HEIGHT_SIZABLE
 
 
 def _xibparser_parse_point(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
@@ -735,8 +735,8 @@ def _xibparser_parse_textFieldCell(ctx: ArchiveContext, elem: Element, parent: N
     lineBreakModeMask = {None: 0, "truncatingTail": 0x800}[lineBreakMode]
     lineBreakModeMask2 = {None: 0, "truncatingTail": 0x40}[lineBreakMode]
 
-    obj["NSCellFlags"] = (obj.get("NSCellFlags2") or 0) | lineBreakModeMask2
-    obj["NSCellFlags2"] = (obj.get("NSCellFlags2") or 0) | sendsActionMask | lineBreakModeMask2
+    obj["NSCellFlags"] = (cast(int, obj.get("NSCellFlags")) or 0) | lineBreakModeMask2
+    obj["NSCellFlags2"] = (cast(int, obj.get("NSCellFlags2")) or 0) | sendsActionMask | lineBreakModeMask2
     obj["NSControlSize2"] = 0
     obj["NSContents"] = NibNil() # TODO
     obj["NSSupport"] = NibNil() # TODO
@@ -799,8 +799,8 @@ def _xibparser_parse_buttonCell(ctx: ArchiveContext, elem: Element, parent: NibO
         "NSfFlags": 1044,
         })
     obj["NSControlView"] = parent
-    obj["NSButtonFlags"] = (obj.get("NSButtonFlags") or 0) | inset | buttonTypeMask | borderStyleMask
-    obj["NSButtonFlags2"] = (obj.get("NSButtonFlags2") or 0) | 0x1 | imageScalingMask
+    obj["NSButtonFlags"] = (cast(int, obj.get("NSButtonFlags")) or 0) | inset | buttonTypeMask | borderStyleMask
+    obj["NSButtonFlags2"] = (cast(int, obj.get("NSButtonFlags2")) or 0) | 0x1 | imageScalingMask
     if buttonType == "radio":
         obj["NSAlternateContents"] = NibObject("NSButtonImageSource", {
             "NSImageName": "NSRadioButton"
@@ -841,7 +841,7 @@ def _xibparser_parse_behavior(ctx: ArchiveContext, elem: Element, parent: NibObj
         parent["NSAuxButtonType"] = 7
     else:
         parent["NSAuxButtonType"] = 0
-    parent["NSButtonFlags"] = (parent.get("NSButtonFlags") or 0) | value
+    parent["NSButtonFlags"] = (cast(int, parent.get("NSButtonFlags")) or 0) | value
 
 def _xibparser_parse_string(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
     assert parent.classname() == "NSButtonCell"
