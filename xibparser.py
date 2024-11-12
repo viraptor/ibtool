@@ -293,8 +293,11 @@ def createTopLevel(toplevelObjects: list["XibObject"], context, extraObjects) ->
     rootData["NSConnections"] = NibMutableList(context.connections)
     rootData["NSObjectsKeys"] = NibList([applicationObject] + toplevelObjects[3:] + extraObjects)
     # parents of XibObjects should be listed here with filesOwner as the highest parent
-    rootData["NSObjectsValues"] = NibList([filesOwner] + [(o.xib_parent() or filesOwner) for o in context.objects.values() if o.xibid is not None and o.xibid.val() > 0])
-    oid_objects = [filesOwner, applicationObject] + toplevelObjects[3:]
+
+    parent_objects = sorted([(o.xib_parent() or filesOwner) for o in context.objects.values() if o.xibid is not None and o.xibid.val() > 0], key=lambda x: x.xibid.val())
+    rootData["NSObjectsValues"] = NibList([filesOwner] + parent_objects)
+
+    oid_objects = [filesOwner, applicationObject] + sorted([o for o in context.objects.values() if o.xibid is not None and o.xibid.val() > 0], key=lambda x: x.xibid.val())
     rootData["NSOidsKeys"] = NibList(oid_objects)
     rootData["NSOidsValues"] = NibList([NibNSNumber(x+1) for x,_ in enumerate(oid_objects)])
     rootData["NSAccessibilityConnectors"] = NibMutableList()
