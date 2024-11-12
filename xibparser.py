@@ -157,7 +157,7 @@ class ArchiveContext:
         # These are used only for storyboards.
         self.storyboardViewController: Optional[XibViewController] = None
         self.isParsingStoryboardView = False
-        self.viewObjects: dict[str, NibObject] = {}
+        self.viewObjects: dict[XibId, NibObject] = {}
         self.viewConnections: list[NibObject] = []
         self.sceneConnections: list[NibObject] = []
         self.segueConnections: list[NibObject] = []
@@ -181,7 +181,7 @@ class ArchiveContext:
             return self.parentContext
         return self
 
-    def addObject(self, objid: str, obj: NibObject, forceSceneObject: Any =None) -> None:
+    def addObject(self, objid: XibId, obj: NibObject, forceSceneObject: Any =None) -> None:
         dct = self.viewObjects if self.isParsingStoryboardView else self.objects
         if forceSceneObject is not None:
             dct = self.objects if forceSceneObject else self.viewObjects
@@ -195,7 +195,7 @@ class ArchiveContext:
     # to be used for objects that are known to be in the same context, given a valid document. (For possibly
     # unkown values, use getObject)
     # Also this meant to be an abstraction around the shitty 'objects' vs 'viewObjects' vs $whatever organization scheme.
-    def findObject(self, objid: str) -> NibObject:
+    def findObject(self, objid: XibId) -> NibObject:
         obj = self.getObject(objid)
         if obj is None and objid is not None:
             raise Exception("Object with id %s not found in archive context." % (objid))
@@ -292,7 +292,7 @@ def createTopLevel(toplevelObjects: list["XibObject"], context, extraObjects) ->
     rootData["NSVisibleWindows"] = NibMutableSet(context.visibleWindows)
     rootData["NSConnections"] = NibMutableList(context.connections)
     rootData["NSObjectsKeys"] = NibList([applicationObject] + toplevelObjects[3:] + extraObjects)
-    rootData["NSObjectsValues"] = NibList([filesOwner] * (sum(1 for o in toplevelObjects if o.xibid.val() > 0) + 1))
+    rootData["NSObjectsValues"] = NibList([filesOwner] * (sum(True for o in toplevelObjects if o.xibid.val() > 0) + 1))
     oid_objects = [filesOwner, applicationObject] + toplevelObjects[3:]
     rootData["NSOidsKeys"] = NibList(oid_objects)
     rootData["NSOidsValues"] = NibList([NibNSNumber(x+1) for x,_ in enumerate(oid_objects)])
@@ -364,7 +364,7 @@ def _xibparser_parse_placeholder(ctx: ArchiveContext, elem: Element, parent: Opt
     placeholderid = elem.attrib["placeholderIdentifier"]
     obj = NibProxyObject(placeholderid)
     __xibparser_ParseChildren(ctx, elem, obj)
-    ctx.addObject(elem.attrib["id"], obj)
+    ctx.addObject(XibId(elem.attrib["id"]), obj)
     return obj
 
 
@@ -375,7 +375,7 @@ def _xibparser_parse_interfacebuilder_properties(ctx: ArchiveContext, elem: Elem
 
     ibid = elem.attrib.get("id")
     if ibid:
-        ctx.addObject(ibid, obj)
+        ctx.addObject(XibId(ibid), obj)
 
 
 class XibObject(NibObject):
@@ -490,6 +490,8 @@ def _xibparser_parse_view(ctx: ArchiveContext, elem: Element, parent: XibObject,
 
 
 def _xibparser_common_view_attributes(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject], obj: XibObject, topLevelView: bool = False) -> None:
+    assert parent is not None
+
     obj["IBNSSafeAreaLayoutGuide"] = NibNil()
     obj["IBNSLayoutMarginsGuide"] = NibNil()
     obj["IBNSClipsToBounds"] = 0
@@ -507,6 +509,7 @@ def _xibparser_common_view_attributes(ctx: ArchiveContext, elem: Element, parent
 
 def _xibparser_parse_button(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> XibObject:
     obj = XibObject("NSButton", elem.attrib["id"])
+    assert obj.xibid is not None
     ctx.addObject(obj.xibid, obj)
 
     _xibparser_common_view_attributes(ctx, elem, parent, obj)
@@ -514,7 +517,7 @@ def _xibparser_parse_button(ctx: ArchiveContext, elem: Element, parent: Optional
     obj.setIfEmpty("NSFrame", NibNil())
     obj["NSEnabled"] = True
     obj.setIfEmpty("NSCell", NibNil())
-    obj["NSvFlags"] = (obj.get("NSvFlags") or 0) | 1 # unknown
+    obj.flagsOr("NSvFlags", 1) # unknown
     obj["NSAllowsLogicalLayoutDirection"] = False
     obj["NSControlSize"] = 0
     obj["NSControlSize2"] = 0
@@ -616,13 +619,13 @@ def _xibparser_parse_autoresizingMask(ctx: ArchiveContext, elem: Element, parent
     widthSizable = elem.attrib.get("widthSizable", "NO") == "YES"
     heightSizable = elem.attrib.get("heightSizable", "NO") == "YES"
     if flexibleMaxY:
-        parent["NSvFlags"] = (cast(int, parent.get("NSvFlags")) or 0) | 0b100000
+        parent.flagsOr("NSvFlags", 0b100000)
     if flexibleMaxX:
-        parent["NSvFlags"] = (cast(int, parent.get("NSvFlags")) or 0) | 0b1000
+        parent.flagsOr("NSvFlags", 0b1000)
     if widthSizable:
-        parent["NSvFlags"] = (cast(int, parent.get("NSvFlags")) or 0) | vFlags.WIDTH_SIZABLE
+        parent.flagsOr("NSvFlags", vFlags.WIDTH_SIZABLE)
     if heightSizable:
-        parent["NSvFlags"] = (cast(int, parent.get("NSvFlags")) or 0) | vFlags.HEIGHT_SIZABLE
+        parent.flagsOr("NSvFlags", vFlags.HEIGHT_SIZABLE)
 
 
 def _xibparser_parse_point(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
@@ -704,6 +707,7 @@ def _xibparser_parse_windowPositionMask(ctx: ArchiveContext, elem: Element, pare
 
 def _xibparser_parse_textField(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
     obj = XibObject("NSTextField", elem.attrib["id"])
+    assert obj.xibid is not None
     ctx.addObject(obj.xibid, obj)
 
     _xibparser_common_view_attributes(ctx, elem, parent, obj)
@@ -735,8 +739,8 @@ def _xibparser_parse_textFieldCell(ctx: ArchiveContext, elem: Element, parent: N
     lineBreakModeMask = {None: 0, "truncatingTail": 0x800}[lineBreakMode]
     lineBreakModeMask2 = {None: 0, "truncatingTail": 0x40}[lineBreakMode]
 
-    obj["NSCellFlags"] = (cast(int, obj.get("NSCellFlags")) or 0) | lineBreakModeMask2
-    obj["NSCellFlags2"] = (cast(int, obj.get("NSCellFlags2")) or 0) | sendsActionMask | lineBreakModeMask2
+    obj.flagsOr("NSCellFlags", lineBreakModeMask2)
+    obj.flagsOr("NSCellFlags2", sendsActionMask | lineBreakModeMask2)
     obj["NSControlSize2"] = 0
     obj["NSContents"] = NibNil() # TODO
     obj["NSSupport"] = NibNil() # TODO
@@ -753,12 +757,12 @@ def _xibparser_parse_progressIndicator(ctx: ArchiveContext, elem: Element, paren
     obj = XibObject("NSProgressIndicator", elem.attrib["id"])
     ctx.addObject(obj.xibid, obj)
 
-    bezeled = elem.attrib.get("bezeled", "YES") == "YES"
-    bezeled = 0x1 if bezeled else 0
-    indeterminate = elem.attrib.get("indeterminate", "NO") == "YES"
-    indeterminate = 0x2 if indeterminate else 0
-    style = elem.attrib.get("style", "bar")
-    style = {"bar": 0, "spinning": 0x1000}[style]
+    bezeled_value = elem.attrib.get("bezeled", "YES") == "YES"
+    bezeled = 0x1 if bezeled_value else 0
+    indeterminate_value = elem.attrib.get("indeterminate", "NO") == "YES"
+    indeterminate = 0x2 if indeterminate_value else 0
+    style_value = elem.attrib.get("style", "bar")
+    style = {"bar": 0, "spinning": 0x1000}[style_value]
 
     _xibparser_common_view_attributes(ctx, elem, parent, obj)
     __xibparser_ParseChildren(ctx, elem, obj)
@@ -766,9 +770,10 @@ def _xibparser_parse_progressIndicator(ctx: ArchiveContext, elem: Element, paren
         obj["NSMaxValue"] = float(elem.attrib["maxValue"])
     if elem.attrib.get("minValue"):
         obj["NSMinValue"] = float(elem.attrib["minValue"])
-    obj["NSpiFlags"] = 0x4004 | bezeled | indeterminate | style
+    obj.flagsOr("NSpiFlags", 0x4004 | bezeled | indeterminate | style)
 
     return obj
+
 
 def _xibparser_parse_buttonCell(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
     obj = XibObject("NSButtonCell", elem.attrib["id"])
@@ -781,8 +786,8 @@ def _xibparser_parse_buttonCell(ctx: ArchiveContext, elem: Element, parent: NibO
     buttonTypeMask = {"push": 0, "radio": ButtonFlags.TYPE_RADIO}[buttonType]
     textAlignment = elem.attrib.get("alignment")
     textAlignmentMask = {None: CellFlags2.TEXT_ALIGN_NONE, "left": CellFlags2.TEXT_ALIGN_LEFT, "center": CellFlags2.TEXT_ALIGN_CENTER, "right": CellFlags2.TEXT_ALIGN_RIGHT}[textAlignment]
-    bezelStyle = elem.attrib.get("bezelStyle")
-    bezelStyle = {None: 0, "rounded": 1}[bezelStyle]
+    bezelStyleName = elem.attrib.get("bezelStyle")
+    bezelStyle = {None: 0, "rounded": 1}[bezelStyleName]
     borderStyle = elem.attrib.get("borderStyle")
     borderStyleMask = {None: 0, "border": ButtonFlags.BORDERED}[borderStyle]
     imageScaling = elem.attrib.get("imageScaling")
@@ -799,8 +804,8 @@ def _xibparser_parse_buttonCell(ctx: ArchiveContext, elem: Element, parent: NibO
         "NSfFlags": 1044,
         })
     obj["NSControlView"] = parent
-    obj["NSButtonFlags"] = (cast(int, obj.get("NSButtonFlags")) or 0) | inset | buttonTypeMask | borderStyleMask
-    obj["NSButtonFlags2"] = (cast(int, obj.get("NSButtonFlags2")) or 0) | 0x1 | imageScalingMask
+    obj.flagsOr("NSButtonFlags", inset | buttonTypeMask | borderStyleMask)
+    obj.flagsOr("NSButtonFlags2", 0x1 | imageScalingMask)
     if buttonType == "radio":
         obj["NSAlternateContents"] = NibObject("NSButtonImageSource", {
             "NSImageName": "NSRadioButton"
@@ -841,7 +846,7 @@ def _xibparser_parse_behavior(ctx: ArchiveContext, elem: Element, parent: NibObj
         parent["NSAuxButtonType"] = 7
     else:
         parent["NSAuxButtonType"] = 0
-    parent["NSButtonFlags"] = (cast(int, parent.get("NSButtonFlags")) or 0) | value
+    parent.flagsOr("NSButtonFlags", value)
 
 def _xibparser_parse_string(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
     assert parent.classname() == "NSButtonCell"

@@ -95,6 +95,14 @@ class NibObject:
     def __delitem__(self, item: str) -> None:
         del self.properties[item]
 
+    def flagsOr(self, key: str, value: int) -> None:
+        current = cast(int, self.get(key)) or 0
+        self[key] = current | value
+
+    def flagsAnd(self, key: str, value: int) -> None:
+        current = cast(int, self.get(key)) or 0
+        self[key] = current & value
+
     # Returns a list of tuples
     def getKeyValuePairs(self) -> list[PropPair]:
         return list(self.properties.items())
@@ -172,7 +180,7 @@ def NibFloatToWord(num: int) -> bytes:
 
 
 class ArrayLike(NibObject):
-    def __init__(self, classname: str, items: Optional[list[NibObject]]) -> None:
+    def __init__(self, classname: str, items: Optional[Sequence[PropValue]]) -> None:
         if items is None:
             items = []
         NibObject.__init__(self, classname)
@@ -184,7 +192,7 @@ class ArrayLike(NibObject):
         ]
 
 class NibList(ArrayLike):
-    def __init__(self, items: Optional[list[NibObject]] = None) -> None:
+    def __init__(self, items: Optional[Sequence[PropValue]] = None) -> None:
         super().__init__("NSArray", items)
 
 class NibMutableList(ArrayLike):
