@@ -259,13 +259,13 @@ class ArchiveContext:
 #          For standalone XIBs, this is typically document->objects
 #          For storyboards, this is typically document->scenes->scene->objects
 def ParseXIBObjects(element: Element, context: Optional[ArchiveContext]=None, resolveConnections: bool=True, parent: Optional[NibObject]=None) -> NibObject:
-    toplevel = []
+    toplevel: list[XibObject] = []
 
     context = context or ArchiveContext()
 
     for nib_object_element in element:
         obj = __xibparser_ParseXIBObject(context, nib_object_element, parent)
-        if obj:
+        if isinstance(obj, XibObject):
             toplevel.append(obj)
 
     if resolveConnections:
@@ -273,7 +273,7 @@ def ParseXIBObjects(element: Element, context: Optional[ArchiveContext]=None, re
 
     return createTopLevel(toplevel, context, context.extraNibObjects)
 
-def createTopLevel(rootObject, context, extraObjects) -> NibObject:
+def createTopLevel(toplevelObjects: list["XibObject"], context, extraObjects) -> NibObject:
     #for obj in rootObject:
     #    print('---', obj, obj.xibid)
     #    for t in obj.getKeyValuePairs():
@@ -284,16 +284,16 @@ def createTopLevel(rootObject, context, extraObjects) -> NibObject:
     #    for t in obj.getKeyValuePairs():
     #        print(t)
 
-    applicationObject = [o for o in rootObject if o.xibid==-3][0]
-    filesOwner = [o for o in rootObject if o.xibid==-2][0]
+    applicationObject = [o for o in toplevelObjects if o.xibid==-3][0]
+    filesOwner = [o for o in toplevelObjects if o.xibid==-2][0]
 
     rootData = NibObject("NSIBObjectData")
-    rootData["NSRoot"] = rootObject[0]
+    rootData["NSRoot"] = toplevelObjects[0]
     rootData["NSVisibleWindows"] = NibMutableSet(context.visibleWindows)
     rootData["NSConnections"] = NibMutableList(context.connections)
-    rootData["NSObjectsKeys"] = NibList([applicationObject] + rootObject[3:] + extraObjects)
-    rootData["NSObjectsValues"] = NibList([filesOwner, filesOwner])
-    oid_objects = [filesOwner, applicationObject] + rootObject[3:]
+    rootData["NSObjectsKeys"] = NibList([applicationObject] + toplevelObjects[3:] + extraObjects)
+    rootData["NSObjectsValues"] = NibList([filesOwner] * (sum(1 for o in toplevelObjects if o.xibid.val() > 0) + 1))
+    oid_objects = [filesOwner, applicationObject] + toplevelObjects[3:]
     rootData["NSOidsKeys"] = NibList(oid_objects)
     rootData["NSOidsValues"] = NibList([NibNSNumber(x+1) for x,_ in enumerate(oid_objects)])
     rootData["NSAccessibilityConnectors"] = NibMutableList()
