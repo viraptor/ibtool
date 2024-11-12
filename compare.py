@@ -1,6 +1,6 @@
 from ibdump import getNibSections, NibStructure
 import sys
-from typing import Any, Union, cast, Iterable
+from typing import Any, Union, cast, Iterable, Optional
 
 class NibCollection:
     def __init__(self, classname: str, entries: list[Any]):
@@ -82,7 +82,7 @@ def pythonObjects(nib: NibStructure) -> tuple[NibObject, list[Any]]:
     return cast(NibObject, res[0]), [] #not_referenced
 
 
-def diff(lhs: Union[NibValue,NibCollection,NibObject], rhs: Union[NibValue,NibCollection,NibObject], current_path: list[str]=[], lhs_path: list[int]=[], rhs_path: list[int]=[]) -> Iterable[str]:
+def diff(lhs: Union[NibValue,NibCollection,NibObject], rhs: Union[NibValue,NibCollection,NibObject], current_path: list[str]=[], lhs_path: list[int]=[], rhs_path: list[int]=[], parent_class: Optional[str] = None) -> Iterable[str]:
     lhs_path = lhs_path + [id(lhs)]
     rhs_path = rhs_path + [id(rhs)]
 
@@ -94,12 +94,12 @@ def diff(lhs: Union[NibValue,NibCollection,NibObject], rhs: Union[NibValue,NibCo
 
     if isinstance(lhs, NibValue) and isinstance(rhs, NibValue):
         if lhs.type != rhs.type:
-            yield f"{path}: Object types don't match {lhs.type} != {rhs.type}"
+            yield f"{path} (in {parent_class}): Object types don't match {lhs.type} != {rhs.type}"
             return
 
         if type(lhs.value) in [int, str, float, bytes, type(None)]:
             if lhs.value != rhs.value:
-                yield f"{path} difference {lhs.value} != {rhs.value}"
+                yield f"{path} (in {parent_class}): difference {lhs.value} != {rhs.value}"
             return
         return
 
@@ -107,10 +107,10 @@ def diff(lhs: Union[NibValue,NibCollection,NibObject], rhs: Union[NibValue,NibCo
     assert isinstance(rhs, NibObject) or isinstance(rhs, NibCollection), type(rhs)
 
     if lhs.classname != rhs.classname:
-        yield f"{path}: Class name doesn't match {lhs.classname} != {rhs.classname}"
+        yield f"{path} (in {parent_class}): Class name doesn't match {lhs.classname} != {rhs.classname}"
         return
     if type(lhs.entries) != type(rhs.entries):
-        yield f"{path}: Values types don't match"
+        yield f"{path} (in {parent_class}): Values types don't match"
         return
 
     l_ind = lhs_path.index(id(lhs))
@@ -127,7 +127,7 @@ def diff(lhs: Union[NibValue,NibCollection,NibObject], rhs: Union[NibValue,NibCo
         if len(lhs.entries) != len(rhs.entries):
             yield f"{path} Mismatched length: {len(lhs.entries)} != {len(rhs.entries)}"
         for i, (left, right) in enumerate(zip(lhs.entries, rhs.entries)):
-            yield from diff(left, right, current_path + [str(i)], lhs_path, rhs_path)
+            yield from diff(left, right, current_path + [str(i)], lhs_path, rhs_path, lhs.classname)
     elif isinstance(lhs, NibObject) and isinstance(rhs, NibObject):
         all_keys = set(list(lhs.entries.keys()) + list(rhs.entries.keys()))
         for key in sorted(all_keys):
@@ -138,7 +138,7 @@ def diff(lhs: Union[NibValue,NibCollection,NibObject], rhs: Union[NibValue,NibCo
             if key not in rhs.entries:
                 yield f"{path} RHS ({rhs.classname}) missing key {key}, LHS {lhs.entries.get(key)}"
                 continue
-            yield from diff(lhs.entries[key], rhs.entries[key], current_path + [key], lhs_path, rhs_path)
+            yield from diff(lhs.entries[key], rhs.entries[key], current_path + [key], lhs_path, rhs_path, lhs.classname)
     else:
         raise Exception(f"Unknown type {type(lhs)}")
 
