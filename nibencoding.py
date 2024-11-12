@@ -130,7 +130,13 @@ def _nibWriteValuesSection(values):
             b.extend(struct.pack("<I", value[2]))
             continue
         if encoding_type == NIB_TYPE_LONG_LONG:
-            b.extend(struct.pack("<q", value[2]))
+            try:
+                if value[2] < 0:
+                    b.extend(struct.pack("<q", value[2]))
+                else:
+                    b.extend(struct.pack("<Q", value[2]))
+            except struct.error as err:
+                raise Exception(f"Encoding long long failed at value: {value[2]}") from err
             continue
         if (
             encoding_type == NIB_TYPE_STRING
