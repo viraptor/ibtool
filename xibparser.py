@@ -292,7 +292,8 @@ def createTopLevel(toplevelObjects: list["XibObject"], context, extraObjects) ->
     rootData["NSVisibleWindows"] = NibMutableSet(context.visibleWindows)
     rootData["NSConnections"] = NibMutableList(context.connections)
     rootData["NSObjectsKeys"] = NibList([applicationObject] + toplevelObjects[3:] + extraObjects)
-    rootData["NSObjectsValues"] = NibList([filesOwner] * (sum(True for o in toplevelObjects if o.xibid.val() > 0) + 1))
+    # parents of XibObjects should be listed here with filesOwner as the highest parent
+    rootData["NSObjectsValues"] = NibList([filesOwner] + [(o.xib_parent() or filesOwner) for o in context.objects.values() if o.xibid is not None and o.xibid.val() > 0])
     oid_objects = [filesOwner, applicationObject] + toplevelObjects[3:]
     rootData["NSOidsKeys"] = NibList(oid_objects)
     rootData["NSOidsValues"] = NibList([NibNSNumber(x+1) for x,_ in enumerate(oid_objects)])
@@ -300,7 +301,7 @@ def createTopLevel(toplevelObjects: list["XibObject"], context, extraObjects) ->
     emptyList = NibList()
     rootData["NSAccessibilityOidsKeys"] = emptyList
     rootData["NSAccessibilityOidsValues"] = emptyList
-    return NibObject("NSObject", {
+    return NibObject("NSObject", None, {
         "IB.objectdata": rootData,
         "IB.systemFontUpdateVersion": 1,
     })
@@ -346,7 +347,7 @@ def __xibparser_ParseXIBObject(ctx: ArchiveContext, elem: Element, parent: Optio
         if obj and isinstance(obj, XibObject):
             if elem.attrib.get("id") == None:
                 raise Exception(f"Unknown id for {elem} (parent {parent})")
-            obj.xibid = XibId(elem.attrib["id"])
+            ctx.addObject(obj.xibid, obj)
         return obj
     else:
         raise Exception(f"Unknown type {tag}")
@@ -379,8 +380,8 @@ def _xibparser_parse_interfacebuilder_properties(ctx: ArchiveContext, elem: Elem
 
 
 class XibObject(NibObject):
-    def __init__(self, classname: str, xibid: Optional[Union[str,int]] = None) -> None:
-        NibObject.__init__(self, classname)
+    def __init__(self, classname: str, parent: Optional["NibObject"] = None, xibid: Optional[Union[str,int]] = None) -> None:
+        NibObject.__init__(self, classname, parent)
         self.xibid: Optional[XibId] = None
         if xibid is not None:
             self.xibid = XibId(xibid)
@@ -394,11 +395,19 @@ class XibObject(NibObject):
         oc = self["UIOriginalClassName"]
         assert isinstance(oc, str)
         return oc
-
+    
+    def xib_parent(self) -> Optional["XibObject"]:
+        parent = self.parent()
+        while parent is not None and not isinstance(parent, XibObject):
+            parent = parent.parent()
+        if isinstance(parent, XibObject):
+            return parent
+        else:
+            return None
 
 class XibViewController(XibObject):
-    def __init__(self, classname) -> None:
-        XibObject.__init__(self, classname)
+    def __init__(self, classname: str, parent: Optional[NibObject] = None) -> None:
+        XibObject.__init__(self, classname, parent)
         self.xibattributes: dict[str,str] = {}
 
         # For storyboards:
@@ -458,7 +467,7 @@ WontDo
 
 @classSwapper
 def _xibparser_parse_view(ctx: ArchiveContext, elem: Element, parent: XibObject, **kwargs) -> XibObject:
-    obj = XibObject(kwargs.get("uikit_class") or "NSView")
+    obj = XibObject(kwargs.get("uikit_class") or "NSView", parent, elem.attrib["id"])
     obj.setrepr(elem)
 
     key = elem.get("key")
@@ -508,7 +517,7 @@ def _xibparser_common_view_attributes(ctx: ArchiveContext, elem: Element, parent
 
 
 def _xibparser_parse_button(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> XibObject:
-    obj = XibObject("NSButton", elem.attrib["id"])
+    obj = XibObject("NSButton", parent, elem.attrib["id"])
     assert obj.xibid is not None
     ctx.addObject(obj.xibid, obj)
 
@@ -545,7 +554,7 @@ def _xibparser_parse_connections(ctx: ArchiveContext, elem: Element, parent: Opt
 
 
 def _xibparser_parse_outlet(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> None:
-    con = XibObject("NSNibOutletConnector", elem.attrib["id"])
+    con = XibObject("NSNibOutletConnector", parent, elem.attrib["id"])
     con["NSSource"] = parent
     con["NSDestination"] = XibId(elem.attrib.get("destination"))
     con["NSLabel"] = elem.attrib.get("property")
@@ -578,7 +587,7 @@ def _xibparser_parse_action(ctx: ArchiveContext, elem: Element, parent: NibObjec
 
     mask = maskmap[etype]
 
-    con = NibObject("NSRuntimeEventConnection")
+    con = NibObject("NSRuntimeEventConnection", parent)
     con["NSLabel"] = elem.attrib["selector"]
     con["NSSource"] = parent
     con["NSDestination"] = XibId(elem.attrib.get("target"))
@@ -633,8 +642,7 @@ def _xibparser_parse_point(ctx: ArchiveContext, elem: Element, parent: NibObject
 
 
 def _xibparser_parse_window(ctx, elem, parent):
-    item = XibObject("NSWindowTemplate", elem.attrib["id"])
-    ctx.addObject(item.xibid, item)
+    item = XibObject("NSWindowTemplate", parent, elem.attrib["id"])
     __xibparser_ParseChildren(ctx, elem, item)
     item["NSWindowBacking"] = 2
     if not item.get("NSWindowRect"):
@@ -666,9 +674,8 @@ def _xibparser_parse_window(ctx, elem, parent):
         ctx.visibleWindows.append(item)
     return item
 
-def _xibparser_parse_customObject(ctx, elem, _parent):
-    item = XibObject("NSCustomObject", elem.attrib["id"])
-    ctx.addObject(item.xibid, item)
+def _xibparser_parse_customObject(ctx, elem, parent):
+    item = XibObject("NSCustomObject", parent, elem.attrib["id"])
     if elem.attrib.get("customClass"):
         classRef = XibObject("IBClassReference")
         className = NibString(elem.attrib.get("customClass"))
@@ -706,9 +713,7 @@ def _xibparser_parse_windowPositionMask(ctx: ArchiveContext, elem: Element, pare
     #parent["NSWindowPositionMask"] = value
 
 def _xibparser_parse_textField(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
-    obj = XibObject("NSTextField", elem.attrib["id"])
-    assert obj.xibid is not None
-    ctx.addObject(obj.xibid, obj)
+    obj = XibObject("NSTextField", parent, elem.attrib["id"])
 
     _xibparser_common_view_attributes(ctx, elem, parent, obj)
     __xibparser_ParseChildren(ctx, elem, obj)
@@ -730,8 +735,7 @@ def _xibparser_parse_textField(ctx: ArchiveContext, elem: Element, parent: NibOb
     return obj
 
 def _xibparser_parse_textFieldCell(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
-    obj = XibObject("NSTextFieldCell", elem.attrib["id"])
-    ctx.addObject(obj.xibid, obj)
+    obj = XibObject("NSTextFieldCell", parent, elem.attrib["id"])
 
     sendsAction = elem.attrib.get("sendsActionOnEndEditing", "NO") == "YES"
     sendsActionMask = 0x400000 if sendsAction else 0
@@ -754,8 +758,7 @@ def _xibparser_parse_textFieldCell(ctx: ArchiveContext, elem: Element, parent: N
 
 
 def _xibparser_parse_progressIndicator(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
-    obj = XibObject("NSProgressIndicator", elem.attrib["id"])
-    ctx.addObject(obj.xibid, obj)
+    obj = XibObject("NSProgressIndicator", parent, elem.attrib["id"])
 
     bezeled_value = elem.attrib.get("bezeled", "YES") == "YES"
     bezeled = 0x1 if bezeled_value else 0
@@ -776,8 +779,7 @@ def _xibparser_parse_progressIndicator(ctx: ArchiveContext, elem: Element, paren
 
 
 def _xibparser_parse_buttonCell(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
-    obj = XibObject("NSButtonCell", elem.attrib["id"])
-    ctx.addObject(obj.xibid, obj)
+    obj = XibObject("NSButtonCell", parent, elem.attrib["id"])
 
     inset = int(elem.attrib.get("inset", "0"))
     inset = min(max(inset, 0), 3)

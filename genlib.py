@@ -14,13 +14,14 @@ PropPair: TypeAlias = tuple[str,PropValue]
 class NibObject:
     _total = 1000
 
-    def __init__(self, classnme: str ="NSObject", initProperties={}) -> None:
+    def __init__(self, classnme: str ="NSObject", parent: Optional["NibObject"] = None, initProperties={}) -> None:
         self._classname = classnme
         self._serial = NibObject._total
         NibObject._total += 1
         self.properties: dict[str,PropValue] = {}
         self._nibidx = -1
         self._repr: Optional[Element] = None
+        self._parent = parent
         for k, v in initProperties.items():
             self[k] = v
 
@@ -106,6 +107,9 @@ class NibObject:
     # Returns a list of tuples
     def getKeyValuePairs(self) -> list[PropPair]:
         return list(self.properties.items())
+    
+    def parent(self) -> Optional["NibObject"]:
+        return self._parent
 
 
 class NibString(NibObject):
