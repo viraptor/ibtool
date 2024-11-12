@@ -478,6 +478,7 @@ def _xibparser_parse_view(ctx: ArchiveContext, elem: Element, parent: XibObject,
         if parent.originalclassname() == "NSWindowTemplate":
             parent["NSWindowView"] = obj
             obj.flagsOr("NSvFlags", vFlags.MIN_Y_MARGIN | vFlags.MAX_Y_MARGIN)
+            obj["NSFrameSize"] = NibString.intern("{0, 0}")
         else:
             raise Exception(
                 "Unhandled class '%s' to take UIView with key 'contentView'"
@@ -514,7 +515,6 @@ def _xibparser_common_view_attributes(ctx: ArchiveContext, elem: Element, parent
         obj.setIfEmpty("NSNextResponder", parent.get("NSNextResponder") or parent)
     else:
         obj.setIfEmpty("NSNextResponder", NibNil())
-    obj.setIfEmpty("NSSuperview", parent.get("NSSuperview") or parent)
     obj["NSNibTouchBar"] = NibNil()
     obj.extraContext["verticalHuggingPriority"] = elem.attrib.get("verticalHuggingPriority")
     obj.extraContext["horizontalHuggingPriority"] = elem.attrib.get("horizontalHuggingPriority")
