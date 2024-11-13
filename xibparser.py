@@ -35,6 +35,9 @@ class vFlags(IntEnum):
     HEIGHT_SIZABLE = 0x10
     MAX_Y_MARGIN = 0x20
 
+class sFlags(IntEnum):
+    HORIZONTAL = 0x01
+
 class ButtonFlags(IntEnum):
     IMAGE_ONLY = 0x00400000
     IMAGE_OVERLAPS = 0x00480000
@@ -1177,12 +1180,12 @@ def _xibparser_parse_scroller(ctx: ArchiveContext, elem: Element, parent: NibObj
     obj["NSControlLineBreakMode"] = 0
     obj["NSViewIsLayerTreeHost"] = True
     obj["NSControlRefusesFirstResponder"] = elem.attrib.get("refusesFirstResponder", "NO") == "YES"
-    obj["NSsFlags"] = 1
     obj["NSSuperview"] = obj.xib_parent()
     if (cur_value := elem.attrib.get("doubleValue")) is not None:
         obj["NSCurValue"] = float(cur_value)
     if elem.attrib["horizontal"] == "YES":
         parent["NSHScroller"] = obj
+        obj["NSsFlags"] = sFlags.HORIZONTAL
     else:
         parent["NSVScroller"] = obj
     return obj
