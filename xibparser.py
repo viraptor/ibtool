@@ -1,3 +1,4 @@
+import re
 from genlib import (
     NibData,
     NibInlineString,
@@ -579,6 +580,12 @@ def _xibparser_parse_button(ctx: ArchiveContext, elem: Element, parent: Optional
     return obj
 
 
+def __parse_size(size: str) -> tuple[int, int]:
+    return tuple(int(x) for x in re.findall(r'-?\d+', size))
+
+def __parse_pos_size(size: str) -> tuple[int, int, int, int]:
+    return tuple(int(x) for x in re.findall(r'-?\d+', size))
+
 def _xibparser_parse_textView(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> XibObject:
     obj = make_xib_object(ctx, "NSTextView", elem, parent)
     __xibparser_ParseChildren(ctx, elem, obj)
@@ -594,7 +601,11 @@ def _xibparser_parse_textView(ctx: ArchiveContext, elem: Element, parent: Option
     text_container["NSTCFlags"] = 0x1
     text_container["NSTextLayoutManager"] = NibNil()
     text_container["NSTextView"] = NibNil()
-    text_container["NSWidth"] = 488.0
+    if obj.xib_parent().get("NSFrameSize"):
+        text_container["NSWidth"] = __parse_size(obj.xib_parent()["NSFrameSize"]._text)[0]
+    else:
+        text_container["NSWidth"] = __parse_pos_size(obj.xib_parent()["NSFrame"]._text)[2]
+
     obj["NSTextContainer"] = text_container
 
     shared_data = XibObject("NSTextViewSharedData", obj)
@@ -763,6 +774,7 @@ def _xibparser_parse_scrollView(ctx: ArchiveContext, elem: Element, parent: Opti
     obj["NSMaxMagnification"] = 4.0
     obj["NSMinMagnification"] = 0.25
     obj["NSNextKeyView"] = NibNil()
+    obj["NSSuperview"] = obj.xib_parent()
     obj["NSsFlags"] = 0
     return obj
 
@@ -799,10 +811,13 @@ def _xibparser_parse_clipView(ctx: ArchiveContext, elem: Element, parent: Option
     cursor["NSCursorType"] = 0
     cursor["NSHotSpot"] = NibString.intern("{1, -1}")
     obj["NSCursor"] = cursor
+    obj["NSNextResponder"] = obj.xib_parent()
     if obj.get("NSSubviews") and len(obj["NSSubviews"]) > 0:
         obj["NSDocView"] = obj["NSSubviews"][0]
+        obj["NSNextKeyView"] = obj["NSSubviews"][0]
     else:
         obj["NSDocView"] = NibNil()
+        obj["NSNextKeyView"] = NibNil()
     return obj
 
 
