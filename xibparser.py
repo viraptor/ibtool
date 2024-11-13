@@ -476,7 +476,6 @@ def _xibparser_parse_view(ctx: ArchiveContext, elem: Element, parent: XibObject,
     if key == "contentView":
         if parent.originalclassname() == "NSWindowTemplate":
             parent["NSWindowView"] = obj
-            obj.flagsOr("NSvFlags", vFlags.MIN_Y_MARGIN | vFlags.MAX_Y_MARGIN)
             obj["NSFrameSize"] = NibString.intern("{0, 0}")
         else:
             raise Exception(
@@ -530,7 +529,6 @@ def _xibparser_parse_button(ctx: ArchiveContext, elem: Element, parent: Optional
     obj["NSEnabled"] = True
     obj.setIfEmpty("NSCell", NibNil())
     obj["NSSuperview"] = obj.xib_parent()
-    obj.flagsOr("NSvFlags", 1) # unknown
     obj["NSAllowsLogicalLayoutDirection"] = False
     obj["NSControlSize"] = 0
     obj["NSControlSize2"] = 0
@@ -626,18 +624,13 @@ def _xibparser_parse_rect(ctx: ArchiveContext, elem: Element, parent: NibObject)
 
 
 def _xibparser_parse_autoresizingMask(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
-    flexibleMaxX = elem.attrib.get("flexibleMaxX", "NO") == "YES"
-    flexibleMaxY = elem.attrib.get("flexibleMaxY", "NO") == "YES"
-    widthSizable = elem.attrib.get("widthSizable", "NO") == "YES"
-    heightSizable = elem.attrib.get("heightSizable", "NO") == "YES"
-    if flexibleMaxY:
-        parent.flagsOr("NSvFlags", 0b100000)
-    if flexibleMaxX:
-        parent.flagsOr("NSvFlags", 0b1000)
-    if widthSizable:
-        parent.flagsOr("NSvFlags", vFlags.WIDTH_SIZABLE)
-    if heightSizable:
-        parent.flagsOr("NSvFlags", vFlags.HEIGHT_SIZABLE)
+    flexibleMaxX = vFlags.MAX_X_MARGIN if elem.attrib.get("flexibleMaxX", "NO") == "YES" else 0
+    flexibleMaxY = vFlags.MAX_Y_MARGIN if elem.attrib.get("flexibleMaxY", "NO") == "YES" else 0
+    flexibleMinX = vFlags.MIN_X_MARGIN if elem.attrib.get("flexibleMinX", "NO") == "YES" else 0
+    flexibleMinY = vFlags.MIN_Y_MARGIN if elem.attrib.get("flexibleMinY", "NO") == "YES" else 0
+    widthSizable = vFlags.WIDTH_SIZABLE if elem.attrib.get("widthSizable", "NO") == "YES" else 0
+    heightSizable = vFlags.HEIGHT_SIZABLE if elem.attrib.get("heightSizable", "NO") == "YES" else 0
+    parent.flagsOr("NSvFlags", flexibleMaxX | flexibleMaxY | flexibleMinX | flexibleMinY | widthSizable | heightSizable)
 
 
 def _xibparser_parse_point(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
@@ -774,7 +767,6 @@ def __xibparser_cell_flags(elem: Element, obj: NibObject, parent: NibObject) -> 
     obj.flagsOr("NSCellFlags", lineBreakModeMask | CellFlags.UNKNOWN_TEXT_FIELD)
     obj.flagsOr("NSCellFlags2", textAlignmentMask | sendsActionMask | lineBreakModeMask2)
     parent["NSControlLineBreakMode"] = {None: 0, "truncatingTail": 4}[lineBreakMode]
-    print(obj.classname())
     if obj.classname() in ['NSButtonCell', 'NSTextFieldCell']:
         textAlignmentValue = {None: 4, "left": 0, "center": 1, "right": 2}[textAlignment]
         parent["NSControlTextAlignment"] = textAlignmentValue
