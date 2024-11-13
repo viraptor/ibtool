@@ -547,7 +547,7 @@ def _xibparser_parse_button(ctx: ArchiveContext, elem: Element, parent: Optional
     obj["NSControlSize"] = 0
     obj["NSControlSize2"] = 0
     obj["NSControlContinuous"] = False
-    obj["NSControlRefusesFirstResponder"] = False
+    obj["NSControlRefusesFirstResponder"] = elem.attrib.get("refusesFirstResponder", "NO") == "YES"
     obj["NSControlUsesSingleLineMode"] = False
     obj["NSControlLineBreakMode"] = 0
     obj["NSControlWritingDirection"] = -1
@@ -571,7 +571,7 @@ def _xibparser_parse_imageView(ctx: ArchiveContext, elem: Element, parent: Optio
     obj["IBNSShadowedSymbolConfiguration"] = NibNil()
     obj["NSAllowsLogicalLayoutDirection"] = False
     obj["NSControlContinuous"] = False
-    obj["NSControlRefusesFirstResponder"] = True
+    obj["NSControlRefusesFirstResponder"] = elem.attrib.get("refusesFirstResponder", "NO") == "YES"
     obj["NSControlSize"] = 0
     obj["NSControlSize2"] = 0
     obj["NSControlUsesSingleLineMode"] = False
@@ -582,6 +582,7 @@ def _xibparser_parse_imageView(ctx: ArchiveContext, elem: Element, parent: Optio
     obj["NSImageViewPlaceholderPrecedence"] = 0
     obj["NSSuperview"] = obj.xib_parent()
     obj["NSControlSendActionMask"] = 4
+    obj.setIfEmpty("NSSubviews", NibMutableList([]))
     if not obj.extraContext.get("parsed_autoresizing"):
         obj.flagsOr("NSvFlags", vFlags.MAX_X_MARGIN | vFlags.MIN_Y_MARGIN) # that's the actual default
     return obj
@@ -719,6 +720,23 @@ def _xibparser_parse_scrollView(ctx: ArchiveContext, elem: Element, parent: Opti
     __xibparser_ParseChildren(ctx, elem, obj)
     if not obj.extraContext.get("parsed_autoresizing"):
         obj.flagsOr("NSvFlags", vFlags.MAX_X_MARGIN | vFlags.MIN_Y_MARGIN) # that's the actual default
+    obj["NSContentView"] = NibNil()
+    obj["NSGestureRecognizers"] = NibList([default_pan_recognizer(obj)])
+    obj["NSMagnification"] = 1.0
+    obj["NSMaxMagnification"] = 4.0
+    obj["NSMinMagnification"] = 0.25
+    obj["NSNextKeyView"] = NibNil()
+    obj["NSsFlags"] = 0
+    return obj
+
+def default_pan_recognizer(scrollView: XibObject) -> XibObject:
+    obj = XibObject("NSPanGestureRecognizer", None)
+    obj["NSGestureRecognizer.action"] = NibString.intern("_panWithGestureRecognizer:")
+    obj["NSGestureRecognizer.allowedTouchTypes"] = 1
+    obj["NSGestureRecognizer.delegate"] = scrollView
+    obj["NSGestureRecognizer.target"] = scrollView
+    obj["NSPanGestureRecognizer.buttonMask"] = 0
+    obj["NSPanGestureRecognizer.numberOfTouchesRequired"] = 1
     return obj
 
 
@@ -934,7 +952,7 @@ def _xibparser_parse_textField(ctx: ArchiveContext, elem: Element, parent: NibOb
     obj["NSControlSize"] = 0
     obj["NSControlSize2"] = 0
     obj["NSControlContinuous"] = False
-    obj["NSControlRefusesFirstResponder"] = False
+    obj["NSControlRefusesFirstResponder"] = elem.attrib.get("refusesFirstResponder", "NO") == "YES"
     obj["NSControlUsesSingleLineMode"] = False
     obj.setIfEmpty("NSControlLineBreakMode", 0)
     obj["NSControlWritingDirection"] = -1
@@ -1133,8 +1151,35 @@ def _xibparser_parse_color(ctx: ArchiveContext, elem: Element, parent: NibObject
 def _xibparser_parse_size(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
     pass
 
-def _xibparser_parse_scroller(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
-    pass
+def _xibparser_parse_scroller(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
+    obj = XibObject("NSScroller", parent, elem.attrib["id"])
+    _xibparser_common_view_attributes(ctx, elem, parent, obj)
+    __xibparser_ParseChildren(ctx, elem, obj)
+    obj["NSNextResponder"] = parent
+    obj["NSAction"] = NibString.intern("_doScroller:")
+    obj["NSControlAction"] = NibString.intern("_doScroller:")
+    obj["NSAllowsLogicalLayoutDirection"] = False
+    obj["NSControlContinuous"] = False
+    obj["NSControlSendActionMask"] = 4
+    obj["NSControlSize"] = 0
+    obj["NSControlSize2"] = 0
+    obj["NSControlTarget"] = parent
+    obj["NSTarget"] = parent
+    obj["NSControlUsesSingleLineMode"] = False
+    obj["NSControlWritingDirection"] = 0
+    obj["NSControlTextAlignment"] = 0
+    obj["NSControlLineBreakMode"] = 0
+    obj["NSViewIsLayerTreeHost"] = True
+    obj["NSControlRefusesFirstResponder"] = elem.attrib.get("refusesFirstResponder", "NO") == "YES"
+    obj["NSsFlags"] = 1
+    obj["NSSuperview"] = obj.xib_parent()
+    if (cur_value := elem.attrib.get("doubleValue")) is not None:
+        obj["NSCurValue"] = float(cur_value)
+    if elem.attrib["horizontal"] == "YES":
+        parent["NSHScroller"] = obj
+    else:
+        parent["NSVScroller"] = obj
+    return obj
 
 def makeSystemColor(name):
     def systemColorTemplate(name, components, white):
