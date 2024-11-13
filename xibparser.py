@@ -537,7 +537,6 @@ def _xibparser_parse_button(ctx: ArchiveContext, elem: Element, parent: Optional
     obj["NSControlContinuous"] = False
     obj["NSControlRefusesFirstResponder"] = False
     obj["NSControlUsesSingleLineMode"] = False
-    obj.setIfEmpty("NSControlTextAlignment", 4)
     obj["NSControlLineBreakMode"] = 0
     obj["NSControlWritingDirection"] = -1
     obj["NSControlSendActionMask"] = 4
@@ -757,7 +756,6 @@ def _xibparser_parse_textField(ctx: ArchiveContext, elem: Element, parent: NibOb
     obj["NSControlContinuous"] = False
     obj["NSControlRefusesFirstResponder"] = False
     obj["NSControlUsesSingleLineMode"] = False
-    obj["NSControlTextAlignment"] = 4
     obj["NSControlLineBreakMode"] = 4
     obj["NSControlWritingDirection"] = -1
     obj["NSControlSendActionMask"] = 4
@@ -776,6 +774,10 @@ def __xibparser_cell_flags(elem: Element, obj: NibObject, parent: NibObject) -> 
     obj.flagsOr("NSCellFlags", lineBreakModeMask | CellFlags.UNKNOWN_TEXT_FIELD)
     obj.flagsOr("NSCellFlags2", textAlignmentMask | sendsActionMask | lineBreakModeMask2)
     parent["NSControlLineBreakMode"] = {None: 0, "truncatingTail": 4}[lineBreakMode]
+    print(obj.classname())
+    if obj.classname() in ['NSButtonCell', 'NSTextFieldCell']:
+        textAlignmentValue = {None: 4, "left": 0, "center": 1, "right": 2}[textAlignment]
+        parent["NSControlTextAlignment"] = textAlignmentValue
 
 def _xibparser_parse_textFieldCell(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
     obj = XibObject("NSTextFieldCell", parent, elem.attrib["id"])
