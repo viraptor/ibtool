@@ -523,6 +523,10 @@ def _xibparser_common_view_attributes(ctx: ArchiveContext, elem: Element, parent
     obj.extraContext["verticalHuggingPriority"] = elem.attrib.get("verticalHuggingPriority")
     obj.extraContext["horizontalHuggingPriority"] = elem.attrib.get("horizontalHuggingPriority")
 
+    do_not_traslave_autoresizing = elem.attrib.get('translatesAutoresizingMaskIntoConstraints', "YES") == "NO"
+    if do_not_traslave_autoresizing:
+        obj["NSDoNotTranslateAutoresizingMask"] = True
+
 
 def make_xib_object(ctx: ArchiveContext, classname: str, elem: Element, parent: Optional[NibObject]) -> XibObject:
     obj = XibObject(classname, parent, elem.attrib.get("id"))
@@ -570,7 +574,6 @@ def _xibparser_parse_imageView(ctx: ArchiveContext, elem: Element, parent: Optio
     obj["NSControlSize2"] = 0
     obj["NSControlUsesSingleLineMode"] = False
     obj["NSControlWritingDirection"] = -1
-    obj["NSDoNotTranslateAutoresizingMask"] = True
     obj["NSDragTypes"] = NibMutableList()
     obj["NSEditable"] = True
     obj["NSEnabled"] = True
@@ -821,15 +824,18 @@ def _xibparser_parse_textField(ctx: ArchiveContext, elem: Element, parent: NibOb
     obj["NSControlContinuous"] = False
     obj["NSControlRefusesFirstResponder"] = False
     obj["NSControlUsesSingleLineMode"] = False
-    obj["NSControlLineBreakMode"] = 4
+    obj.setIfEmpty("NSControlLineBreakMode", 4)
     obj["NSControlWritingDirection"] = -1
     obj["NSControlSendActionMask"] = 4
     obj["NSTextFieldAlignmentRectInsetsVersion"] = 2
 
+    do_not_traslave_autoresizing = elem.attrib.get('translatesAutoresizingMaskIntoConstraints', "YES") == "NO"
+    if do_not_traslave_autoresizing:
+        obj["NSDoNotTranslateAutoresizingMask"] = True
+
     horizontal_compression_prio = elem.attrib.get('horizontalCompressionResistancePriority')
     vertical_compression_prio = elem.attrib.get('verticalCompressionResistancePriority')
     if horizontal_compression_prio is not None or vertical_compression_prio is not None:
-        print(horizontal_compression_prio, vertical_compression_prio)
         if horizontal_compression_prio is None:
             horizontal_compression_prio = "750"
         if vertical_compression_prio is None:
@@ -846,8 +852,9 @@ def __xibparser_cell_flags(elem: Element, obj: NibObject, parent: NibObject) -> 
     lineBreakModeMask2 = {None: 0, "truncatingTail": 0x800, "clipping": 0}[lineBreakMode]
     textAlignment = elem.attrib.get("alignment")
     textAlignmentMask = {None: CellFlags2.TEXT_ALIGN_NONE, "left": CellFlags2.TEXT_ALIGN_LEFT, "center": CellFlags2.TEXT_ALIGN_CENTER, "right": CellFlags2.TEXT_ALIGN_RIGHT}[textAlignment]
+    selectable = (CellFlags.SELECTABLE + 1) if elem.attrib.get("selectable", "NO") == "YES" else 0
 
-    obj.flagsOr("NSCellFlags", lineBreakModeMask | CellFlags.UNKNOWN_TEXT_FIELD)
+    obj.flagsOr("NSCellFlags", lineBreakModeMask | CellFlags.UNKNOWN_TEXT_FIELD | selectable)
     obj.flagsOr("NSCellFlags2", textAlignmentMask | sendsActionMask | lineBreakModeMask2)
     parent["NSControlLineBreakMode"] = {None: 0, "truncatingTail": 4, "clipping": 0}[lineBreakMode]
     if obj.classname() in ['NSButtonCell', 'NSTextFieldCell']:
@@ -864,6 +871,8 @@ def _xibparser_parse_textFieldCell(ctx: ArchiveContext, elem: Element, parent: N
     obj["NSSupport"] = NibNil() # TODO
     obj["NSControlView"] = obj.xib_parent()
     obj["NSCharacterPickerEnabled"] = True
+    control_line_break_mode = elem.attrib.get('lineBreakMode')
+    parent["NSControlLineBreakMode"] = {None: 4, "truncatingTail": 4, "clipping": 2}[control_line_break_mode]
     __xibparser_ParseChildren(ctx, elem, obj)
 
     parent["NSCell"] = obj
@@ -949,7 +958,7 @@ def _xibparser_parse_font(ctx: ArchiveContext, elem: Element, parent: NibObject)
         item["NSfFlags"] = 1044
     elif meta_font == 'systemBold':
         item["NSName"] = NibString.intern(".AppleSystemUIFontBold")
-        item["NSSize"] = 24.0
+        item["NSSize"] = float(elem.attrib.get("size", 24.0))
         item["NSfFlags"] = 2072
     elif meta_font == 'smallSystem':
         item["NSName"] = NibString.intern(".AppleSystemUIFont")
@@ -980,13 +989,12 @@ def _xibparser_parse_string(ctx: ArchiveContext, elem: Element, parent: NibObjec
 
 def _xibparser_parse_color(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
     assert isinstance(parent, XibObject), type(parent)
-    
     assert elem.attrib["colorSpace"] in ["catalog", "calibratedWhite"], elem.attrib["colorSpace"]
+
+    key = elem.attrib["key"]
 
     if elem.attrib["colorSpace"] == "catalog":
         color = makeSystemColor(elem.attrib["name"])
-
-        key = elem.attrib["key"]
         if key == "textColor":
             parent["NSTextColor"] = color
         elif key == "backgroundColor":
@@ -995,8 +1003,15 @@ def _xibparser_parse_color(ctx: ArchiveContext, elem: Element, parent: NibObject
             parent["NSInsertionPointColor"] = color
         else:
             raise Exception(f"unknown key {key}")
+    elif elem.attrib["colorSpace"] == "calibratedWhite":
+        if key == "textColor":
+            parent["NSTextColor"] = "calibratedWhite"
+        elif key == "backgroundColor":
+            parent["NSBackgroundColor"] = "calibratedWhite"
+        else:
+            raise Exception(f"unknown key {key}")
     else:
-        pass
+        raise Exception(f"unknown colorSpace {elem.attrib['colorSpace']}")
 
 
 def _xibparser_parse_size(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
