@@ -994,6 +994,8 @@ def _xibparser_parse_color(ctx: ArchiveContext, elem: Element, parent: NibObject
     key = elem.attrib["key"]
 
     if elem.attrib["colorSpace"] == "catalog":
+        assert elem.attrib["catalog"] == "System", elem.attrib["catalog"]
+
         color = makeSystemColor(elem.attrib["name"])
         if key == "textColor":
             parent["NSTextColor"] = color
@@ -1038,6 +1040,12 @@ def makeSystemColor(name):
         return systemColorTemplate(name, b'0.6666666667 1', b'0.602715373\x00')
     elif name == 'controlTextColor':
         return systemColorTemplate(name, b'0 1', b'0\x00')
+    elif name == 'textColor':
+        return systemColorTemplate(name, b'0 1', b'0\x00')
+    elif name == 'textBackgroundColor':
+        return systemColorTemplate(name, b'1 1', b'1\x00')
+    else:
+        raise Exception(f"unknown name {name}")
 
 
 # is it default? TODO
