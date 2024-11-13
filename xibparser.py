@@ -576,14 +576,28 @@ def _xibparser_parse_imageView(ctx: ArchiveContext, elem: Element, parent: Optio
     obj["NSControlSize2"] = 0
     obj["NSControlUsesSingleLineMode"] = False
     obj["NSControlWritingDirection"] = -1
-    obj["NSDragTypes"] = NibMutableSet()
+    obj["NSDragTypes"] = default_drag_types()
     obj["NSEditable"] = True
     obj["NSEnabled"] = True
     obj["NSImageViewPlaceholderPrecedence"] = 0
     obj["NSSuperview"] = obj.xib_parent()
+    obj["NSControlSendActionMask"] = 4
     if not obj.extraContext.get("parsed_autoresizing"):
         obj.flagsOr("NSvFlags", vFlags.MAX_X_MARGIN | vFlags.MIN_Y_MARGIN) # that's the actual default
     return obj
+
+
+def default_drag_types() -> NibMutableSet:
+    return NibMutableSet([
+        NibString('Apple PDF pasteboard type'),
+        NibString('Apple PICT pasteboard type'),
+        NibString('Apple PNG pasteboard type'),
+        NibString('NSFilenamesPboardType'),
+        NibString('NeXT TIFF v4.0 pasteboard type'),
+        NibString('com.apple.NSFilePromiseItemMetaData'),
+        NibString('com.apple.pasteboard.promised-file-content-type'),
+        NibString('dyn.ah62d4rv4gu8yc6durvwwa3xmrvw1gkdusm1044pxqyuha2pxsvw0e55bsmwca7d3sbwu')
+        ])
 
 
 def _xibparser_parse_constraints(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> None:
@@ -881,7 +895,7 @@ def __xibparser_cell_flags(elem: Element, obj: NibObject, parent: NibObject) -> 
     obj.flagsOr("NSCellFlags", lineBreakModeMask | CellFlags.UNKNOWN_TEXT_FIELD | selectable)
     obj.flagsOr("NSCellFlags2", textAlignmentMask | sendsActionMask | lineBreakModeMask2)
     parent["NSControlLineBreakMode"] = {None: 0, "truncatingTail": 4, "clipping": 0}[lineBreakMode]
-    if obj.classname() in ['NSButtonCell', 'NSTextFieldCell']:
+    if obj.classname() in ['NSButtonCell', 'NSTextFieldCell', 'NSImageCell']:
         textAlignmentValue = {None: 4, "left": 0, "center": 1, "right": 2}[textAlignment]
         parent["NSControlTextAlignment"] = textAlignmentValue
 
