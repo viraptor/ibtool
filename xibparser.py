@@ -1155,25 +1155,38 @@ def _xibparser_parse_color(ctx: ArchiveContext, elem: Element, parent: NibObject
 
     key = elem.attrib["key"]
 
+    special_target_attributes = { # weird and standard attributes
+        "NSClipView": {
+            "backgroundColor": "NSBGColor",
+        },
+        None: {
+            "textColor": "NSTextColor",
+            "backgroundColor": "NSBackgroundColor",
+            "insertionPointColor": "NSInsertionPointColor",
+        }
+    }
+
+    target_attribute = special_target_attributes.get(parent.classname(), special_target_attributes[None])[key]
+
     if elem.attrib["colorSpace"] == "catalog":
         assert elem.attrib["catalog"] == "System", elem.attrib["catalog"]
 
         color = makeSystemColor(elem.attrib["name"])
-        if key == "textColor":
-            parent["NSTextColor"] = color
-        elif key == "backgroundColor":
-            parent["NSBackgroundColor"] = color
-        elif key == "insertionPointColor":
-            parent["NSInsertionPointColor"] = color
-        else:
-            raise Exception(f"unknown key {key}")
+        parent[target_attribute] = color
     elif elem.attrib["colorSpace"] == "calibratedWhite":
-        if key == "textColor":
-            parent["NSTextColor"] = "calibratedWhite"
-        elif key == "backgroundColor":
-            parent["NSBackgroundColor"] = "calibratedWhite"
-        else:
-            raise Exception(f"unknown key {key}")
+        color = NibObject("NSColor", None, {
+            "NSColorSpace": 6,
+            "NSCatalogName": "System",
+            "NSColorName": "controlBackgroundColor",
+            "NSColor": NibObject("NSColor", None, {
+                "NSColorSpace": 3,
+                "NSComponents": NibInlineString(b'0.6666666667 1'),
+                "NSCustomColorSpace": DEFAULT_COLOR_SPACE,
+                "NSWhite": NibInlineString(b'0.602715373\x00'),
+            }),
+
+        })
+        parent[target_attribute] = color
     else:
         raise Exception(f"unknown colorSpace {elem.attrib['colorSpace']}")
 
