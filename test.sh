@@ -2,7 +2,11 @@
 
 test_out=$(mktemp)
 
-xibs_to_test="samples/minimal.xib samples/blocklist.xib samples/windows.xib samples/window.xib samples/with_view.xib samples/with_app_class.xib samples/blocklist_big.xib"
+if [[ $# -gt 0 ]] ; then
+	xibs_to_test="$@"
+else
+	xibs_to_test="samples/minimal.xib samples/blocklist.xib samples/windows.xib samples/window.xib samples/with_view.xib samples/with_app_class.xib samples/blocklist_big.xib"
+fi
 
 for xib in $xibs_to_test ; do
 	echo "Testing $xib"
