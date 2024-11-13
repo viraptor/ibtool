@@ -15,6 +15,7 @@ KNOWN_FLAGS: dict[str,int] = {
     "NSButtonFlags": nibencoding.NIB_TYPE_LONG_LONG,
     "NSButtonFlags2": nibencoding.NIB_TYPE_SHORT,
     "NSsFlags": nibencoding.NIB_TYPE_BYTE,
+    "NSTVFlags": nibencoding.NIB_TYPE_SHORT,
 }
 
 class NibObject:

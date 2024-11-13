@@ -580,8 +580,37 @@ def _xibparser_parse_button(ctx: ArchiveContext, elem: Element, parent: Optional
 
 
 def _xibparser_parse_textView(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> XibObject:
-    obj = make_xib_object(ctx, "NSImageView", elem, parent)
+    obj = make_xib_object(ctx, "NSTextView", elem, parent)
     __xibparser_ParseChildren(ctx, elem, obj)
+    obj["NSDelegate"] = NibNil()
+    obj["NSSuperview"] = obj.xib_parent()
+    obj["NSTVFlags"] = 135
+    obj["NSMaxSize"] = '{10000000, 10000000}'
+    obj["NSNextResponder"] = obj.xib_parent()
+
+    text_container = XibObject("NSTextContainer", obj)
+    text_container["NSLayoutManager"] = NibNil()
+    text_container["NSMinWidth"] = 15.0
+    text_container["NSTCFlags"] = 0x1
+    text_container["NSTextLayoutManager"] = NibNil()
+    text_container["NSTextView"] = NibNil()
+    text_container["NSWidth"] = 488.0
+    obj["NSTextContainer"] = text_container
+
+    shared_data = XibObject("NSTextViewSharedData", obj)
+    shared_data["NSAutomaticTextCompletionDisabled"] = False
+    shared_data["NSBackgroundColor"] = NibNil()
+    shared_data["NSDefaultParagraphStyle"] = NibNil()
+    shared_data["NSFlags"] = 0x4000905
+    shared_data["NSInsertionColor"] = NibNil()
+    shared_data["NSLinkAttributes"] = NibNil()
+    shared_data["NSMarkedAttributes"] = NibNil()
+    shared_data["NSMoreFlags"] = 0x1
+    shared_data["NSPreferredTextFinderStyle"] = 0
+    shared_data["NSSelectedAttributes"] = NibNil()
+    shared_data["NSTextCheckingTypes"] = 0
+    shared_data["NSTextFinder"] = NibNil()
+    obj["NSSharedData"] = shared_data
     return obj
 
 
@@ -765,6 +794,7 @@ def _xibparser_parse_clipView(ctx: ArchiveContext, elem: Element, parent: Option
         raise Exception(f"view in unknown key {key} (parent {parent.repr()})")
     
     obj["NSAutomaticallyAdjustsContentInsets"] = True
+    obj["NSvFlags"] = vFlags.AUTORESIZES_SUBVIEWS # clearing the values from elem - they don't seem to matter
     cursor = XibObject("NSCursor", obj)
     cursor["NSCursorType"] = 0
     cursor["NSHotSpot"] = NibString.intern("{1, -1}")
@@ -1159,6 +1189,10 @@ def _xibparser_parse_color(ctx: ArchiveContext, elem: Element, parent: NibObject
         "NSClipView": {
             "backgroundColor": "NSBGColor",
         },
+        "NSTextView": {
+            "backgroundColor": None,
+            "insertionPointColor": "NSTextViewTextColor",
+        },
         None: {
             "textColor": "NSTextColor",
             "backgroundColor": "NSBackgroundColor",
@@ -1167,6 +1201,8 @@ def _xibparser_parse_color(ctx: ArchiveContext, elem: Element, parent: NibObject
     }
 
     target_attribute = special_target_attributes.get(parent.classname(), special_target_attributes[None])[key]
+    if target_attribute is None:
+        return
 
     if elem.attrib["colorSpace"] == "catalog":
         assert elem.attrib["catalog"] == "System", elem.attrib["catalog"]
