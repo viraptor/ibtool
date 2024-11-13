@@ -553,6 +553,8 @@ def _xibparser_parse_button(ctx: ArchiveContext, elem: Element, parent: Optional
     obj["NSControlWritingDirection"] = -1
     obj["NSControlSendActionMask"] = 4
     obj["IBNSShadowedSymbolConfiguration"] = NibNil()
+    if not obj.extraContext.get("parsed_autoresizing"):
+        obj.flagsOr("NSvFlags", vFlags.MAX_X_MARGIN | vFlags.MIN_Y_MARGIN) # that's the actual default
     return obj
 
 
@@ -574,11 +576,13 @@ def _xibparser_parse_imageView(ctx: ArchiveContext, elem: Element, parent: Optio
     obj["NSControlSize2"] = 0
     obj["NSControlUsesSingleLineMode"] = False
     obj["NSControlWritingDirection"] = -1
-    obj["NSDragTypes"] = NibMutableList()
+    obj["NSDragTypes"] = NibMutableSet()
     obj["NSEditable"] = True
     obj["NSEnabled"] = True
     obj["NSImageViewPlaceholderPrecedence"] = 0
     obj["NSSuperview"] = obj.xib_parent()
+    if not obj.extraContext.get("parsed_autoresizing"):
+        obj.flagsOr("NSvFlags", vFlags.MAX_X_MARGIN | vFlags.MIN_Y_MARGIN) # that's the actual default
     return obj
 
 
@@ -589,7 +593,7 @@ def _xibparser_parse_constraints(ctx: ArchiveContext, elem: Element, parent: Opt
 def _xibparser_parse_imageCell(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> XibObject:
     assert parent is not None
     assert parent.classname() == "NSImageView"
-    obj = NibObject("NSImageCell", parent)
+    obj = XibObject("NSImageCell", parent)
     __xibparser_ParseChildren(ctx, elem, obj)
     __xibparser_cell_flags(elem, obj, parent)
 
@@ -597,16 +601,34 @@ def _xibparser_parse_imageCell(ctx: ArchiveContext, elem: Element, parent: Optio
     obj["NSAlign"] = alignment_value
     obj["NSAnimates"] = elem.attrib.get("animates", "NO") == "YES"
     obj["NSContents"] = NibNil()
-    obj["NSControlView"] = NibNil()
-    obj["NSScale"] = NibNil()
-    obj["NSStyle"] = NibNil()
+    obj["NSControlView"] = parent
+    obj["NSScale"] = 1
+    obj["NSStyle"] = 0
+    obj["NSControlSize2"] = 0
+    if image_name := elem.attrib.get("image"):
+        obj["NSContents"] = make_system_image(image_name, obj)
     parent["NSCell"] = obj
+    return obj
+
+
+def make_system_image(name: str, parent: NibObject) -> XibObject:
+    obj = XibObject("NSCustomResource", parent)
+    obj["NSResourceName"] = NibString.intern(name)
+    obj["NSClassName"] = NibString.intern("NSImage")
+    obj["IBNamespaceID"] = NibString.intern("system")
+    design_size = XibObject("NSValue", obj)
+    design_size["NS.sizeval"] = NibString.intern("{32, 32}")
+    design_size["NS.special"] = 2
+    obj["IBDesignSize"] = design_size
+    obj["IBDesignImageConfiguration"] = NibNil()
     return obj
 
 
 def _xibparser_parse_scrollView(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> XibObject:
     obj = make_xib_object(ctx, "NSScrollView", elem, parent)
     __xibparser_ParseChildren(ctx, elem, obj)
+    if not obj.extraContext.get("parsed_autoresizing"):
+        obj.flagsOr("NSvFlags", vFlags.MAX_X_MARGIN | vFlags.MIN_Y_MARGIN) # that's the actual default
     return obj
 
 
@@ -828,6 +850,8 @@ def _xibparser_parse_textField(ctx: ArchiveContext, elem: Element, parent: NibOb
     obj["NSControlWritingDirection"] = -1
     obj["NSControlSendActionMask"] = 4
     obj["NSTextFieldAlignmentRectInsetsVersion"] = 2
+    if not obj.extraContext.get("parsed_autoresizing"):
+        obj.flagsOr("NSvFlags", vFlags.MAX_X_MARGIN | vFlags.MIN_Y_MARGIN) # that's the actual default
 
     do_not_traslave_autoresizing = elem.attrib.get('translatesAutoresizingMaskIntoConstraints', "YES") == "NO"
     if do_not_traslave_autoresizing:
