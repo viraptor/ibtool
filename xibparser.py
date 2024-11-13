@@ -621,7 +621,6 @@ def _xibparser_parse_imageView(ctx: ArchiveContext, elem: Element, parent: Optio
     obj["IBNSShadowedSymbolConfiguration"] = NibNil()
     obj["NSAllowsLogicalLayoutDirection"] = False
     obj["NSControlContinuous"] = False
-    obj["NSControlRefusesFirstResponder"] = elem.attrib.get("refusesFirstResponder", "NO") == "YES"
     obj["NSControlSize"] = 0
     obj["NSControlSize2"] = 0
     obj["NSControlUsesSingleLineMode"] = False
@@ -737,6 +736,7 @@ def _xibparser_parse_imageCell(ctx: ArchiveContext, elem: Element, parent: Optio
     if image_name := elem.attrib.get("image"):
         obj["NSContents"] = make_system_image(image_name, obj)
     parent["NSCell"] = obj
+    parent["NSControlRefusesFirstResponder"] = elem.attrib.get("refusesFirstResponder", "NO") == "YES"
     return obj
 
 
