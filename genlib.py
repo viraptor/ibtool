@@ -361,6 +361,11 @@ class CompilationContext:
                     key_idx = idx_of_key(k)
                     vtuple_obj = (key_idx, nibencoding.NIB_TYPE_OBJECT, v.nibidx(), v)
                     out_values.append(vtuple_obj)
+                elif str(type(v)) == "<class 'xibparser.XibId'>":
+                    key_idx = idx_of_key(k)
+                    id_target = [o for o in self.object_list if isinstance(o, NibObject) and getattr(o, "xibid", None) == v.val()][0]
+                    vtuple_obj = (key_idx, nibencoding.NIB_TYPE_OBJECT, id_target.nibidx(), id_target)
+                    out_values.append(vtuple_obj)
                 elif isinstance(v, str) or isinstance(v, bytearray) or isinstance(v, bytes):
                     key_idx = idx_of_key(k)
                     vtuple_str = (key_idx, nibencoding.NIB_TYPE_STRING, v)

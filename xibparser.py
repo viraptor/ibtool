@@ -42,7 +42,7 @@ class ButtonFlags(IntEnum):
     IMAGE_RIGHT = 0x00280000
     IMAGE_BELOW = 0x00180000
     IMAGE_ABOVE = 0x00080000
-    
+
     HIGHLIGHT_PUSH_IN_CELL = 0x80000000
     STATE_CONTENTS_CELL = 0x40000000
     STATE_CHANGE_BACKGROUND_CELL = 0x20000000
@@ -94,7 +94,7 @@ class CellFlags2(IntEnum):
     SELECTABLE = 0x80000000
     RICH_TEXT = 0x40000000
     IMPORTS_GRAPH = 0x10000000
-    
+
     TEXT_ALIGN_NONE = 0x10000000
     TEXT_ALIGN_LEFT = 0x0
     TEXT_ALIGN_CENTER = 0x8000000
@@ -105,7 +105,7 @@ class CellFlags2(IntEnum):
     ALLOWS_MIXED_STATE = 0x01000000
     IN_MIXED_STATE = 0x00800000
     SENDS_ACTION_ON_END_EDITING = 0x00400000
-    
+
     LINE_BREAK_MODE_MASK = 0x00000600
     CONTROL_SIZE_MASK = 0x000E0000
 
@@ -136,6 +136,16 @@ class XibId:
             return self._val == other
         elif isinstance(other, XibId):
             return self._val == other._val
+        else:
+            return False
+
+    def __lt__(self, other: Union[int,"XibId","XibObject"]) -> bool:
+        if isinstance(other, int):
+            return self._val < other
+        elif isinstance(other, XibId):
+            return self._val < other._val
+        elif isinstance(other, XibObject):
+            return self._val < other.xibid._val
         else:
             return False
 
@@ -411,6 +421,14 @@ class XibObject(NibObject):
         else:
             return None
 
+    def __lt__(self, other: Union["XibId","XibObject"]) -> bool:
+        if isinstance(other, XibId):
+            return self.xibid._val < other._val
+        elif isinstance(other, XibObject):
+            return self.xibid._val < other.xibid._val
+        else:
+            return False
+
 class XibViewController(XibObject):
     def __init__(self, classname: str, parent: Optional[NibObject] = None) -> None:
         XibObject.__init__(self, classname, parent)
@@ -674,9 +692,6 @@ def _xibparser_parse_constraint(ctx: ArchiveContext, elem: Element, parent: Opti
     if symbolic:
         obj["NSSymbolicConstant"] = NibString.intern("NSSpace")
     obj["NSShouldBeArchived"] = True
-    print('---')
-    for x in obj.getKeyValuePairs():
-        print(x)
     parent.setIfEmpty("NSViewConstraints", NibList())
     cast(NibList, parent["NSViewConstraints"]).addItem(obj)
 
