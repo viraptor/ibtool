@@ -196,6 +196,12 @@ class ArrayLike(NibObject):
         NibObject.__init__(self, classname)
         self._items: list[PropValue] = list(items)
 
+    def __len__(self) -> int:
+        return len(self._items)
+    
+    def __getitem__(self, key: int) -> PropValue:
+        return self._items[key]
+
     def addItem(self, item: PropValue) -> None:
         self._items.append(item)
 

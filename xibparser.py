@@ -729,7 +729,6 @@ def _xibparser_parse_scrollView(ctx: ArchiveContext, elem: Element, parent: Opti
     __xibparser_ParseChildren(ctx, elem, obj)
     if not obj.extraContext.get("parsed_autoresizing"):
         obj.flagsOr("NSvFlags", vFlags.MAX_X_MARGIN | vFlags.MIN_Y_MARGIN) # that's the actual default
-    obj["NSContentView"] = NibNil()
     obj["NSGestureRecognizers"] = NibList([default_pan_recognizer(obj)])
     obj["NSMagnification"] = 1.0
     obj["NSMaxMagnification"] = 4.0
@@ -752,6 +751,28 @@ def default_pan_recognizer(scrollView: XibObject) -> XibObject:
 def _xibparser_parse_clipView(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> XibObject:
     obj = make_xib_object(ctx, "NSClipView", elem, parent)
     __xibparser_ParseChildren(ctx, elem, obj)
+    
+    key = elem.get("key")
+    if key == "contentView":
+        if parent.originalclassname() == "NSScrollView":
+            parent["NSContentView"] = obj
+        else:
+            raise Exception(
+                "Unhandled class '%s' to take UIView with key 'contentView'"
+                % (parent.originalclassname())
+            )
+    else:
+        raise Exception(f"view in unknown key {key} (parent {parent.repr()})")
+    
+    obj["NSAutomaticallyAdjustsContentInsets"] = True
+    cursor = XibObject("NSCursor", obj)
+    cursor["NSCursorType"] = 0
+    cursor["NSHotSpot"] = NibString.intern("{1, -1}")
+    obj["NSCursor"] = cursor
+    if obj.get("NSSubviews") and len(obj["NSSubviews"]) > 0:
+        obj["NSDocView"] = obj["NSSubviews"][0]
+    else:
+        obj["NSDocView"] = NibNil()
     return obj
 
 
