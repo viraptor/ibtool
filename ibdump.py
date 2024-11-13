@@ -224,7 +224,10 @@ def treePrintObjects(nib: NibStructure, prefix: str ="", showencoding: bool=Fals
 
         for v in obj_values:
             k_str = keys[v[0]]
-            v_str = str(v[1])
+            if k_str.endswith("Flags") and isinstance(v[1], int):
+                v_str = str(hex(v[1]))
+            else:
+                v_str = str(v[1])
 
             printSubNib = (
                 k_str == "NS.bytes"
@@ -266,7 +269,10 @@ def fancyPrintObjects(nib: NibStructure, prefix: str="", showencoding: bool=Fals
         for v in obj_values:
             # print(v)
             k_str = keys[v[0]]
-            v_str = str(v[1])
+            if k_str.endswith("Flags") and isinstance(v[1], int):
+                v_str = str(hex(v[1]))
+            else:
+                v_str = str(v[1])
 
             printSubNib = (
                 k_str == "NS.bytes"
