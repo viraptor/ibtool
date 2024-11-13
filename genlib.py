@@ -417,6 +417,8 @@ class CompilationContext:
                     out_values.append(
                         (idx_of_key(k), nibencoding.NIB_TYPE_STRING, data)
                     )
+                else:
+                    raise Exception(f"Unknown type: {type(v)} in key {k} of {obj.classname()}")
 
             obj_values_end = len(out_values)
             class_idx = idx_of_class(obj.classname())

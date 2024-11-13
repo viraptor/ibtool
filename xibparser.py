@@ -840,7 +840,7 @@ def _xibparser_parse_window(ctx: ArchiveContext, elem: Element, parent: NibObjec
     if elem.attrib.get("autorecalculatesKeyViewLoop", "YES") == "YES":
         item.flagsOr("NSWTFlags", WTFlags.AUTORECALCULATES_KEY_VIEW_LOOP)
 
-    item["NSWindowTitle"] = NibString.intern(elem.attrib.get("title"))
+    item["NSWindowTitle"] = NibString.intern(elem.attrib.get("title", ''))
     item["NSWindowSubtitle"] = ""
     item["NSWindowClass"] = NibString.intern("NSWindow")
     item["NSViewClass"] = NibNil() # TODO
