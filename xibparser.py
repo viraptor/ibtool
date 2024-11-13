@@ -825,6 +825,17 @@ def _xibparser_parse_textField(ctx: ArchiveContext, elem: Element, parent: NibOb
     obj["NSControlWritingDirection"] = -1
     obj["NSControlSendActionMask"] = 4
     obj["NSTextFieldAlignmentRectInsetsVersion"] = 2
+
+    horizontal_compression_prio = elem.attrib.get('horizontalCompressionResistancePriority')
+    vertical_compression_prio = elem.attrib.get('verticalCompressionResistancePriority')
+    if horizontal_compression_prio is not None or vertical_compression_prio is not None:
+        print(horizontal_compression_prio, vertical_compression_prio)
+        if horizontal_compression_prio is None:
+            horizontal_compression_prio = "750"
+        if vertical_compression_prio is None:
+            vertical_compression_prio = "750"
+        obj["NSAntiCompressionPriority"] = f"{{{horizontal_compression_prio}, {vertical_compression_prio}}}"
+
     return obj
 
 def __xibparser_cell_flags(elem: Element, obj: NibObject, parent: NibObject) -> None:
