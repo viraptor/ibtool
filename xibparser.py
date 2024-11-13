@@ -589,19 +589,95 @@ def _xibparser_parse_imageView(ctx: ArchiveContext, elem: Element, parent: Optio
 
 def default_drag_types() -> NibMutableSet:
     return NibMutableSet([
-        NibString('Apple PDF pasteboard type'),
-        NibString('Apple PICT pasteboard type'),
-        NibString('Apple PNG pasteboard type'),
-        NibString('NSFilenamesPboardType'),
-        NibString('NeXT TIFF v4.0 pasteboard type'),
-        NibString('com.apple.NSFilePromiseItemMetaData'),
-        NibString('com.apple.pasteboard.promised-file-content-type'),
-        NibString('dyn.ah62d4rv4gu8yc6durvwwa3xmrvw1gkdusm1044pxqyuha2pxsvw0e55bsmwca7d3sbwu')
+        NibString.intern('Apple PDF pasteboard type'),
+        NibString.intern('Apple PICT pasteboard type'),
+        NibString.intern('Apple PNG pasteboard type'),
+        NibString.intern('NSFilenamesPboardType'),
+        NibString.intern('NeXT TIFF v4.0 pasteboard type'),
+        NibString.intern('com.apple.NSFilePromiseItemMetaData'),
+        NibString.intern('com.apple.pasteboard.promised-file-content-type'),
+        NibString.intern('dyn.ah62d4rv4gu8yc6durvwwa3xmrvw1gkdusm1044pxqyuha2pxsvw0e55bsmwca7d3sbwu')
         ])
 
 
 def _xibparser_parse_constraints(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> None:
-    pass
+    assert parent is not None
+
+    __xibparser_ParseChildren(ctx, elem, parent)
+    cast(NibList, parent["NSViewConstraints"])._items.sort(key=lambda x: (
+        x.get("NSFirstItem"),
+        x.get("NSSecondItem"),
+        ATTRIBUTE_ORDER[x.get("NSFirstAttribute")],
+        ATTRIBUTE_ORDER[x.get("NSSecondAttribute")]
+        ))
+
+
+ATTRIBUTE_MAP = {
+    "left": 1,
+    "right": 2,
+    "top": 3,
+    "bottom": 4,
+    "leading": 5,
+    "trailing": 6,
+    "width": 7,
+    "height": 8,
+    "centerX": 9,
+    "centerY": 10,
+    "baseline": 11,
+}
+
+# first item, first attribute, second attribute, 
+ATTRIBUTE_ORDER = {
+    None: 0,
+    9: 1,
+    10: 2,
+    2: 3,
+    1: 4,
+    6: 5,
+    5: 6,
+    4: 7,
+    3: 8,
+    11: 9,
+    7: 10,
+    8: 11,
+}
+
+
+def _xibparser_parse_constraint(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> None:
+    assert parent is not None
+    first_attribute = elem.attrib["firstAttribute"]
+    second_attribute = elem.attrib.get("secondAttribute")
+    first_item = elem.attrib.get("firstItem")
+    second_item = elem.attrib.get("secondItem")
+    constant = elem.attrib.get("constant")
+    relation = elem.attrib.get("relation")
+    symbolic = elem.attrib.get("symbolic") == "YES"
+
+    obj = XibObject("NSLayoutConstraint", parent, elem.attrib["id"])
+    obj["NSFirstAttribute"] = ATTRIBUTE_MAP[first_attribute]
+    obj["NSFirstAttributeV2"] = ATTRIBUTE_MAP[first_attribute]
+    if second_attribute is not None:
+        obj["NSSecondAttribute"] = ATTRIBUTE_MAP[second_attribute]
+        obj["NSSecondAttributeV2"] = ATTRIBUTE_MAP[second_attribute]
+    if first_item is None:
+        obj["NSFirstItem"] = parent
+    else:
+        obj["NSFirstItem"] = XibId(first_item)
+    if second_item is not None:
+        obj["NSSecondItem"] = XibId(second_item)
+    if constant is not None and symbolic is False:
+        obj["NSConstant"] = float(constant)
+        obj["NSConstantV2"] = float(constant)
+    if relation is not None:
+        obj["NSRelation"] = {"greaterThanOrEqual": 1}[relation]
+    if symbolic:
+        obj["NSSymbolicConstant"] = NibString.intern("NSSpace")
+    obj["NSShouldBeArchived"] = True
+    print('---')
+    for x in obj.getKeyValuePairs():
+        print(x)
+    parent.setIfEmpty("NSViewConstraints", NibList())
+    cast(NibList, parent["NSViewConstraints"]).addItem(obj)
 
 
 def _xibparser_parse_imageCell(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> XibObject:

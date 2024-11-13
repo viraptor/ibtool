@@ -193,7 +193,10 @@ class ArrayLike(NibObject):
         if items is None:
             items = []
         NibObject.__init__(self, classname)
-        self._items = items
+        self._items: list[PropValue] = list(items)
+
+    def addItem(self, item: PropValue) -> None:
+        self._items.append(item)
 
     def getKeyValuePairs(self) -> list[PropPair]:
         return [("NSInlinedValue", True)] + [
