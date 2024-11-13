@@ -224,7 +224,7 @@ def treePrintObjects(nib: NibStructure, prefix: str ="", showencoding: bool=Fals
 
         for v in obj_values:
             k_str = keys[v[0]]
-            if k_str.endswith("Flags") and isinstance(v[1], int):
+            if (k_str.endswith("Flags") or k_str.endswith("Flags2")) and isinstance(v[1], int):
                 v_str = str(hex(v[1]))
             else:
                 v_str = str(v[1])
@@ -269,7 +269,7 @@ def fancyPrintObjects(nib: NibStructure, prefix: str="", showencoding: bool=Fals
         for v in obj_values:
             # print(v)
             k_str = keys[v[0]]
-            if k_str.endswith("Flags") and isinstance(v[1], int):
+            if (k_str.endswith("Flags") or k_str.endswith("Flags2")) and isinstance(v[1], int):
                 v_str = str(hex(v[1]))
             else:
                 v_str = str(v[1])
