@@ -46,8 +46,8 @@ def pythonObjects(nib: NibStructure) -> tuple[NibObject, list[Any]]:
         else:
             dentries: dict[str,Any] = {}
             for k_idx, v, v_type in obj_values:
-                assert keys[k_idx] not in dentries
-                dentries[keys[k_idx]] = NibValue(v, v_type)
+                if keys[k_idx] not in dentries:
+                    dentries[keys[k_idx]] = NibValue(v, v_type)
             res[o_idx] = NibObject(classname, dentries)
 
     for obj in res.values():

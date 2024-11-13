@@ -386,7 +386,11 @@ class XibObject(NibObject):
         NibObject.__init__(self, classname, parent)
         self.xibid: Optional[XibId] = None
         if xibid is not None:
-            self.xibid = XibId(xibid)
+            try:
+                int(xibid)
+                self.xibid = XibId(xibid)
+            except ValueError:
+                pass
         self.extraContext = {}
 
     def originalclassname(self) -> Optional[str]:
@@ -548,6 +552,67 @@ def _xibparser_parse_button(ctx: ArchiveContext, elem: Element, parent: Optional
     return obj
 
 
+def _xibparser_parse_textView(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> XibObject:
+    obj = make_xib_object(ctx, "NSImageView", elem, parent)
+    __xibparser_ParseChildren(ctx, elem, obj)
+    return obj
+
+
+def _xibparser_parse_imageView(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> XibObject:
+    obj = make_xib_object(ctx, "NSImageView", elem, parent)
+    _xibparser_common_view_attributes(ctx, elem, parent, obj)
+    __xibparser_ParseChildren(ctx, elem, obj)
+    obj["IBNSShadowedSymbolConfiguration"] = NibNil()
+    obj["NSAllowsLogicalLayoutDirection"] = False
+    obj["NSControlContinuous"] = False
+    obj["NSControlRefusesFirstResponder"] = True
+    obj["NSControlSize"] = 0
+    obj["NSControlSize2"] = 0
+    obj["NSControlUsesSingleLineMode"] = False
+    obj["NSControlWritingDirection"] = -1
+    obj["NSDoNotTranslateAutoresizingMask"] = True
+    obj["NSDragTypes"] = NibMutableList()
+    obj["NSEditable"] = True
+    obj["NSEnabled"] = True
+    obj["NSImageViewPlaceholderPrecedence"] = 0
+    obj["NSSuperview"] = obj.xib_parent()
+    return obj
+
+
+def _xibparser_parse_constraints(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> None:
+    pass
+
+
+def _xibparser_parse_imageCell(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> XibObject:
+    assert parent is not None
+    assert parent.classname() == "NSImageView"
+    obj = NibObject("NSImageCell", parent)
+    __xibparser_ParseChildren(ctx, elem, obj)
+    __xibparser_cell_flags(elem, obj, parent)
+
+    alignment_value = {None: 4, "left": 0, "center": 1, "right": 2}[elem.attrib.get("alignment")]
+    obj["NSAlign"] = alignment_value
+    obj["NSAnimates"] = elem.attrib.get("animates", "NO") == "YES"
+    obj["NSContents"] = NibNil()
+    obj["NSControlView"] = NibNil()
+    obj["NSScale"] = NibNil()
+    obj["NSStyle"] = NibNil()
+    parent["NSCell"] = obj
+    return obj
+
+
+def _xibparser_parse_scrollView(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> XibObject:
+    obj = make_xib_object(ctx, "NSScrollView", elem, parent)
+    __xibparser_ParseChildren(ctx, elem, obj)
+    return obj
+
+
+def _xibparser_parse_clipView(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> XibObject:
+    obj = make_xib_object(ctx, "NSClipView", elem, parent)
+    __xibparser_ParseChildren(ctx, elem, obj)
+    return obj
+
+
 def _xibparser_parse_subviews(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> None:
     assert parent is not None
     views = __xibparser_ParseChildren(ctx, elem, parent)
@@ -705,7 +770,7 @@ def _xibparser_parse_windowStyleMask(ctx: ArchiveContext, elem: Element, parent:
         "closable": 1 << 1,
         "miniaturizable": 1 << 2,
     }
-    value = sum((elem.attrib[attr] == "YES") * val for attr, val in maskmap.items())
+    value = sum((elem.attrib.get(attr, "NO") == "YES") * val for attr, val in maskmap.items())
     parent["NSWindowStyleMask"] = value
 
 def _xibparser_parse_windowPositionMask(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
@@ -766,14 +831,14 @@ def __xibparser_cell_flags(elem: Element, obj: NibObject, parent: NibObject) -> 
     sendsAction = elem.attrib.get("sendsActionOnEndEditing", "NO") == "YES"
     sendsActionMask = CellFlags2.SENDS_ACTION_ON_END_EDITING if sendsAction else 0
     lineBreakMode = elem.attrib.get("lineBreakMode")
-    lineBreakModeMask = {None: 0, "truncatingTail": 0x40}[lineBreakMode]
-    lineBreakModeMask2 = {None: 0, "truncatingTail": 0x800}[lineBreakMode]
+    lineBreakModeMask = {None: 0, "truncatingTail": 0x40, "clipping": 0}[lineBreakMode]
+    lineBreakModeMask2 = {None: 0, "truncatingTail": 0x800, "clipping": 0}[lineBreakMode]
     textAlignment = elem.attrib.get("alignment")
     textAlignmentMask = {None: CellFlags2.TEXT_ALIGN_NONE, "left": CellFlags2.TEXT_ALIGN_LEFT, "center": CellFlags2.TEXT_ALIGN_CENTER, "right": CellFlags2.TEXT_ALIGN_RIGHT}[textAlignment]
 
     obj.flagsOr("NSCellFlags", lineBreakModeMask | CellFlags.UNKNOWN_TEXT_FIELD)
     obj.flagsOr("NSCellFlags2", textAlignmentMask | sendsActionMask | lineBreakModeMask2)
-    parent["NSControlLineBreakMode"] = {None: 0, "truncatingTail": 4}[lineBreakMode]
+    parent["NSControlLineBreakMode"] = {None: 0, "truncatingTail": 4, "clipping": 0}[lineBreakMode]
     if obj.classname() in ['NSButtonCell', 'NSTextFieldCell']:
         textAlignmentValue = {None: 4, "left": 0, "center": 1, "right": 2}[textAlignment]
         parent["NSControlTextAlignment"] = textAlignmentValue
@@ -864,10 +929,23 @@ def _xibparser_parse_buttonCell(ctx: ArchiveContext, elem: Element, parent: NibO
 
 def _xibparser_parse_font(ctx: ArchiveContext, elem: Element, parent: NibObject) -> NibObject:
     item = NibObject("NSFont")
-    assert elem.attrib["metaFont"] == "system" # other options unknown
-    item["NSName"] = NibString.intern(".AppleSystemUIFont")
-    item["NSSize"] = 13.0
-    item["NSfFlags"] = 1044
+    meta_font = elem.attrib.get("metaFont")
+    assert meta_font in ["system", "systemBold", "smallSystem"], f"metaFont: {meta_font}" # other options unknown
+
+    if meta_font == 'system':
+        item["NSName"] = NibString.intern(".AppleSystemUIFont")
+        item["NSSize"] = 13.0
+        item["NSfFlags"] = 1044
+    elif meta_font == 'systemBold':
+        item["NSName"] = NibString.intern(".AppleSystemUIFontBold")
+        item["NSSize"] = 24.0
+        item["NSfFlags"] = 2072
+    elif meta_font == 'smallSystem':
+        item["NSName"] = NibString.intern(".AppleSystemUIFont")
+        item["NSSize"] = 11.0
+        item["NSfFlags"] = 3100
+    else:
+        raise Exception(f"missing font {meta_font}")
     parent["NSSupport"] = item
     return item
 
@@ -892,17 +970,29 @@ def _xibparser_parse_string(ctx: ArchiveContext, elem: Element, parent: NibObjec
 def _xibparser_parse_color(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
     assert isinstance(parent, XibObject), type(parent)
     
-    assert elem.attrib["colorSpace"] == "catalog", elem.attrib["colorSpace"]
+    assert elem.attrib["colorSpace"] in ["catalog", "calibratedWhite"], elem.attrib["colorSpace"]
 
-    color = makeSystemColor(elem.attrib["name"])
+    if elem.attrib["colorSpace"] == "catalog":
+        color = makeSystemColor(elem.attrib["name"])
 
-    key = elem.attrib["key"]
-    if key == "textColor":
-        parent["NSTextColor"] = color
-    elif key == "backgroundColor":
-        parent["NSBackgroundColor"] = color
+        key = elem.attrib["key"]
+        if key == "textColor":
+            parent["NSTextColor"] = color
+        elif key == "backgroundColor":
+            parent["NSBackgroundColor"] = color
+        elif key == "insertionPointColor":
+            parent["NSInsertionPointColor"] = color
+        else:
+            raise Exception(f"unknown key {key}")
     else:
-        raise Exception(f"unknown key {key}")
+        pass
+
+
+def _xibparser_parse_size(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
+    pass
+
+def _xibparser_parse_scroller(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
+    pass
 
 def makeSystemColor(name):
     def systemColorTemplate(name, components, white):
