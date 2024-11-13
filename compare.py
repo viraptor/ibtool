@@ -89,7 +89,7 @@ def diff(lhs: Union[NibValue,NibCollection,NibObject], rhs: Union[NibValue,NibCo
     path = '->'.join(str(key) for key in current_path)
 
     if type(lhs) != type(rhs):
-        yield f"{path}: Types don't match {type(lhs)} != {type(rhs)}"
+        yield f"{path} (in {parent_class}): Types don't match {type(lhs)} != {type(rhs)}"
         return
 
     if isinstance(lhs, NibValue) and isinstance(rhs, NibValue):
