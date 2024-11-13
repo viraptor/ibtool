@@ -141,11 +141,11 @@ class XibId:
 
     def __lt__(self, other: Union[int,"XibId","XibObject"]) -> bool:
         if isinstance(other, int):
-            return self._val < other
+            return self.val() < other
         elif isinstance(other, XibId):
-            return self._val < other._val
+            return self.val() < other.val()
         elif isinstance(other, XibObject):
-            return self._val < other.xibid._val
+            return self.val() < other.xibid.val()
         else:
             return False
 
@@ -423,9 +423,9 @@ class XibObject(NibObject):
 
     def __lt__(self, other: Union["XibId","XibObject"]) -> bool:
         if isinstance(other, XibId):
-            return self.xibid._val < other._val
+            return self.xibid.val() < other.val()
         elif isinstance(other, XibObject):
-            return self.xibid._val < other.xibid._val
+            return self.xibid.val() < other.xibid.val()
         else:
             return False
 
@@ -621,14 +621,7 @@ def default_drag_types() -> NibMutableSet:
 
 def _xibparser_parse_constraints(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> None:
     assert parent is not None
-
     __xibparser_ParseChildren(ctx, elem, parent)
-    cast(NibList, parent["NSViewConstraints"])._items.sort(key=lambda x: (
-        x.get("NSFirstItem"),
-        x.get("NSSecondItem"),
-        ATTRIBUTE_ORDER[x.get("NSFirstAttribute")],
-        ATTRIBUTE_ORDER[x.get("NSSecondAttribute")]
-        ))
 
 
 ATTRIBUTE_MAP = {
@@ -665,30 +658,28 @@ ATTRIBUTE_ORDER = {
 def _xibparser_parse_constraint(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> None:
     assert parent is not None
     first_attribute = elem.attrib["firstAttribute"]
-    second_attribute = elem.attrib.get("secondAttribute")
-    first_item = elem.attrib.get("firstItem")
-    second_item = elem.attrib.get("secondItem")
-    constant = elem.attrib.get("constant")
-    relation = elem.attrib.get("relation")
-    symbolic = elem.attrib.get("symbolic") == "YES"
 
     obj = XibObject("NSLayoutConstraint", parent, elem.attrib["id"])
     obj["NSFirstAttribute"] = ATTRIBUTE_MAP[first_attribute]
     obj["NSFirstAttributeV2"] = ATTRIBUTE_MAP[first_attribute]
-    if second_attribute is not None:
+    if (second_attribute := elem.attrib.get("secondAttribute")) is not None:
         obj["NSSecondAttribute"] = ATTRIBUTE_MAP[second_attribute]
         obj["NSSecondAttributeV2"] = ATTRIBUTE_MAP[second_attribute]
-    if first_item is None:
-        obj["NSFirstItem"] = parent
-    else:
+    if (first_item := elem.attrib.get("firstItem")) is not None:
         obj["NSFirstItem"] = XibId(first_item)
-    if second_item is not None:
+    else:
+        obj["NSFirstItem"] = parent
+    if (second_item := elem.attrib.get("secondItem")) is not None:
         obj["NSSecondItem"] = XibId(second_item)
-    if constant is not None and symbolic is False:
+    if (relation := elem.attrib.get("relation")) is not None:
+        obj["NSRelation"] = {"greaterThanOrEqual": 1}[relation]
+    if (priority := elem.attrib.get("priority")) is not None:
+        obj["NSPriority"] = int(priority)
+
+    symbolic = elem.attrib.get("symbolic") == "YES"
+    if (constant := elem.attrib.get("constant")) is not None and symbolic is False:
         obj["NSConstant"] = float(constant)
         obj["NSConstantV2"] = float(constant)
-    if relation is not None:
-        obj["NSRelation"] = {"greaterThanOrEqual": 1}[relation]
     if symbolic:
         obj["NSSymbolicConstant"] = NibString.intern("NSSpace")
     obj["NSShouldBeArchived"] = True

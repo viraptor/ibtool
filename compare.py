@@ -15,6 +15,14 @@ class NibObject:
         self.classname = classname
         self.entries = entries
 
+    def __eq__(self, other):
+        assert isinstance(other, NibObject)
+        return self.classname == other.classname and len(self.entries) == len(other.entries)
+
+    def __lt__(self, other):
+        assert isinstance(other, NibObject)
+        return (self.classname, len(other.entries)) < (other.classname, len(other.entries))
+
     def __repr__(self):
         return f"{self.classname} ({len(self.entries)} entries)"
     
@@ -22,6 +30,15 @@ class NibValue:
     def __init__(self, value: Any, type: int):
         self.value = value
         self.type = type
+
+    def __eq__(self, other):
+        if not isinstance(other, NibValue):
+            return False
+        return self.value == other.value and self.type == other.type
+
+    def __lt__(self, other):
+        assert isinstance(other, NibValue)
+        return self.value < other.value
 
     def __repr__(self):
         return f"{self.value} (type {self.type})"
@@ -123,7 +140,15 @@ def diff(lhs: Union[NibValue,NibCollection,NibObject], rhs: Union[NibValue,NibCo
         # don't get stuck in a loop
         return
 
-    if isinstance(lhs, NibCollection) and isinstance(rhs, NibCollection):
+    if path.endswith("NSViewConstraints"):
+        # They're hopefully unordered. TODO match the apple's order later
+        if len(lhs.entries) != len(rhs.entries):
+            yield f"{path} Mismatched length: {len(lhs.entries)} != {len(rhs.entries)}"
+        lhs_entries = sorted(lhs.entries, key=lambda x: (x.entries.get("NSFirstAttribute").value, x.entries.get("NSSecondAttribute"), x.entries.get("NSPriority", NibValue(1, 0)), x.entries.get("NSFirstItem"), x.entries.get("NSSecondItem")))
+        rhs_entries = sorted(rhs.entries, key=lambda x: (x.entries.get("NSFirstAttribute").value, x.entries.get("NSSecondAttribute"), x.entries.get("NSPriority", NibValue(1, 0)), x.entries.get("NSFirstItem"), x.entries.get("NSSecondItem")))
+        for i, (left, right) in enumerate(zip(lhs_entries, rhs_entries)):
+            yield from diff(left, right, current_path + [str(i)], lhs_path, rhs_path, lhs.classname)
+    elif isinstance(lhs, NibCollection) and isinstance(rhs, NibCollection):
         if len(lhs.entries) != len(rhs.entries):
             yield f"{path} Mismatched length: {len(lhs.entries)} != {len(rhs.entries)}"
         for i, (left, right) in enumerate(zip(lhs.entries, rhs.entries)):
