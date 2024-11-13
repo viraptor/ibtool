@@ -824,7 +824,7 @@ def _xibparser_parse_textField(ctx: ArchiveContext, elem: Element, parent: NibOb
     obj["NSControlContinuous"] = False
     obj["NSControlRefusesFirstResponder"] = False
     obj["NSControlUsesSingleLineMode"] = False
-    obj.setIfEmpty("NSControlLineBreakMode", 4)
+    obj.setIfEmpty("NSControlLineBreakMode", 0)
     obj["NSControlWritingDirection"] = -1
     obj["NSControlSendActionMask"] = 4
     obj["NSTextFieldAlignmentRectInsetsVersion"] = 2
@@ -872,7 +872,7 @@ def _xibparser_parse_textFieldCell(ctx: ArchiveContext, elem: Element, parent: N
     obj["NSControlView"] = obj.xib_parent()
     obj["NSCharacterPickerEnabled"] = True
     control_line_break_mode = elem.attrib.get('lineBreakMode')
-    parent["NSControlLineBreakMode"] = {None: 4, "truncatingTail": 4, "clipping": 2}[control_line_break_mode]
+    parent["NSControlLineBreakMode"] = {None: 0, "truncatingTail": 4, "clipping": 2}[control_line_break_mode]
     __xibparser_ParseChildren(ctx, elem, obj)
 
     parent["NSCell"] = obj
