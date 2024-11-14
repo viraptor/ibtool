@@ -1085,14 +1085,14 @@ def __xibparser_cell_flags(elem: Element, obj: NibObject, parent: NibObject) -> 
     obj.flagsOr("NSCellFlags", lineBreakModeMask | CellFlags.UNKNOWN_TEXT_FIELD | selectable)
     obj.flagsOr("NSCellFlags2", textAlignmentMask | sendsActionMask | lineBreakModeMask2)
     parent["NSControlLineBreakMode"] = {
-        None: 0,
-        "wordWrapping": 0,
-        "charWrapping": 1,
-        "clipping": 2,
-        "truncatingHead": 3,
-        "truncatingTail": 4,
-        "truncatingMiddle": 5,
-    }[lineBreakMode]
+        None: LineBreakMode.BY_WORD_WRAPPING,
+        "wordWrapping": LineBreakMode.BY_WORD_WRAPPING,
+        "charWrapping": LineBreakMode.BY_CHAR_WRAPPING,
+        "clipping": LineBreakMode.BY_CLIPPING,
+        "truncatingHead": LineBreakMode.BY_TRUNCATING_HEAD,
+        "truncatingTail": LineBreakMode.BY_TRUNCATING_TAIL,
+        "truncatingMiddle": LineBreakMode.BY_TRUNCATING_MIDDLE,
+    }[lineBreakMode].value
     if obj.classname() in ['NSButtonCell', 'NSTextFieldCell', 'NSImageCell']:
         textAlignmentValue = {None: 4, "left": 0, "center": 1, "right": 2}[textAlignment]
         parent["NSControlTextAlignment"] = textAlignmentValue
