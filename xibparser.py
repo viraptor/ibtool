@@ -27,6 +27,9 @@ class WTFlags(IntEnum):
     ALLOWS_TOOL_TIPS_WHEN_APPLICATION_IS_INACTIVE = 0x2000
     AUTORECALCULATES_KEY_VIEW_LOOP = 0x800
 
+class TVFlags(IntEnum):
+    HORIZONTALLY_RESIZABLE = 0x1
+
 class vFlags(IntEnum):
     AUTORESIZES_SUBVIEWS = 0x100
     HIDDEN = 0xffffffff80000000
@@ -598,11 +601,16 @@ def __parse_pos_size(size: str) -> tuple[int, int, int, int]:
 def _xibparser_parse_textView(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> XibObject:
     obj = make_xib_object(ctx, "NSTextView", elem, parent)
     
+    editable = 0x2 if elem.attrib.get("editable") == "YES" else 0
+    imports_graphics = 0x8 if elem.attrib.get("importsGraphics") == "YES" else 0
+    spelling_correction = 0x4000000 if elem.attrib.get("spellingCorrection") == "YES" else 0
+    horizontally_resizable = TVFlags.HORIZONTALLY_RESIZABLE if elem.attrib.get("horizontallyResizable") == "YES" else 0
+
     shared_data = XibObject("NSTextViewSharedData", obj)
     shared_data["NSAutomaticTextCompletionDisabled"] = False
     shared_data["NSBackgroundColor"] = NibNil()
     shared_data["NSDefaultParagraphStyle"] = NibNil()
-    shared_data["NSFlags"] = 0x4000905
+    shared_data["NSFlags"] = 0x905 | spelling_correction | editable | imports_graphics
     shared_data["NSInsertionColor"] = NibNil()
     shared_data["NSLinkAttributes"] = NibDictionary([NibString.intern("NSColor")])
     shared_data["NSMarkedAttributes"] = NibNil()
@@ -616,7 +624,7 @@ def _xibparser_parse_textView(ctx: ArchiveContext, elem: Element, parent: Option
     __xibparser_ParseChildren(ctx, elem, obj)
     obj["NSDelegate"] = NibNil()
     obj["NSSuperview"] = obj.xib_parent()
-    obj["NSTVFlags"] = 135
+    obj["NSTVFlags"] = 134 | horizontally_resizable
     obj["NSNextResponder"] = obj.xib_parent()
 
     text_container = XibObject("NSTextContainer", obj)
@@ -1311,6 +1319,7 @@ def _xibparser_parse_color(ctx: ArchiveContext, elem: Element, parent: NibObject
 def _xibparser_parse_size(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
     if elem.attrib["key"] == "maxSize":
         parent["NSMaxSize"] = f'{{{elem.attrib["width"]}, {elem.attrib["height"]}}}'
+    parent.extraContext[elem.attrib["key"]] = (elem.attrib["width"], elem.attrib["height"])
 
 def _xibparser_parse_scroller(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
     obj = XibObject("NSScroller", parent, elem.attrib["id"])
