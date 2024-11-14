@@ -985,6 +985,8 @@ def _xibparser_parse_window(ctx: ArchiveContext, elem: Element, parent: NibObjec
         item.flagsOr("NSWTFlags", WTFlags.ALLOWS_TOOL_TIPS_WHEN_APPLICATION_IS_INACTIVE)
     if elem.attrib.get("autorecalculatesKeyViewLoop", "YES") == "YES":
         item.flagsOr("NSWTFlags", WTFlags.AUTORECALCULATES_KEY_VIEW_LOOP)
+    if elem.attrib.get("releasedWhenClosed", "YES") == "NO":
+        item.flagsOr("NSWTFlags", WTFlags.RELEASED_WHEN_CLOSED)
 
     item["NSWindowTitle"] = NibString.intern(elem.attrib.get("title", ''))
     item["NSWindowSubtitle"] = ""
