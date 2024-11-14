@@ -774,7 +774,7 @@ def _xibparser_parse_imageCell(ctx: ArchiveContext, elem: Element, parent: Optio
     if image_name := elem.attrib.get("image"):
         obj["NSContents"] = make_system_image(image_name, obj)
     parent["NSCell"] = obj
-    parent["NSControlRefusesFirstResponder"] = elem.attrib.get("refusesFirstResponder", "NO") == "YES"
+
     return obj
 
 
@@ -1110,9 +1110,13 @@ def __xibparser_cell_flags(elem: Element, obj: NibObject, parent: NibObject) -> 
     textAlignmentMask = {None: CellFlags2.TEXT_ALIGN_NONE, "left": CellFlags2.TEXT_ALIGN_LEFT, "center": CellFlags2.TEXT_ALIGN_CENTER, "right": CellFlags2.TEXT_ALIGN_RIGHT}[textAlignment]
     selectable = (CellFlags.SELECTABLE + 1) if elem.attrib.get("selectable", "NO") == "YES" else 0
     state_on = CellFlags.STATE_ON if (elem.attrib.get("state") == "on") else 0
+    text_field_flag = CellFlags.UNKNOWN_TEXT_FIELD if obj.classname() in ["NSTextFieldCell", "NSButtonCell"] else 0
+    refuses_first_responder = elem.attrib.get("refusesFirstResponder", "NO") == "YES"
+    refuses_first_responder_mask = CellFlags2.REFUSES_FIRST_RESPONDER if refuses_first_responder else 0
 
-    obj.flagsOr("NSCellFlags", lineBreakModeMask | CellFlags.UNKNOWN_TEXT_FIELD | selectable | state_on)
-    obj.flagsOr("NSCellFlags2", textAlignmentMask | sendsActionMask | lineBreakModeMask2)
+    obj.flagsOr("NSCellFlags", lineBreakModeMask | text_field_flag | selectable | state_on)
+    obj.flagsOr("NSCellFlags2", textAlignmentMask | sendsActionMask | lineBreakModeMask2 | refuses_first_responder_mask)
+    parent["NSControlRefusesFirstResponder"] = refuses_first_responder
     parent["NSControlLineBreakMode"] = {
         None: LineBreakMode.BY_WORD_WRAPPING,
         "wordWrapping": LineBreakMode.BY_WORD_WRAPPING,
