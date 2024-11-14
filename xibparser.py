@@ -763,7 +763,12 @@ def _xibparser_parse_imageCell(ctx: ArchiveContext, elem: Element, parent: Optio
     obj["NSAnimates"] = elem.attrib.get("animates", "NO") == "YES"
     obj["NSContents"] = NibNil()
     obj["NSControlView"] = parent
-    obj["NSScale"] = 1
+    obj["NSScale"] = {
+        "proportionallyDown": 0,
+        "axesIndependently": 1,
+        "none": 2,
+        "proportionallyUpOrDown": 3,
+    }[elem.attrib.get("imageScaling", "none")]
     obj["NSStyle"] = 0
     obj["NSControlSize2"] = 0
     if image_name := elem.attrib.get("image"):
