@@ -82,8 +82,7 @@ def ib_compile(inpath, outpath):
 def ib_compile_xib(inpath, outpath):
     tree = ET.parse(inpath)
     root = tree.getroot()
-    objects = next(root.iter("objects"))
-    nibroot = xibparser.ParseXIBObjects(objects)
+    nibroot = xibparser.ParseXIBObjects(root)
     outbytes = genlib.CompileNibObjects([nibroot])
 
     with open(outpath, "wb") as fl:

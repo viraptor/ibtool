@@ -41,7 +41,8 @@ class vFlags(IntEnum):
     HEIGHT_SIZABLE = 0x10
     MAX_Y_MARGIN = 0x20
 
-    DEFAULT_VFLAGS = AUTORESIZES_SUBVIEWS | MAX_X_MARGIN | MIN_Y_MARGIN
+    DEFAULT_VFLAGS = AUTORESIZES_SUBVIEWS | MIN_Y_MARGIN | MAX_Y_MARGIN
+    DEFAULT_VFLAGS_AUTOLAYOUT = AUTORESIZES_SUBVIEWS | MAX_X_MARGIN | MIN_Y_MARGIN
 
 class sFlags(IntEnum):
     HORIZONTAL = 0x01
@@ -170,7 +171,8 @@ class XibId:
 
 
 class ArchiveContext:
-    def __init__(self) -> None:
+    def __init__(self, useAutolayout: bool=False) -> None:
+        self.useAutolayout = useAutolayout
         self.connections: list[NibObject] = []
         # When parsing a storyboard, this doesn't include the main view or any of its descendant objects.
         self.objects: dict[XibId, NibObject] = {} # should be int
@@ -283,12 +285,13 @@ class ArchiveContext:
 # element: The element containing the objects to be included in the nib.
 #          For standalone XIBs, this is typically document->objects
 #          For storyboards, this is typically document->scenes->scene->objects
-def ParseXIBObjects(element: Element, context: Optional[ArchiveContext]=None, resolveConnections: bool=True, parent: Optional[NibObject]=None) -> NibObject:
+def ParseXIBObjects(root: Element, context: Optional[ArchiveContext]=None, resolveConnections: bool=True, parent: Optional[NibObject]=None) -> NibObject:
+    objects = next(root.iter("objects"))
     toplevel: list[XibObject] = []
 
-    context = context or ArchiveContext()
+    context = context or ArchiveContext(useAutolayout=(root.attrib.get("useAutolayout") == "YES"))
 
-    for nib_object_element in element:
+    for nib_object_element in objects:
         obj = __xibparser_ParseXIBObject(context, nib_object_element, parent)
         if isinstance(obj, XibObject):
             toplevel.append(obj)
@@ -525,8 +528,6 @@ def _xibparser_parse_view(ctx: ArchiveContext, elem: Element, parent: XibObject,
     # Parse these props first, in case any of our children point to us.
     _xibparser_parse_interfacebuilder_properties(ctx, elem, parent, obj)
     __xibparser_ParseChildren(ctx, elem, obj)
-    if not obj.extraContext.get("parsed_autoresizing"):
-        obj.flagsOr("NSvFlags", vFlags.DEFAULT_VFLAGS)
 
     _xibparser_common_view_attributes(ctx, elem, parent, obj, topLevelView=(key == "contentView"))
 
@@ -558,6 +559,9 @@ def _xibparser_common_view_attributes(ctx: ArchiveContext, elem: Element, parent
     if do_not_traslave_autoresizing:
         obj["NSDoNotTranslateAutoresizingMask"] = True
 
+    if not obj.extraContext.get("parsed_autoresizing"):
+        obj.flagsOr("NSvFlags", vFlags.DEFAULT_VFLAGS_AUTOLAYOUT if ctx.useAutolayout else vFlags.DEFAULT_VFLAGS)
+
 
 def make_xib_object(ctx: ArchiveContext, classname: str, elem: Element, parent: Optional[NibObject]) -> XibObject:
     obj = XibObject(classname, parent, elem.attrib.get("id"))
@@ -585,7 +589,7 @@ def _xibparser_parse_button(ctx: ArchiveContext, elem: Element, parent: Optional
     obj["NSControlSendActionMask"] = 4
     obj["IBNSShadowedSymbolConfiguration"] = NibNil()
     if not obj.extraContext.get("parsed_autoresizing"):
-        obj.flagsOr("NSvFlags", vFlags.DEFAULT_VFLAGS)
+        obj.flagsOr("NSvFlags", vFlags.DEFAULT_VFLAGS_AUTOLAYOUT if ctx.useAutolayout else vFlags.DEFAULT_VFLAGS)
     return obj
 
 
@@ -671,8 +675,6 @@ def _xibparser_parse_imageView(ctx: ArchiveContext, elem: Element, parent: Optio
     obj["NSSuperview"] = obj.xib_parent()
     obj["NSControlSendActionMask"] = 4
     obj.setIfEmpty("NSSubviews", NibMutableList([]))
-    if not obj.extraContext.get("parsed_autoresizing"):
-        obj.flagsOr("NSvFlags", vFlags.DEFAULT_VFLAGS)
     return obj
 
 
@@ -801,7 +803,7 @@ def _xibparser_parse_scrollView(ctx: ArchiveContext, elem: Element, parent: Opti
     obj = make_xib_object(ctx, "NSScrollView", elem, parent)
     __xibparser_ParseChildren(ctx, elem, obj)
     if not obj.extraContext.get("parsed_autoresizing"):
-        obj.flagsOr("NSvFlags", vFlags.DEFAULT_VFLAGS)
+        obj.flagsOr("NSvFlags", vFlags.DEFAULT_VFLAGS_AUTOLAYOUT if ctx.useAutolayout else vFlags.DEFAULT_VFLAGS)
     obj["NSGestureRecognizers"] = NibList([default_pan_recognizer(obj)])
     obj["NSMagnification"] = 1.0
     obj["NSMaxMagnification"] = 4.0
@@ -1093,7 +1095,7 @@ def _xibparser_parse_textField(ctx: ArchiveContext, elem: Element, parent: NibOb
     obj["NSControlSendActionMask"] = 4
     obj["NSTextFieldAlignmentRectInsetsVersion"] = 2
     if not obj.extraContext.get("parsed_autoresizing"):
-        obj.flagsOr("NSvFlags", vFlags.DEFAULT_VFLAGS)
+        obj.flagsOr("NSvFlags", vFlags.DEFAULT_VFLAGS_AUTOLAYOUT if ctx.useAutolayout else vFlags.DEFAULT_VFLAGS)
 
     do_not_traslave_autoresizing = elem.attrib.get('translatesAutoresizingMaskIntoConstraints', "YES") == "NO"
     if do_not_traslave_autoresizing:
