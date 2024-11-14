@@ -550,7 +550,7 @@ def _xibparser_parse_view(ctx: ArchiveContext, elem: Element, parent: XibObject,
     return obj
 
 
-def _xibparser_common_view_attributes(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject], obj: XibObject, topLevelView: bool = False) -> None:
+def _xibparser_common_view_attributes(_ctx: ArchiveContext, elem: Element, parent: Optional[NibObject], obj: XibObject, topLevelView: bool = False) -> None:
     assert parent is not None
 
     obj["IBNSSafeAreaLayoutGuide"] = NibNil()
@@ -568,8 +568,7 @@ def _xibparser_common_view_attributes(ctx: ArchiveContext, elem: Element, parent
     obj.extraContext["verticalHuggingPriority"] = elem.attrib.get("verticalHuggingPriority")
     obj.extraContext["horizontalHuggingPriority"] = elem.attrib.get("horizontalHuggingPriority")
 
-    do_not_traslave_autoresizing = elem.attrib.get('translatesAutoresizingMaskIntoConstraints', "YES") == "NO"
-    if do_not_traslave_autoresizing:
+    if elem.attrib.get('translatesAutoresizingMaskIntoConstraints', "YES") == "NO" and obj.originalclassname() != "NSImageView":
         obj["NSDoNotTranslateAutoresizingMask"] = True
 
 
@@ -669,7 +668,6 @@ def _xibparser_parse_textView(ctx: ArchiveContext, elem: Element, parent: Option
 
 def _xibparser_parse_imageView(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> XibObject:
     obj = make_xib_object(ctx, "NSImageView", elem, parent)
-    _xibparser_common_view_attributes(ctx, elem, parent, obj)
     __xibparser_ParseChildren(ctx, elem, obj)
     obj["IBNSShadowedSymbolConfiguration"] = NibNil()
     obj["NSAllowsLogicalLayoutDirection"] = False
@@ -1130,10 +1128,6 @@ def _xibparser_parse_textField(ctx: ArchiveContext, elem: Element, parent: NibOb
     obj["NSTextFieldAlignmentRectInsetsVersion"] = 2
     if not obj.extraContext.get("parsed_autoresizing"):
         obj.flagsOr("NSvFlags", vFlags.DEFAULT_VFLAGS_AUTOLAYOUT if ctx.useAutolayout else vFlags.DEFAULT_VFLAGS)
-
-    do_not_traslave_autoresizing = elem.attrib.get('translatesAutoresizingMaskIntoConstraints', "YES") == "NO"
-    if do_not_traslave_autoresizing:
-        obj["NSDoNotTranslateAutoresizingMask"] = True
 
     horizontal_compression_prio = elem.attrib.get('horizontalCompressionResistancePriority')
     vertical_compression_prio = elem.attrib.get('verticalCompressionResistancePriority')
