@@ -1113,8 +1113,9 @@ def __xibparser_cell_flags(elem: Element, obj: NibObject, parent: NibObject) -> 
     text_field_flag = CellFlags.UNKNOWN_TEXT_FIELD if obj.classname() in ["NSTextFieldCell", "NSButtonCell"] else 0
     refuses_first_responder = elem.attrib.get("refusesFirstResponder", "NO") == "YES"
     refuses_first_responder_mask = CellFlags2.REFUSES_FIRST_RESPONDER if refuses_first_responder else 0
+    scrollable = CellFlags.SCROLLABLE if elem.attrib.get("scrollable", "NO") == "YES" else 0
 
-    obj.flagsOr("NSCellFlags", lineBreakModeMask | text_field_flag | selectable | state_on)
+    obj.flagsOr("NSCellFlags", lineBreakModeMask | text_field_flag | selectable | state_on | scrollable)
     obj.flagsOr("NSCellFlags2", textAlignmentMask | sendsActionMask | lineBreakModeMask2 | refuses_first_responder_mask)
     parent["NSControlRefusesFirstResponder"] = refuses_first_responder
     parent["NSControlLineBreakMode"] = {
