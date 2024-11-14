@@ -607,9 +607,9 @@ def _xibparser_parse_textView(ctx: ArchiveContext, elem: Element, parent: Option
     text_container["NSTextLayoutManager"] = NibNil()
     text_container["NSTextView"] = NibNil()
     if obj.xib_parent().get("NSFrameSize"):
-        text_container["NSWidth"] = __parse_size(obj.xib_parent()["NSFrameSize"]._text)[0]
+        text_container["NSWidth"] = float(__parse_size(obj.xib_parent()["NSFrameSize"]._text)[0])
     else:
-        text_container["NSWidth"] = __parse_pos_size(obj.xib_parent()["NSFrame"]._text)[2]
+        text_container["NSWidth"] = float(__parse_pos_size(obj.xib_parent()["NSFrame"]._text)[2])
 
     obj["NSTextContainer"] = text_container
 
