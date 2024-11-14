@@ -1008,13 +1008,13 @@ def _xibparser_parse_window(ctx: ArchiveContext, elem: Element, parent: NibObjec
 
     return item
 
-def make_class_reference(class_name: str) -> XibObject:
-    classRef = XibObject("IBClassReference")
-    className = NibString(class_name)
-    classRef["IBClassName"] = className
-    classRef["IBModuleName"] = NibNil()
-    classRef["IBModuleProvider"] = NibNil()
-    return classRef
+def make_class_reference(class_name: str) -> NibObject:
+    return NibObject("IBClassReference", None, {
+        "IBClassName": NibString(class_name),
+        "IBModuleName": NibNil(),
+        "IBModuleProvider": NibNil(),
+    })
+
 
 def _xibparser_parse_customObject(ctx, elem, parent):
     item = XibObject("NSCustomObject", parent, elem.attrib["id"])
