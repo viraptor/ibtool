@@ -29,7 +29,7 @@ class WTFlags(IntEnum):
 
 class vFlags(IntEnum):
     AUTORESIZES_SUBVIEWS = 0x100
-    HIDDEN = 0x80000000
+    HIDDEN = 0xffffffff80000000
     NOT_SIZABLE = 0x00
     MIN_X_MARGIN = 0x01
     WIDTH_SIZABLE = 0x02
@@ -542,6 +542,8 @@ def _xibparser_common_view_attributes(ctx: ArchiveContext, elem: Element, parent
     obj["IBNSSafeAreaLayoutGuide"] = NibNil()
     obj["IBNSLayoutMarginsGuide"] = NibNil()
     obj["IBNSClipsToBounds"] = 0
+    if elem.attrib.get("hidden", "NO") == "YES":
+        obj.flagsOr("NSvFlags", vFlags.HIDDEN)
     obj.flagsOr("NSvFlags", vFlags.AUTORESIZES_SUBVIEWS)
     obj["NSViewWantsBestResolutionOpenGLSurface"] = True
     if not topLevelView:
