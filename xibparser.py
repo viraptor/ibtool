@@ -531,6 +531,9 @@ def _xibparser_parse_view(ctx: ArchiveContext, elem: Element, parent: XibObject,
 
     _xibparser_common_view_attributes(ctx, elem, parent, obj, topLevelView=(key == "contentView"))
 
+    if not obj.extraContext.get("parsed_autoresizing"):
+        obj.flagsOr("NSvFlags", vFlags.DEFAULT_VFLAGS_AUTOLAYOUT if ctx.useAutolayout else vFlags.DEFAULT_VFLAGS)
+
     if isMainView:
         ctx.isParsingStoryboardView = False
 
@@ -558,9 +561,6 @@ def _xibparser_common_view_attributes(ctx: ArchiveContext, elem: Element, parent
     do_not_traslave_autoresizing = elem.attrib.get('translatesAutoresizingMaskIntoConstraints', "YES") == "NO"
     if do_not_traslave_autoresizing:
         obj["NSDoNotTranslateAutoresizingMask"] = True
-
-    if not obj.extraContext.get("parsed_autoresizing"):
-        obj.flagsOr("NSvFlags", vFlags.DEFAULT_VFLAGS_AUTOLAYOUT if ctx.useAutolayout else vFlags.DEFAULT_VFLAGS)
 
 
 def make_xib_object(ctx: ArchiveContext, classname: str, elem: Element, parent: Optional[NibObject]) -> XibObject:
@@ -1210,6 +1210,9 @@ def _xibparser_parse_progressIndicator(ctx: ArchiveContext, elem: Element, paren
         obj["NSMinValue"] = float(elem.attrib["minValue"])
     obj.flagsOr("NSpiFlags", 0x4004 | bezeled | indeterminate | style)
     obj["NSSuperview"] = obj.xib_parent()
+
+    if not obj.extraContext.get("parsed_autoresizing"):
+        obj.flagsOr("NSvFlags", vFlags.DEFAULT_VFLAGS_AUTOLAYOUT if ctx.useAutolayout else vFlags.DEFAULT_VFLAGS)
 
     return obj
 

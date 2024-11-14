@@ -5,7 +5,7 @@ test_out=$(mktemp)
 if [[ $# -gt 0 ]] ; then
 	xibs_to_test="$@"
 else
-	xibs_to_test="samples/minimal.xib samples/blocklist.xib samples/windows.xib samples/window.xib samples/with_view.xib samples/with_app_class.xib samples/blocklist_big.xib"
+	xibs_to_test="samples/minimal.xib samples/blocklist.xib samples/windows.xib samples/window.xib samples/with_view.xib samples/with_app_class.xib samples/blocklist_big.xib samples/test1.xib"
 fi
 
 for xib in $xibs_to_test ; do
