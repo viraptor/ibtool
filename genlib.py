@@ -142,6 +142,18 @@ class NibString(NibObject):
         return f"{object.__repr__(self)} {self._text}"
 
 
+class NibMutableString(NibObject):
+    def __init__(self, text: str = "Hello World") -> None:
+        NibObject.__init__(self, "NSMutableString")
+        self._text = text
+
+    def getKeyValuePairs(self) -> list[PropPair]:
+        return [("NS.bytes", self._text)]
+
+    def __repr__(self) -> str:
+        return f"{object.__repr__(self)} {self._text}"
+
+
 class NibData(NibObject):
     cache: set["NibData"] = set()
 

@@ -6,6 +6,7 @@ from genlib import (
     NibObject,
     NibProxyObject,
     NibString,
+    NibMutableString,
     NibNil,
     NibList,
     NibMutableList,
@@ -604,8 +605,19 @@ def _xibparser_parse_textView(ctx: ArchiveContext, elem: Element, parent: Option
     text_container["NSLayoutManager"] = NibNil()
     text_container["NSMinWidth"] = 15.0
     text_container["NSTCFlags"] = 0x1
+
+    layout_manager = NibObject("NSLayoutManager", text_container)
+    layout_manager["NSTextContainers"] = NibMutableList([text_container])
+    layout_manager["NSLMFlags"] = 0x66
+    layout_manager["NSDelegate"] = NibNil()
+    layout_manager["NSTextStorage"] = NibObject("NSTextStorage", layout_manager, {
+        "NSDelegate": NibNil(),
+        "NSString": NibMutableString(""),
+    })
+    text_container["NSLayoutManager"] = layout_manager
     text_container["NSTextLayoutManager"] = NibNil()
-    text_container["NSTextView"] = NibNil()
+
+    text_container["NSTextView"] = obj
     if obj.xib_parent().get("NSFrameSize"):
         text_container["NSWidth"] = float(__parse_size(obj.xib_parent()["NSFrameSize"]._text)[0])
     else:
