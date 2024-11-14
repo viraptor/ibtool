@@ -637,7 +637,7 @@ def _xibparser_parse_textView(ctx: ArchiveContext, elem: Element, parent: Option
     obj["NSTVFlags"] = 134 | horizontally_resizable
     obj["NSNextResponder"] = obj.xib_parent()
 
-    text_container = XibObject("NSTextContainer", obj)
+    text_container = NibObject("NSTextContainer", obj)
     text_container["NSLayoutManager"] = NibNil()
     text_container["NSMinWidth"] = 15.0
     text_container["NSTCFlags"] = 0x1
