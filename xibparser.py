@@ -419,7 +419,7 @@ def _xibparser_parse_interfacebuilder_properties(ctx: ArchiveContext, elem: Elem
 
 
 class XibObject(NibObject):
-    def __init__(self, classname: str, parent: Optional["NibObject"] = None, xibid: Optional[Union[str,int]] = None) -> None:
+    def __init__(self, classname: str, parent: Optional["NibObject"], xibid: Optional[Union[str,int]]) -> None:
         NibObject.__init__(self, classname, parent)
         self.xibid: Optional[XibId] = None
         if xibid is not None:
@@ -616,7 +616,7 @@ def _xibparser_parse_textView(ctx: ArchiveContext, elem: Element, parent: Option
     spelling_correction = 0x4000000 if elem.attrib.get("spellingCorrection") == "YES" else 0
     horizontally_resizable = TVFlags.HORIZONTALLY_RESIZABLE if elem.attrib.get("horizontallyResizable") == "YES" else 0
 
-    shared_data = XibObject("NSTextViewSharedData", obj)
+    shared_data = XibObject("NSTextViewSharedData", obj, None)
     shared_data["NSAutomaticTextCompletionDisabled"] = False
     shared_data["NSBackgroundColor"] = NibNil()
     shared_data["NSDefaultParagraphStyle"] = NibNil()
@@ -772,7 +772,10 @@ def _xibparser_parse_constraint(ctx: ArchiveContext, elem: Element, parent: Opti
 def _xibparser_parse_imageCell(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> XibObject:
     assert parent is not None
     assert parent.originalclassname() == "NSImageView"
-    obj = XibObject("NSImageCell", parent)
+    obj = XibObject("NSImageCell", parent, elem.attrib.get("id"))
+    if obj.xibid:
+        ctx.addObject(obj.xibid, obj)
+    ctx.extraNibObjects.append(obj)
     __xibparser_ParseChildren(ctx, elem, obj)
     __xibparser_cell_flags(elem, obj, parent)
 
@@ -796,12 +799,12 @@ def _xibparser_parse_imageCell(ctx: ArchiveContext, elem: Element, parent: Optio
     return obj
 
 
-def make_system_image(name: str, parent: NibObject) -> XibObject:
-    obj = XibObject("NSCustomResource", parent)
+def make_system_image(name: str, parent: NibObject) -> NibObject:
+    obj = NibObject("NSCustomResource", parent)
     obj["NSResourceName"] = NibString.intern(name)
     obj["NSClassName"] = NibString.intern("NSImage")
     obj["IBNamespaceID"] = NibString.intern("system")
-    design_size = XibObject("NSValue", obj)
+    design_size = NibObject("NSValue", obj)
     design_size["NS.sizeval"] = NibString.intern("{32, 32}")
     design_size["NS.special"] = 2
     obj["IBDesignSize"] = design_size
@@ -840,8 +843,8 @@ def _xibparser_parse_scrollView(ctx: ArchiveContext, elem: Element, parent: Opti
 
     return obj
 
-def default_pan_recognizer(scrollView: XibObject) -> XibObject:
-    obj = XibObject("NSPanGestureRecognizer", None)
+def default_pan_recognizer(scrollView: XibObject) -> NibObject:
+    obj = NibObject("NSPanGestureRecognizer", None)
     obj["NSGestureRecognizer.action"] = NibString.intern("_panWithGestureRecognizer:")
     obj["NSGestureRecognizer.allowedTouchTypes"] = 1
     obj["NSGestureRecognizer.delegate"] = scrollView
@@ -869,7 +872,7 @@ def _xibparser_parse_clipView(ctx: ArchiveContext, elem: Element, parent: Option
     
     obj["NSAutomaticallyAdjustsContentInsets"] = True
     obj["NSvFlags"] = vFlags.AUTORESIZES_SUBVIEWS # clearing the values from elem - they don't seem to matter
-    cursor = XibObject("NSCursor", obj)
+    cursor = NibObject("NSCursor", obj)
     cursor["NSCursorType"] = 0
     cursor["NSHotSpot"] = NibString.intern("{1, -1}")
     obj["NSCursor"] = cursor
