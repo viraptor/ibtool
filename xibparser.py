@@ -617,7 +617,6 @@ def _xibparser_parse_textView(ctx: ArchiveContext, elem: Element, parent: Option
     obj["NSDelegate"] = NibNil()
     obj["NSSuperview"] = obj.xib_parent()
     obj["NSTVFlags"] = 135
-    obj["NSMaxSize"] = '{10000000, 10000000}'
     obj["NSNextResponder"] = obj.xib_parent()
 
     text_container = XibObject("NSTextContainer", obj)
@@ -977,7 +976,7 @@ def _xibparser_parse_window(ctx: ArchiveContext, elem: Element, parent: NibObjec
         item["NSWindowView"] = NibNil()
     if not item.get("NSScreenRect"):
         item["NSScreenRect"] = '{{0, 0}, {0, 0}}'
-    item["NSMaxSize"] = '{10000000000000, 10000000000000}'
+    item.setIfEmpty("NSMaxSize", '{10000000000000, 10000000000000}')
     item["NSWindowIsRestorable"] = elem.attrib.get("restorable", "YES") == "YES"
     item["NSMinFullScreenContentSize"] = NibString.intern('{0, 0}')
     item["NSMaxFullScreenContentSize"] = NibString.intern('{0, 0}')
@@ -1310,7 +1309,8 @@ def _xibparser_parse_color(ctx: ArchiveContext, elem: Element, parent: NibObject
 
 
 def _xibparser_parse_size(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
-    pass
+    if elem.attrib["key"] == "maxSize":
+        parent["NSMaxSize"] = f'{{{elem.attrib["width"]}, {elem.attrib["height"]}}}'
 
 def _xibparser_parse_scroller(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
     obj = XibObject("NSScroller", parent, elem.attrib["id"])
