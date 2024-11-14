@@ -112,7 +112,6 @@ def diff(lhs: Union[NibValue,NibCollection,NibObject], rhs: Union[NibValue,NibCo
     if isinstance(lhs, NibValue) and isinstance(rhs, NibValue):
         if lhs.type != rhs.type:
             yield f"{path} (in {parent_class}): Object types don't match {lhs.type} != {rhs.type}"
-            return
 
         if type(lhs.value) in [int, str, float, bytes, type(None)]:
             if lhs.value != rhs.value:
