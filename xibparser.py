@@ -795,8 +795,13 @@ def _xibparser_parse_scrollView(ctx: ArchiveContext, elem: Element, parent: Opti
     obj["NSMagnification"] = 1.0
     obj["NSMaxMagnification"] = 4.0
     obj["NSMinMagnification"] = 0.25
-    obj["NSNextKeyView"] = NibNil()
+    obj["NSNextKeyView"] = obj["NSContentView"]
     obj["NSSuperview"] = obj.xib_parent()
+    obj["NSSubviews"] = NibMutableList([
+        obj["NSContentView"],
+        obj["NSHScroller"],
+        obj["NSVScroller"],
+        ])
     obj["NSsFlags"] = 0
     return obj
 
@@ -834,6 +839,7 @@ def _xibparser_parse_clipView(ctx: ArchiveContext, elem: Element, parent: Option
     cursor["NSHotSpot"] = NibString.intern("{1, -1}")
     obj["NSCursor"] = cursor
     obj["NSNextResponder"] = obj.xib_parent()
+    obj["NSSuperview"] = obj.xib_parent()
     if obj.get("NSSubviews") and len(obj["NSSubviews"]) > 0:
         obj["NSDocView"] = obj["NSSubviews"][0]
         obj["NSNextKeyView"] = obj["NSSubviews"][0]
