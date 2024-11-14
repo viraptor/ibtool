@@ -816,7 +816,19 @@ def _xibparser_parse_scrollView(ctx: ArchiveContext, elem: Element, parent: Opti
         obj["NSHScroller"],
         obj["NSVScroller"],
         ])
-    obj["NSsFlags"] = 0
+    has_horizontal_scroller = 0x20 if elem.attrib.get("hasHorizontalScroller") == "YES" else 0
+    uses_predominant_axis_scrolling = 0x10000 if elem.attrib.get("usesPredominantAxisScrolling") == "YES" else 0
+    obj["NSsFlags"] = 0x20812 | has_horizontal_scroller | uses_predominant_axis_scrolling
+
+    horizontal_line_scroll = int(elem.attrib.get("horizontalLineScroll", "10"))
+    vertical_line_scroll = int(elem.attrib.get("verticalLineScroll", "10"))
+    horizontal_page_scroll = int(elem.attrib.get("horizontalPageScroll", "10"))
+    vertical_page_scroll = int(elem.attrib.get("verticalPageScroll", "10"))
+    if (horizontal_line_scroll, vertical_line_scroll, horizontal_page_scroll, vertical_page_scroll) != (10, 10, 10, 10):
+        raise Exception("TODO: NSScrollAmts")
+        # TODO figure out the encoding
+        obj["NSScrollAmts"] = NibInlineString("...")
+
     return obj
 
 def default_pan_recognizer(scrollView: XibObject) -> XibObject:
