@@ -685,6 +685,8 @@ def _xibparser_parse_imageView(ctx: ArchiveContext, elem: Element, parent: Optio
     obj["NSSuperview"] = obj.xib_parent()
     obj["NSControlSendActionMask"] = 4
     obj.setIfEmpty("NSSubviews", NibMutableList([]))
+    if not obj.extraContext.get("parsed_autoresizing"):
+        obj.flagsOr("NSvFlags", vFlags.DEFAULT_VFLAGS_AUTOLAYOUT if ctx.useAutolayout else vFlags.DEFAULT_VFLAGS)
     return obj
 
 
