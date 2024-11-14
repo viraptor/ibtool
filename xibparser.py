@@ -41,6 +41,8 @@ class vFlags(IntEnum):
     HEIGHT_SIZABLE = 0x10
     MAX_Y_MARGIN = 0x20
 
+    DEFAULT_VFLAGS = AUTORESIZES_SUBVIEWS | MAX_X_MARGIN | MIN_Y_MARGIN
+
 class sFlags(IntEnum):
     HORIZONTAL = 0x01
 
@@ -529,7 +531,7 @@ def _xibparser_parse_view(ctx: ArchiveContext, elem: Element, parent: XibObject,
     _xibparser_parse_interfacebuilder_properties(ctx, elem, parent, obj)
     __xibparser_ParseChildren(ctx, elem, obj)
     if not obj.extraContext.get("parsed_autoresizing"):
-        obj.flagsOr("NSvFlags", vFlags.MAX_Y_MARGIN | vFlags.MIN_Y_MARGIN) # that's the actual default
+        obj.flagsOr("NSvFlags", vFlags.DEFAULT_VFLAGS)
 
     _xibparser_common_view_attributes(ctx, elem, parent, obj, topLevelView=(key == "contentView"))
 
@@ -588,7 +590,7 @@ def _xibparser_parse_button(ctx: ArchiveContext, elem: Element, parent: Optional
     obj["NSControlSendActionMask"] = 4
     obj["IBNSShadowedSymbolConfiguration"] = NibNil()
     if not obj.extraContext.get("parsed_autoresizing"):
-        obj.flagsOr("NSvFlags", vFlags.MAX_X_MARGIN | vFlags.MIN_Y_MARGIN) # that's the actual default
+        obj.flagsOr("NSvFlags", vFlags.DEFAULT_VFLAGS)
     return obj
 
 
@@ -675,7 +677,7 @@ def _xibparser_parse_imageView(ctx: ArchiveContext, elem: Element, parent: Optio
     obj["NSControlSendActionMask"] = 4
     obj.setIfEmpty("NSSubviews", NibMutableList([]))
     if not obj.extraContext.get("parsed_autoresizing"):
-        obj.flagsOr("NSvFlags", vFlags.MAX_X_MARGIN | vFlags.MIN_Y_MARGIN) # that's the actual default
+        obj.flagsOr("NSvFlags", vFlags.DEFAULT_VFLAGS)
     return obj
 
 
@@ -804,7 +806,7 @@ def _xibparser_parse_scrollView(ctx: ArchiveContext, elem: Element, parent: Opti
     obj = make_xib_object(ctx, "NSScrollView", elem, parent)
     __xibparser_ParseChildren(ctx, elem, obj)
     if not obj.extraContext.get("parsed_autoresizing"):
-        obj.flagsOr("NSvFlags", vFlags.MAX_X_MARGIN | vFlags.MIN_Y_MARGIN) # that's the actual default
+        obj.flagsOr("NSvFlags", vFlags.DEFAULT_VFLAGS)
     obj["NSGestureRecognizers"] = NibList([default_pan_recognizer(obj)])
     obj["NSMagnification"] = 1.0
     obj["NSMaxMagnification"] = 4.0
@@ -1089,7 +1091,7 @@ def _xibparser_parse_textField(ctx: ArchiveContext, elem: Element, parent: NibOb
     obj["NSControlSendActionMask"] = 4
     obj["NSTextFieldAlignmentRectInsetsVersion"] = 2
     if not obj.extraContext.get("parsed_autoresizing"):
-        obj.flagsOr("NSvFlags", vFlags.MAX_X_MARGIN | vFlags.MIN_Y_MARGIN) # that's the actual default
+        obj.flagsOr("NSvFlags", vFlags.DEFAULT_VFLAGS)
 
     do_not_traslave_autoresizing = elem.attrib.get('translatesAutoresizingMaskIntoConstraints', "YES") == "NO"
     if do_not_traslave_autoresizing:
