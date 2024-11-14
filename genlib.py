@@ -235,6 +235,10 @@ class NibMutableSet(ArrayLike):
     def __init__(self, items: Optional[Sequence[PropValue]]=None) -> None:
         super().__init__("NSMutableSet", items)
 
+class NibDictionary(ArrayLike):
+    def __init__(self, items: Optional[Sequence[PropValue]]=None) -> None:
+        super().__init__("NSDictionary", items)
+
 
 class NibNSNumber(NibObject):
     def __init__(self, value=0):

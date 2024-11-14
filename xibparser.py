@@ -11,6 +11,7 @@ from genlib import (
     NibList,
     NibMutableList,
     NibMutableSet,
+    NibDictionary,
     PropValue,
     PropPair,
 )
@@ -594,6 +595,22 @@ def __parse_pos_size(size: str) -> tuple[int, int, int, int]:
 
 def _xibparser_parse_textView(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> XibObject:
     obj = make_xib_object(ctx, "NSTextView", elem, parent)
+    
+    shared_data = XibObject("NSTextViewSharedData", obj)
+    shared_data["NSAutomaticTextCompletionDisabled"] = False
+    shared_data["NSBackgroundColor"] = NibNil()
+    shared_data["NSDefaultParagraphStyle"] = NibNil()
+    shared_data["NSFlags"] = 0x4000905
+    shared_data["NSInsertionColor"] = NibNil()
+    shared_data["NSLinkAttributes"] = NibDictionary([NibString.intern("NSColor")])
+    shared_data["NSMarkedAttributes"] = NibNil()
+    shared_data["NSMoreFlags"] = 0x1
+    shared_data["NSPreferredTextFinderStyle"] = 0
+    shared_data["NSSelectedAttributes"] = NibDictionary([NibString.intern("NSBackgroundColor")])
+    shared_data["NSTextCheckingTypes"] = 0
+    shared_data["NSTextFinder"] = NibNil()
+    obj["NSSharedData"] = shared_data
+
     __xibparser_ParseChildren(ctx, elem, obj)
     obj["NSDelegate"] = NibNil()
     obj["NSSuperview"] = obj.xib_parent()
@@ -627,20 +644,6 @@ def _xibparser_parse_textView(ctx: ArchiveContext, elem: Element, parent: Option
 
     obj["NSTextViewTextColor"] = makeSystemColor("textColor")
 
-    shared_data = XibObject("NSTextViewSharedData", obj)
-    shared_data["NSAutomaticTextCompletionDisabled"] = False
-    shared_data["NSBackgroundColor"] = NibNil()
-    shared_data["NSDefaultParagraphStyle"] = NibNil()
-    shared_data["NSFlags"] = 0x4000905
-    shared_data["NSInsertionColor"] = NibNil()
-    shared_data["NSLinkAttributes"] = NibNil()
-    shared_data["NSMarkedAttributes"] = NibNil()
-    shared_data["NSMoreFlags"] = 0x1
-    shared_data["NSPreferredTextFinderStyle"] = 0
-    shared_data["NSSelectedAttributes"] = NibNil()
-    shared_data["NSTextCheckingTypes"] = 0
-    shared_data["NSTextFinder"] = NibNil()
-    obj["NSSharedData"] = shared_data
     return obj
 
 
@@ -1243,42 +1246,46 @@ def _xibparser_parse_color(ctx: ArchiveContext, elem: Element, parent: NibObject
 
     special_target_attributes = { # weird and standard attributes
         "NSClipView": {
-            "backgroundColor": "NSBGColor",
+            "backgroundColor": ["NSBGColor"],
         },
         "NSTextView": {
-            "backgroundColor": None,
-            "insertionPointColor": None,
+            "backgroundColor": ["NSSharedData", "NSBackgroundColor"],
+            "insertionPointColor": ["NSSharedData", "NSInsertionColor"],
         },
         None: {
-            "textColor": "NSTextColor",
-            "backgroundColor": "NSBackgroundColor",
-            "insertionPointColor": "NSInsertionPointColor",
+            "textColor": ["NSTextColor"],
+            "backgroundColor": ["NSBackgroundColor"],
+            "insertionPointColor": ["NSInsertionPointColor"],
         }
     }
 
-    target_attribute = special_target_attributes.get(parent.classname(), special_target_attributes[None])[key]
-    if target_attribute is None:
-        return
+    target_path = special_target_attributes.get(parent.classname(), special_target_attributes[None])[key]
+    target_obj = parent
+    for step in target_path[:-1]:
+        target_obj = target_obj[step]
+    target_attribute = target_path[-1]
 
     if elem.attrib["colorSpace"] == "catalog":
         assert elem.attrib["catalog"] == "System", elem.attrib["catalog"]
 
         color = makeSystemColor(elem.attrib["name"])
-        parent[target_attribute] = color
+        target_obj[target_attribute] = color
     elif elem.attrib["colorSpace"] == "calibratedWhite":
         color = NibObject("NSColor", None, {
             "NSColorSpace": 6,
             "NSCatalogName": "System",
-            "NSColorName": "controlBackgroundColor",
+            "NSColorName": {
+                "NSClipView": "controlBackgroundColor",
+                "NSTextView": "textBackgroundColor",
+            }[parent.classname()],
             "NSColor": NibObject("NSColor", None, {
                 "NSColorSpace": 3,
-                "NSComponents": NibInlineString(b'0.6666666667 1'),
+                "NSComponents": NibInlineString(b'1 1'),
                 "NSCustomColorSpace": DEFAULT_COLOR_SPACE,
-                "NSWhite": NibInlineString(b'0.602715373\x00'),
+                "NSWhite": NibInlineString(b'1\x00'),
             }),
-
         })
-        parent[target_attribute] = color
+        target_obj[target_attribute] = color
     else:
         raise Exception(f"unknown colorSpace {elem.attrib['colorSpace']}")
 
