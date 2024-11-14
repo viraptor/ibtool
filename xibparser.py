@@ -613,6 +613,8 @@ def _xibparser_parse_textView(ctx: ArchiveContext, elem: Element, parent: Option
 
     obj["NSTextContainer"] = text_container
 
+    obj["NSTextViewTextColor"] = makeSystemColor("textColor")
+
     shared_data = XibObject("NSTextViewSharedData", obj)
     shared_data["NSAutomaticTextCompletionDisabled"] = False
     shared_data["NSBackgroundColor"] = NibNil()
@@ -1233,7 +1235,7 @@ def _xibparser_parse_color(ctx: ArchiveContext, elem: Element, parent: NibObject
         },
         "NSTextView": {
             "backgroundColor": None,
-            "insertionPointColor": "NSTextViewTextColor",
+            "insertionPointColor": None,
         },
         None: {
             "textColor": "NSTextColor",
