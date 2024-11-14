@@ -110,7 +110,12 @@ class CellFlags2(IntEnum):
     IN_MIXED_STATE = 0x00800000
     SENDS_ACTION_ON_END_EDITING = 0x00400000
 
-    LINE_BREAK_MODE_MASK = 0x00000600
+    LINE_BREAK_MODE_WORD_WRAPPING = 0x0
+    LINE_BREAK_MODE_CHAR_WRAPPING = 0x200
+    LINE_BREAK_MODE_CLIPPING = 0x400
+    LINE_BREAK_MODE_TRUNCATING_HEAD = 0x600
+    LINE_BREAK_MODE_TRUNCATING_TAIL = 0x800
+    LINE_BREAK_MODE_TRUNCATING_MIDDLE = 0xa00
     CONTROL_SIZE_MASK = 0x000E0000
 
 class LineBreakMode(Enum):
@@ -1055,15 +1060,39 @@ def __xibparser_cell_flags(elem: Element, obj: NibObject, parent: NibObject) -> 
     sendsAction = elem.attrib.get("sendsActionOnEndEditing", "NO") == "YES"
     sendsActionMask = CellFlags2.SENDS_ACTION_ON_END_EDITING if sendsAction else 0
     lineBreakMode = elem.attrib.get("lineBreakMode")
-    lineBreakModeMask = {None: 0, "truncatingTail": 0x40, "clipping": 0}[lineBreakMode]
-    lineBreakModeMask2 = {None: 0, "truncatingTail": 0x800, "clipping": 0}[lineBreakMode]
+    lineBreakModeMask = {
+        None: 0,
+        "wordWrapping": 0,
+        "charWrapping": 0,
+        "truncatingTail": CellFlags.TRUNCATE_LAST_LINE,
+        "truncatingHead": CellFlags.TRUNCATE_LAST_LINE,
+        "truncatingMiddle": CellFlags.TRUNCATE_LAST_LINE,
+        "clipping": CellFlags.TRUNCATE_LAST_LINE,
+    }[lineBreakMode]
+    lineBreakModeMask2 = {
+        None: 0,
+        "wordWrapping": CellFlags2.LINE_BREAK_MODE_WORD_WRAPPING,
+        "charWrapping": CellFlags2.LINE_BREAK_MODE_CHAR_WRAPPING,
+        "clipping": CellFlags2.LINE_BREAK_MODE_CLIPPING,
+        "truncatingHead": CellFlags2.LINE_BREAK_MODE_TRUNCATING_HEAD,
+        "truncatingTail": CellFlags2.LINE_BREAK_MODE_TRUNCATING_TAIL,
+        "truncatingMiddle": CellFlags2.LINE_BREAK_MODE_TRUNCATING_MIDDLE,
+    }[lineBreakMode]
     textAlignment = elem.attrib.get("alignment")
     textAlignmentMask = {None: CellFlags2.TEXT_ALIGN_NONE, "left": CellFlags2.TEXT_ALIGN_LEFT, "center": CellFlags2.TEXT_ALIGN_CENTER, "right": CellFlags2.TEXT_ALIGN_RIGHT}[textAlignment]
     selectable = (CellFlags.SELECTABLE + 1) if elem.attrib.get("selectable", "NO") == "YES" else 0
 
     obj.flagsOr("NSCellFlags", lineBreakModeMask | CellFlags.UNKNOWN_TEXT_FIELD | selectable)
     obj.flagsOr("NSCellFlags2", textAlignmentMask | sendsActionMask | lineBreakModeMask2)
-    parent["NSControlLineBreakMode"] = {None: 0, "truncatingTail": 4, "clipping": 0}[lineBreakMode]
+    parent["NSControlLineBreakMode"] = {
+        None: 0,
+        "wordWrapping": 0,
+        "charWrapping": 1,
+        "clipping": 2,
+        "truncatingHead": 3,
+        "truncatingTail": 4,
+        "truncatingMiddle": 5,
+    }[lineBreakMode]
     if obj.classname() in ['NSButtonCell', 'NSTextFieldCell', 'NSImageCell']:
         textAlignmentValue = {None: 4, "left": 0, "center": 1, "right": 2}[textAlignment]
         parent["NSControlTextAlignment"] = textAlignmentValue
@@ -1078,8 +1107,6 @@ def _xibparser_parse_textFieldCell(ctx: ArchiveContext, elem: Element, parent: N
     obj["NSSupport"] = NibNil() # TODO
     obj["NSControlView"] = obj.xib_parent()
     obj["NSCharacterPickerEnabled"] = True
-    control_line_break_mode = elem.attrib.get('lineBreakMode')
-    parent["NSControlLineBreakMode"] = {None: 0, "truncatingTail": 4, "clipping": 2}[control_line_break_mode]
     __xibparser_ParseChildren(ctx, elem, obj)
 
     parent["NSCell"] = obj
