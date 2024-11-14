@@ -16,7 +16,7 @@ from genlib import (
     PropPair,
 )
 from xml.etree.ElementTree import Element
-from typing import Optional, Any, Union, cast
+from typing import Optional, Any, Union, cast, Callable
 from enum import IntEnum, Enum
 
 
@@ -350,15 +350,13 @@ def makePlaceholderIdentifier() -> str:
     return "UpstreamPlaceholder-" + makexibid()
 
 
-def classSwapper(func: Any):
+def classSwapper(func: Callable):
     def inner(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject], *args, **kwargs) -> NibObject:
         obj = func(ctx, elem, parent, *args, **kwargs)
         if obj:
-            customClass = elem.attrib.get("customClass")
-            if customClass:
-                obj["UIOriginalClassName"] = obj.classname()
-                obj["UIClassName"] = customClass
-                obj.setclassname("UIClassSwapper")
+            if customClass := elem.attrib.get("customClass"):
+                obj.extraContext["original_class"] = obj.originalclassname()
+                obj.setclassname(customClass)
 
         return obj
 
@@ -420,13 +418,11 @@ class XibObject(NibObject):
         self.extraContext = {}
 
     def originalclassname(self) -> Optional[str]:
-        if not self.classname():
-            return None
-        if self.classname() != "UIClassSwapper":
+        name = self.extraContext.get("original_class")
+        if name is None:
             return self.classname()
-        oc = self["UIOriginalClassName"]
-        assert isinstance(oc, str)
-        return oc
+        assert isinstance(name, str)
+        return name
     
     def xib_parent(self) -> Optional["XibObject"]:
         parent = self.parent()
@@ -506,7 +502,6 @@ WontDo
 """
 
 
-@classSwapper
 def _xibparser_parse_view(ctx: ArchiveContext, elem: Element, parent: XibObject, **kwargs) -> XibObject:
     obj = XibObject("NSView", parent, elem.attrib["id"])
     ctx.extraNibObjects.append(obj)
@@ -519,7 +514,7 @@ def _xibparser_parse_view(ctx: ArchiveContext, elem: Element, parent: XibObject,
             obj["NSFrameSize"] = NibString.intern("{0, 0}")
         else:
             raise Exception(
-                "Unhandled class '%s' to take UIView with key 'contentView'"
+                "Unhandled class '%s' to take NSView with key 'contentView'"
                 % (parent.originalclassname())
             )
     else:
@@ -764,7 +759,7 @@ def _xibparser_parse_constraint(ctx: ArchiveContext, elem: Element, parent: Opti
 
 def _xibparser_parse_imageCell(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> XibObject:
     assert parent is not None
-    assert parent.classname() == "NSImageView"
+    assert parent.originalclassname() == "NSImageView"
     obj = XibObject("NSImageCell", parent)
     __xibparser_ParseChildren(ctx, elem, obj)
     __xibparser_cell_flags(elem, obj, parent)
@@ -937,12 +932,12 @@ def _xibparser_parse_rect(ctx: ArchiveContext, elem: Element, parent: NibObject)
     w = int(elem.attrib["width"])
     h = int(elem.attrib["height"])
     if key == "contentRect":
-        assert parent.classname() == "NSWindowTemplate"
+        assert parent.originalclassname() == "NSWindowTemplate"
         x = int(elem.attrib["x"])
         y = int(elem.attrib["y"])
         parent["NSWindowRect"] = "{{" + str(x) + ", " + str(y) + "}, {" + str(w) + ", " + str(h) + "}}"
     elif key == "screenRect":
-        assert parent.classname() == "NSWindowTemplate"
+        assert parent.originalclassname() == "NSWindowTemplate"
         x = int(float(elem.attrib["x"]))
         y = int(float(elem.attrib["y"]))
         parent["NSScreenRect"] = "{{" + str(x) + ", " + str(y) + "}, {" + str(w) + ", " + str(h) + "}}"
@@ -972,7 +967,7 @@ def _xibparser_parse_point(ctx: ArchiveContext, elem: Element, parent: NibObject
     point = (float(elem.attrib["x"]), float(elem.attrib["y"]))
 
 
-def _xibparser_parse_window(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
+def _xibparser_parse_window(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
     item = XibObject("NSWindowTemplate", parent, elem.attrib["id"])
     ctx.extraNibObjects.append(item)
     item.flagsOr("NSWTFlags", 0x780000) # default initial position mask, can be overriden by children
@@ -1007,21 +1002,28 @@ def _xibparser_parse_window(ctx: ArchiveContext, elem: Element, parent: NibObjec
         item["NSWindowTabbingMode"] = {"disallowed": 2}[elem.attrib["tabbingMode"]]
     if elem.attrib.get("visibleAtLaunch", "YES") == "YES":
         ctx.visibleWindows.append(item)
+    if custom_class := elem.attrib.get("customClass"):
+        item["IBClassReference"] = make_class_reference(custom_class)
+        item["NSWindowClass"] = custom_class
+
     return item
+
+def make_class_reference(class_name: str) -> XibObject:
+    classRef = XibObject("IBClassReference")
+    className = NibString(class_name)
+    classRef["IBClassName"] = className
+    classRef["IBModuleName"] = NibNil()
+    classRef["IBModuleProvider"] = NibNil()
+    return classRef
 
 def _xibparser_parse_customObject(ctx, elem, parent):
     item = XibObject("NSCustomObject", parent, elem.attrib["id"])
-    if elem.attrib.get("customClass"):
-        classRef = XibObject("IBClassReference")
-        className = NibString(elem.attrib.get("customClass"))
-        classRef["IBClassName"] = className
-        classRef["IBModuleName"] = NibNil()
-        classRef["IBModuleProvider"] = NibNil()
-        item["IBClassReference"] = classRef
+    if custom_class := elem.attrib.get("customClass"):
+        item["IBClassReference"] = make_class_reference(custom_class)
         if item.xibid == -3:
             item["NSClassName"] = NibString.intern("NSApplication")
         else:
-            item["NSClassName"] = className
+            item["NSClassName"] = NibString.intern(custom_class)
     elif item.xibid.val() < 0:
         item["NSClassName"] = NibString.intern("NSApplication")
     else:
@@ -1134,7 +1136,7 @@ def __xibparser_cell_flags(elem: Element, obj: NibObject, parent: NibObject) -> 
     textAlignmentMask = {None: CellFlags2.TEXT_ALIGN_NONE, "left": CellFlags2.TEXT_ALIGN_LEFT, "center": CellFlags2.TEXT_ALIGN_CENTER, "right": CellFlags2.TEXT_ALIGN_RIGHT}[textAlignment]
     selectable = (CellFlags.SELECTABLE + 1) if elem.attrib.get("selectable", "NO") == "YES" else 0
     state_on = CellFlags.STATE_ON if (elem.attrib.get("state") == "on") else 0
-    text_field_flag = CellFlags.UNKNOWN_TEXT_FIELD if obj.classname() in ["NSTextFieldCell", "NSButtonCell"] else 0
+    text_field_flag = CellFlags.UNKNOWN_TEXT_FIELD if obj.originalclassname() in ["NSTextFieldCell", "NSButtonCell"] else 0
     refuses_first_responder = elem.attrib.get("refusesFirstResponder", "NO") == "YES"
     refuses_first_responder_mask = CellFlags2.REFUSES_FIRST_RESPONDER if refuses_first_responder else 0
     scrollable = CellFlags.SCROLLABLE if elem.attrib.get("scrollable", "NO") == "YES" else 0
@@ -1151,7 +1153,7 @@ def __xibparser_cell_flags(elem: Element, obj: NibObject, parent: NibObject) -> 
         "truncatingTail": LineBreakMode.BY_TRUNCATING_TAIL,
         "truncatingMiddle": LineBreakMode.BY_TRUNCATING_MIDDLE,
     }[lineBreakMode].value
-    if obj.classname() in ['NSButtonCell', 'NSTextFieldCell', 'NSImageCell']:
+    if obj.originalclassname() in ['NSButtonCell', 'NSTextFieldCell', 'NSImageCell']:
         textAlignmentValue = {None: 4, "left": 0, "center": 1, "right": 2}[textAlignment]
         parent["NSControlTextAlignment"] = textAlignmentValue
 
@@ -1262,7 +1264,7 @@ def _xibparser_parse_font(ctx: ArchiveContext, elem: Element, parent: NibObject)
     return item
 
 def _xibparser_parse_behavior(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
-    assert parent.classname() == "NSButtonCell"
+    assert parent.originalclassname() == "NSButtonCell"
     maskmap = {
         "pushIn": 1<<31,
         "lightByBackground": 1<<26,
@@ -1276,7 +1278,7 @@ def _xibparser_parse_behavior(ctx: ArchiveContext, elem: Element, parent: NibObj
     parent.flagsOr("NSButtonFlags", value)
 
 def _xibparser_parse_string(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
-    assert parent.classname() == "NSButtonCell"
+    assert parent.originalclassname() == "NSButtonCell"
     parent["NSContents"] = NibString.intern(elem.attrib.get("", ""))
 
 def _xibparser_parse_color(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
@@ -1300,7 +1302,7 @@ def _xibparser_parse_color(ctx: ArchiveContext, elem: Element, parent: NibObject
         }
     }
 
-    target_path = special_target_attributes.get(parent.classname(), special_target_attributes[None])[key]
+    target_path = special_target_attributes.get(parent.originalclassname(), special_target_attributes[None])[key]
     target_obj = parent
     for step in target_path[:-1]:
         target_obj = target_obj[step]
@@ -1318,7 +1320,7 @@ def _xibparser_parse_color(ctx: ArchiveContext, elem: Element, parent: NibObject
             "NSColorName": {
                 "NSClipView": "controlBackgroundColor",
                 "NSTextView": "textBackgroundColor",
-            }[parent.classname()],
+            }[parent.originalclassname()],
             "NSColor": NibObject("NSColor", None, {
                 "NSColorSpace": 3,
                 "NSComponents": NibInlineString(b'1 1'),
