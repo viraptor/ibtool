@@ -809,13 +809,13 @@ def _xibparser_parse_scrollView(ctx: ArchiveContext, elem: Element, parent: Opti
     obj["NSMagnification"] = 1.0
     obj["NSMaxMagnification"] = 4.0
     obj["NSMinMagnification"] = 0.25
-    obj["NSNextKeyView"] = obj["NSContentView"]
     obj["NSSuperview"] = obj.xib_parent()
     obj["NSSubviews"] = NibMutableList([
         obj["NSContentView"],
         obj["NSHScroller"],
         obj["NSVScroller"],
         ])
+    obj["NSNextKeyView"] = obj["NSContentView"]
     has_horizontal_scroller = 0x20 if elem.attrib.get("hasHorizontalScroller") == "YES" else 0
     uses_predominant_axis_scrolling = 0x10000 if elem.attrib.get("usesPredominantAxisScrolling") == "YES" else 0
     obj["NSsFlags"] = 0x20812 | has_horizontal_scroller | uses_predominant_axis_scrolling
@@ -871,7 +871,6 @@ def _xibparser_parse_clipView(ctx: ArchiveContext, elem: Element, parent: Option
         obj["NSNextKeyView"] = obj["NSSubviews"][0]
     else:
         obj["NSDocView"] = NibNil()
-        obj["NSNextKeyView"] = NibNil()
     return obj
 
 
@@ -1337,7 +1336,7 @@ def _xibparser_parse_scroller(ctx: ArchiveContext, elem: Element, parent: NibObj
     obj = XibObject("NSScroller", parent, elem.attrib["id"])
     _xibparser_common_view_attributes(ctx, elem, parent, obj)
     __xibparser_ParseChildren(ctx, elem, obj)
-    obj["NSNextResponder"] = parent
+    obj["NSNextResponder"] = obj.xib_parent()
     obj["NSAction"] = NibString.intern("_doScroller:")
     obj["NSControlAction"] = NibString.intern("_doScroller:")
     obj["NSAllowsLogicalLayoutDirection"] = False
