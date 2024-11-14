@@ -929,7 +929,7 @@ def _xibparser_parse_action(ctx: ArchiveContext, elem: Element, parent: NibObjec
 
 
 # TODO: I think this function might need more logic when the bounds aren't set at 0, 0
-def _xibparser_parse_rect(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
+def _xibparser_parse_rect(ctx: ArchiveContext, elem: Element, parent: XibObject) -> None:
     key = elem.attrib.get("key")
     w = int(elem.attrib["width"])
     h = int(elem.attrib["height"])
@@ -937,24 +937,26 @@ def _xibparser_parse_rect(ctx: ArchiveContext, elem: Element, parent: NibObject)
         assert parent.originalclassname() == "NSWindowTemplate"
         x = int(elem.attrib["x"])
         y = int(elem.attrib["y"])
-        parent["NSWindowRect"] = "{{" + str(x) + ", " + str(y) + "}, {" + str(w) + ", " + str(h) + "}}"
+        parent.extraContext["NSWindowRect"] = (x, y, w, h)
     elif key == "screenRect":
         assert parent.originalclassname() == "NSWindowTemplate"
         x = int(float(elem.attrib["x"]))
         y = int(float(elem.attrib["y"]))
-        parent["NSScreenRect"] = "{{" + str(x) + ", " + str(y) + "}, {" + str(w) + ", " + str(h) + "}}"
+        parent.extraContext["NSScreenRect"] = (x, y, w, h)
     elif key == "frame":
         x = int(float(elem.attrib["x"]))
         y = int(float(elem.attrib["y"]))
         if x == 0 and y == 0:
             parent["NSFrameSize"] = "{" + str(w) + ", " + str(h) + "}"
+            parent.extraContext["NSFrameSize"] = (w, h)
         else:
             parent["NSFrame"] = "{{" + str(x) + ", " + str(y) + "}, {" + str(w) + ", " + str(h) + "}}"
+            parent.extraContext["NSFrame"] = (x, y, w, h)
     else:
         raise Exception(f"unknown rect key {key}")
 
 
-def _xibparser_parse_autoresizingMask(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
+def _xibparser_parse_autoresizingMask(_ctx: ArchiveContext, elem: Element, parent: XibObject) -> None:
     flexibleMaxX = vFlags.MAX_X_MARGIN if elem.attrib.get("flexibleMaxX", "NO") == "YES" else 0
     flexibleMaxY = vFlags.MAX_Y_MARGIN if elem.attrib.get("flexibleMaxY", "NO") == "YES" else 0
     flexibleMinX = vFlags.MIN_X_MARGIN if elem.attrib.get("flexibleMinX", "NO") == "YES" else 0
@@ -965,7 +967,7 @@ def _xibparser_parse_autoresizingMask(ctx: ArchiveContext, elem: Element, parent
     parent.extraContext["parsed_autoresizing"] = True
 
 
-def _xibparser_parse_point(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
+def _xibparser_parse_point(_ctx: ArchiveContext, elem: Element, _parent: NibObject) -> None:
     point = (float(elem.attrib["x"]), float(elem.attrib["y"]))
 
 
@@ -976,8 +978,8 @@ def _xibparser_parse_window(ctx: ArchiveContext, elem: Element, parent: NibObjec
 
     __xibparser_ParseChildren(ctx, elem, item)
     item["NSWindowBacking"] = 2
-    if not item.get("NSWindowRect"):
-        item["NSWindowRect"] = '{{0, 0}, {0, 0}}'
+    if not item.extraContext.get("NSWindowRect"):
+        item.extraContext["NSWindowRect"] = (0, 0, 0, 0)
 
     item.flagsOr("NSWTFlags", WTFlags.DEFER)
     if elem.attrib.get("allowsToolTipsWhenApplicationIsInactive", "YES") == "YES":
@@ -994,8 +996,8 @@ def _xibparser_parse_window(ctx: ArchiveContext, elem: Element, parent: NibObjec
     item["NSUserInterfaceItemIdentifier"] = NibNil() # TODO
     if not item.get("NSWindowView"):
         item["NSWindowView"] = NibNil()
-    if not item.get("NSScreenRect"):
-        item["NSScreenRect"] = '{{0, 0}, {0, 0}}'
+    if not item.extraContext.get("NSScreenRect"):
+        item.extraContext["NSScreenRect"] = (0, 0, 0, 0)
     item.setIfEmpty("NSMaxSize", '{10000000000000, 10000000000000}')
     item["NSWindowIsRestorable"] = elem.attrib.get("restorable", "YES") == "YES"
     item["NSMinFullScreenContentSize"] = NibString.intern('{0, 0}')
@@ -1008,7 +1010,22 @@ def _xibparser_parse_window(ctx: ArchiveContext, elem: Element, parent: NibObjec
         item["IBClassReference"] = make_class_reference(custom_class)
         item["NSWindowClass"] = custom_class
 
+    # fixup the rects
+    if item.extraContext.get("NSWindowRect"):
+        content_rect = item.extraContext["NSWindowRect"]
+        screen_rect = item.extraContext["NSScreenRect"]
+        item.extraContext["NSWindowRect"] = calculate_window_rect(content_rect, screen_rect)
+        item["NSWindowRect"] = "{{" + str(item.extraContext["NSWindowRect"][0]) + ", " + str(item.extraContext["NSWindowRect"][1]) + "}, {" + str(item.extraContext["NSWindowRect"][2]) + ", " + str(item.extraContext["NSWindowRect"][3]) + "}}"
+    if item.extraContext.get("NSScreenRect"):
+        item["NSScreenRect"] = "{{" + str(item.extraContext["NSScreenRect"][0]) + ", " + str(item.extraContext["NSScreenRect"][1]) + "}, {" + str(item.extraContext["NSScreenRect"][2]) + ", " + str(item.extraContext["NSScreenRect"][3]) + "}}"
+
     return item
+
+def calculate_window_rect(content_rect: tuple[int, int, int, int], screen_rect: tuple[int, int, int, int]) -> tuple[Union[int,float], ...]:
+    if screen_rect == (0, 0, 0, 0):
+        return content_rect
+    res = (screen_rect[2]/2 - content_rect[2]/2, screen_rect[3]/2 - content_rect[3]/2, content_rect[2], content_rect[3])
+    return tuple(int(x) if x==int(x) else x for x in res)
 
 def make_class_reference(class_name: str) -> NibObject:
     return NibObject("IBClassReference", None, {
