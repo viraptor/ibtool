@@ -72,7 +72,7 @@ class ButtonFlags2(IntEnum):
 
 
 class CellFlags(IntEnum):
-    STATE_ON = 0x80000000
+    STATE_ON = 0xffffffff80000000
     HIGHLIGHTED = 0x40000000
     ENABLED = 0x20000000
     EDITABLE = 0x10000000
@@ -1109,8 +1109,9 @@ def __xibparser_cell_flags(elem: Element, obj: NibObject, parent: NibObject) -> 
     textAlignment = elem.attrib.get("alignment")
     textAlignmentMask = {None: CellFlags2.TEXT_ALIGN_NONE, "left": CellFlags2.TEXT_ALIGN_LEFT, "center": CellFlags2.TEXT_ALIGN_CENTER, "right": CellFlags2.TEXT_ALIGN_RIGHT}[textAlignment]
     selectable = (CellFlags.SELECTABLE + 1) if elem.attrib.get("selectable", "NO") == "YES" else 0
+    state_on = CellFlags.STATE_ON if (elem.attrib.get("state") == "on") else 0
 
-    obj.flagsOr("NSCellFlags", lineBreakModeMask | CellFlags.UNKNOWN_TEXT_FIELD | selectable)
+    obj.flagsOr("NSCellFlags", lineBreakModeMask | CellFlags.UNKNOWN_TEXT_FIELD | selectable | state_on)
     obj.flagsOr("NSCellFlags2", textAlignmentMask | sendsActionMask | lineBreakModeMask2)
     parent["NSControlLineBreakMode"] = {
         None: LineBreakMode.BY_WORD_WRAPPING,
