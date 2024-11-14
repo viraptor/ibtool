@@ -27,6 +27,16 @@ class WTFlags(IntEnum):
     ALLOWS_TOOL_TIPS_WHEN_APPLICATION_IS_INACTIVE = 0x2000
     AUTORECALCULATES_KEY_VIEW_LOOP = 0x800
 
+    STRUTS_BOTTOM_LEFT = 0
+    STRUTS_BOTTOM_RIGHT = 0x50000
+    STRUTS_TOP_LEFT = 0x280000
+    STRUTS_TOP_RIGHT = 0x300000
+    STRUTS_LEFT = 0x680000
+    STRUTS_RIGHT = 0x700000
+    STRUTS_BOTTOM = 0x580000
+    STRUTS_TOP = 0x380000
+    STRUTS_MASK = 0x780000
+
 class TVFlags(IntEnum):
     HORIZONTALLY_RESIZABLE = 0x1
 
@@ -1014,17 +1024,22 @@ def _xibparser_parse_window(ctx: ArchiveContext, elem: Element, parent: NibObjec
     if item.extraContext.get("NSWindowRect"):
         content_rect = item.extraContext["NSWindowRect"]
         screen_rect = item.extraContext["NSScreenRect"]
-        item.extraContext["NSWindowRect"] = calculate_window_rect(content_rect, screen_rect)
+        item.extraContext["NSWindowRect"] = calculate_window_rect(item["NSWTFlags"], content_rect, screen_rect)
         item["NSWindowRect"] = "{{" + str(item.extraContext["NSWindowRect"][0]) + ", " + str(item.extraContext["NSWindowRect"][1]) + "}, {" + str(item.extraContext["NSWindowRect"][2]) + ", " + str(item.extraContext["NSWindowRect"][3]) + "}}"
     if item.extraContext.get("NSScreenRect"):
         item["NSScreenRect"] = "{{" + str(item.extraContext["NSScreenRect"][0]) + ", " + str(item.extraContext["NSScreenRect"][1]) + "}, {" + str(item.extraContext["NSScreenRect"][2]) + ", " + str(item.extraContext["NSScreenRect"][3]) + "}}"
 
     return item
 
-def calculate_window_rect(content_rect: tuple[int, int, int, int], screen_rect: tuple[int, int, int, int]) -> tuple[Union[int,float], ...]:
+def calculate_window_rect(flags: int, content_rect: tuple[int, int, int, int], screen_rect: tuple[int, int, int, int]) -> tuple[Union[int,float], ...]:
     if screen_rect == (0, 0, 0, 0):
         return content_rect
-    res = (screen_rect[2]/2 - content_rect[2]/2, screen_rect[3]/2 - content_rect[3]/2, content_rect[2], content_rect[3])
+    res = (
+        content_rect[0] if (flags & WTFlags.STRUTS_MASK) in (WTFlags.STRUTS_LEFT, WTFlags.STRUTS_BOTTOM_LEFT) else screen_rect[2]/2 - content_rect[2]/2,
+        content_rect[1] if (flags & WTFlags.STRUTS_MASK) in (WTFlags.STRUTS_BOTTOM, WTFlags.STRUTS_BOTTOM_LEFT) else screen_rect[3]/2 - content_rect[3]/2,
+        content_rect[2],
+        content_rect[3],
+        )
     return tuple(int(x) if x==int(x) else x for x in res)
 
 def make_class_reference(class_name: str) -> NibObject:
@@ -1069,25 +1084,25 @@ def _xibparser_parse_windowPositionMask(ctx: ArchiveContext, elem: Element, pare
         "top": elem.attrib.get("topStrut", "NO") == "YES",
     }
     if struts["bottom"] and struts["left"]:
-        flags = 0
+        flags = WTFlags.STRUTS_BOTTOM_LEFT
     elif struts["bottom"] and struts["right"]:
-        flags = 0x50000
+        flags = WTFlags.STRUTS_BOTTOM_RIGHT
     elif struts["top"] and struts["left"]:
-        flags = 0x280000
+        flags = WTFlags.STRUTS_TOP_LEFT
     elif struts["top"] and struts["right"]:
-        flags = 0x300000
+        flags = WTFlags.STRUTS_TOP_RIGHT
     elif struts["left"]:
-        flags = 0x680000
+        flags = WTFlags.STRUTS_LEFT
     elif struts["right"]:
-        flags = 0x700000
+        flags = WTFlags.STRUTS_RIGHT
     elif struts["bottom"]:
-        flags = 0x580000
+        flags = WTFlags.STRUTS_BOTTOM
     elif struts["top"]:
-        flags = 0x380000
+        flags = WTFlags.STRUTS_TOP
     else:
-        flags = 0x780000
+        flags = WTFlags.STRUTS_MASK
 
-    parent.flagsAnd("NSWTFlags", ~0x780000) # clear the default
+    parent.flagsAnd("NSWTFlags", ~WTFlags.STRUTS_MASK) # clear the default
     parent.flagsOr("NSWTFlags", flags)
     #parent["NSWindowPositionMask"] = value
 
