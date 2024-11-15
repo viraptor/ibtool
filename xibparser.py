@@ -414,8 +414,11 @@ def __xibparser_ParseXIBObject(ctx: ArchiveContext, elem: Element, parent: Optio
 
 def __xibparser_ParseChildren(ctx: ArchiveContext, elem: Element, obj: Optional[NibObject]) -> list[NibObject]:
     assert obj is not None
+    # Constraints are always added after other elements. It may not matter, but that's what Apple's tool does and it helps in comparisons
     children = [
-        __xibparser_ParseXIBObject(ctx, child_element, obj) for child_element in elem
+        __xibparser_ParseXIBObject(ctx, child_element, obj) for child_element in elem if child_element.tag != "constraints"
+    ] + [
+        __xibparser_ParseXIBObject(ctx, child_element, obj) for child_element in elem if child_element.tag == "constraints"
     ]
     return [c for c in children if c]
 
@@ -746,6 +749,7 @@ def _xibparser_parse_constraint(ctx: ArchiveContext, elem: Element, parent: Opti
     first_attribute = elem.attrib["firstAttribute"]
 
     obj = XibObject("NSLayoutConstraint", parent, elem.attrib["id"])
+    ctx.extraNibObjects.append(obj)
     obj["NSFirstAttribute"] = ATTRIBUTE_MAP[first_attribute]
     obj["NSFirstAttributeV2"] = ATTRIBUTE_MAP[first_attribute]
     if (second_attribute := elem.attrib.get("secondAttribute")) is not None:
