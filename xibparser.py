@@ -720,22 +720,6 @@ ATTRIBUTE_MAP = {
     "baseline": 11,
 }
 
-# first item, first attribute, second attribute, 
-ATTRIBUTE_ORDER = {
-    None: 0,
-    9: 1,
-    10: 2,
-    2: 3,
-    1: 4,
-    6: 5,
-    5: 6,
-    4: 7,
-    3: 8,
-    11: 9,
-    7: 10,
-    8: 11,
-}
-
 
 def _xibparser_parse_constraint(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> None:
     assert parent is not None
