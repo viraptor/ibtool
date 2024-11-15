@@ -184,6 +184,10 @@ class ArchiveContext:
     def __init__(self, useAutolayout: bool=False) -> None:
         self.useAutolayout = useAutolayout
         self.connections: list[NibObject] = []
+
+        # We need the list of constraints to be able to set the NSDoNotTranslateAutoresizingMask prop correctly
+        self.constraints: list[XibObject] = []
+
         # When parsing a storyboard, this doesn't include the main view or any of its descendant objects.
         self.objects: dict[XibId, NibObject] = {} # should be int
         self.toplevel: list[NibObject] = []
@@ -258,6 +262,20 @@ class ArchiveContext:
             return self.objects[objid]
         return None
 
+    def _add_translation_flag(self, target: Optional[Union[XibId,NibObject]]):
+        if target is None:
+            return
+
+        if isinstance(target, XibId):
+            target = self.getObject(target)
+        if target.extraContext.get("NSDoNotTranslateAutoresizingMask"):
+            target["NSDoNotTranslateAutoresizingMask"] = True
+
+    def processConstraints(self) -> None:
+        for constraint in self.constraints:
+            self._add_translation_flag(constraint["NSFirstItem"])
+            self._add_translation_flag(constraint.get("NSSecondItem"))
+
     def resolveConnections(self) -> None:
         self._resolveConnections_xib()
         self._resolveViewReferences()
@@ -308,6 +326,8 @@ def ParseXIBObjects(root: Element, context: Optional[ArchiveContext]=None, resol
 
     if resolveConnections:
         context.resolveConnections()
+
+    context.processConstraints()
 
     return createTopLevel(toplevel, context)
 
@@ -568,8 +588,8 @@ def _xibparser_common_view_attributes(_ctx: ArchiveContext, elem: Element, paren
     obj.extraContext["verticalHuggingPriority"] = elem.attrib.get("verticalHuggingPriority")
     obj.extraContext["horizontalHuggingPriority"] = elem.attrib.get("horizontalHuggingPriority")
 
-    if elem.attrib.get('translatesAutoresizingMaskIntoConstraints', "YES") == "NO" and obj.originalclassname() != "NSImageView":
-        obj["NSDoNotTranslateAutoresizingMask"] = True
+    if elem.attrib.get('translatesAutoresizingMaskIntoConstraints', "YES") == "NO":
+        obj.extraContext["NSDoNotTranslateAutoresizingMask"] = True
 
 
 def make_xib_object(ctx: ArchiveContext, classname: str, elem: Element, parent: Optional[NibObject]) -> XibObject:
@@ -750,6 +770,7 @@ def _xibparser_parse_constraint(ctx: ArchiveContext, elem: Element, parent: Opti
         obj["NSSymbolicConstant"] = NibString.intern("NSSpace")
     obj["NSShouldBeArchived"] = True
     parent.setIfEmpty("NSViewConstraints", NibList())
+    ctx.constraints.append(obj)
     cast(NibList, parent["NSViewConstraints"]).addItem(obj)
 
 
