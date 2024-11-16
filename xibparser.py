@@ -348,14 +348,20 @@ def createTopLevel(toplevelObjects: list["XibObject"], context) -> NibObject:
     rootData = NibObject("NSIBObjectData")
     rootData["NSRoot"] = toplevelObjects[0]
     rootData["NSVisibleWindows"] = NibMutableSet(context.visibleWindows)
-    rootData["NSConnections"] = NibMutableList(context.connections)
+    rootData["NSConnections"] = NibMutableList(
+        [conn for conn in context.connections if conn.classname() == "NSNibOutletConnector"] +
+        [conn for conn in context.connections if conn.classname() != "NSNibOutletConnector"]
+        )
     rootData["NSObjectsKeys"] = NibList([applicationObject] + context.extraNibObjects)
     # parents of XibObjects should be listed here with filesOwner as the highest parent
 
     parent_objects = [(o.xib_parent() or filesOwner) for o in context.extraNibObjects if o.xibid is None or o.xibid.val() > 0]
     rootData["NSObjectsValues"] = NibList([filesOwner] + parent_objects)
 
-    oid_objects = [filesOwner, applicationObject] + [o for o in context.extraNibObjects if o.xibid is None or o.xibid.val() > 0] + [o for o in context.connections]
+    oid_objects = [filesOwner, applicationObject] + \
+        [o for o in context.extraNibObjects if o.xibid is None or o.xibid.val() > 0] + \
+        [o for o in context.connections if o.classname() == "NSNibOutletConnector"] + \
+        [o for o in context.connections if o.classname() != "NSNibOutletConnector"]
     rootData["NSOidsKeys"] = NibList(oid_objects)
     rootData["NSOidsValues"] = NibList([NibNSNumber(x+1) for x,_ in enumerate(oid_objects)])
     rootData["NSAccessibilityConnectors"] = NibMutableList()
