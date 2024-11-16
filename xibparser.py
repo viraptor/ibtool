@@ -877,6 +877,10 @@ def _xibparser_parse_clipView(ctx: ArchiveContext, elem: Element, parent: Option
     if key == "contentView":
         if parent.originalclassname() == "NSScrollView":
             parent["NSContentView"] = obj
+            is_main_view = False
+        elif parent.originalclassname() == "NSWindowTemplate":
+            parent["NSWindowView"] = obj
+            is_main_view = True
         else:
             raise Exception(
                 "Unhandled class '%s' to take UIView with key 'contentView'"
@@ -891,8 +895,9 @@ def _xibparser_parse_clipView(ctx: ArchiveContext, elem: Element, parent: Option
     cursor["NSCursorType"] = 0
     cursor["NSHotSpot"] = NibString.intern("{1, -1}")
     obj["NSCursor"] = cursor
-    obj["NSNextResponder"] = obj.xib_parent()
-    obj["NSSuperview"] = obj.xib_parent()
+    if not is_main_view:
+        obj["NSSuperview"] = obj.xib_parent()
+    obj["NSNextResponder"] = NibNil() if is_main_view else obj.xib_parent()
     if obj.get("NSSubviews") and len(obj["NSSubviews"]) > 0:
         obj["NSDocView"] = obj["NSSubviews"][0]
         obj["NSNextKeyView"] = obj["NSSubviews"][0]
