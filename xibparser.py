@@ -905,6 +905,8 @@ def _xibparser_parse_clipView(ctx: ArchiveContext, elem: Element, parent: Option
         obj["NSNextKeyView"] = obj["NSSubviews"][0]
     else:
         obj["NSDocView"] = NibNil()
+    if not obj.get('NSBGColor'):
+        obj["NSBGColor"] = makeSystemColor("controlBackgroundColor")
     return obj
 
 
@@ -1444,6 +1446,8 @@ def makeSystemColor(name):
         return systemColorTemplate(name, b'0.6666666667 1', b'0.602715373\x00')
     elif name == 'controlTextColor':
         return systemColorTemplate(name, b'0 1', b'0\x00')
+    elif name == 'controlBackgroundColor':
+        return systemColorTemplate(name, b'0.6666666667 1', b'0.602715373\x00')
     elif name == 'textColor':
         return systemColorTemplate(name, b'0 1', b'0\x00')
     elif name == 'textBackgroundColor':
