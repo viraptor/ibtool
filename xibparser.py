@@ -983,6 +983,14 @@ def _xibparser_parse_rect(ctx: ArchiveContext, elem: Element, parent: XibObject)
     elif key == "frame":
         x = int(float(elem.attrib["x"]))
         y = int(float(elem.attrib["y"]))
+        hw_source = parent.xib_parent()
+        if hw_source is not None:
+            if "NSWindowRect" in hw_source.extraContext:
+                _, _, w, h = hw_source.extraContext["NSWindowRect"]
+            elif "NSFrame" in hw_source.extraContext:
+                _, _, w, h = hw_source.extraContext["NSFrame"]
+            elif "NSFrameSize" in hw_source.extraContext:
+                w, h = hw_source.extraContext["NSFrameSize"]
         if x == 0 and y == 0:
             parent["NSFrameSize"] = "{" + str(w) + ", " + str(h) + "}"
             parent.extraContext["NSFrameSize"] = (w, h)
