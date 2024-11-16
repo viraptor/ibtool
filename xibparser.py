@@ -1356,6 +1356,9 @@ def _xibparser_parse_color(ctx: ArchiveContext, elem: Element, parent: NibObject
     key = elem.attrib["key"]
 
     special_target_attributes = { # weird and standard attributes
+        "NSView": {
+            "backgroundColor": None,
+        },
         "NSClipView": {
             "backgroundColor": ["NSBGColor"],
         },
@@ -1371,6 +1374,8 @@ def _xibparser_parse_color(ctx: ArchiveContext, elem: Element, parent: NibObject
     }
 
     target_path = special_target_attributes.get(parent.originalclassname(), special_target_attributes[None])[key]
+    if target_path is None:
+        return
     target_obj = parent
     for step in target_path[:-1]:
         target_obj = target_obj[step]
@@ -1382,20 +1387,26 @@ def _xibparser_parse_color(ctx: ArchiveContext, elem: Element, parent: NibObject
         color = makeSystemColor(elem.attrib["name"])
         target_obj[target_attribute] = color
     elif elem.attrib["colorSpace"] == "calibratedWhite":
-        color = NibObject("NSColor", None, {
-            "NSColorSpace": 6,
-            "NSCatalogName": "System",
-            "NSColorName": {
-                "NSClipView": "controlBackgroundColor",
-                "NSTextView": "textBackgroundColor",
-            }[parent.originalclassname()],
-            "NSColor": NibObject("NSColor", None, {
+        if parent.originalclassname() == "NSClipView":
+            color = NibObject("NSColor", None, {
                 "NSColorSpace": 3,
-                "NSComponents": NibInlineString(b'1 1'),
-                "NSCustomColorSpace": DEFAULT_COLOR_SPACE,
-                "NSWhite": NibInlineString(b'1\x00'),
-            }),
-        })
+                "NSWhite": NibInlineString(f'{elem.attrib["white"]}\x00')
+            })
+        else:
+            color = NibObject("NSColor", None, {
+                "NSColorSpace": 6,
+                "NSCatalogName": "System",
+                "NSColorName": {
+                    "NSClipView": "controlBackgroundColor",
+                    "NSTextView": "textBackgroundColor",
+                }[parent.originalclassname()],
+                "NSColor": NibObject("NSColor", None, {
+                    "NSColorSpace": 3,
+                    "NSComponents": NibInlineString(b'1 1'),
+                    "NSCustomColorSpace": DEFAULT_COLOR_SPACE,
+                    "NSWhite": NibInlineString(f'{elem.attrib["white"]}\x00'),
+                }),
+            })
         target_obj[target_attribute] = color
     else:
         raise Exception(f"unknown colorSpace {elem.attrib['colorSpace']}")
