@@ -890,7 +890,8 @@ def _xibparser_parse_clipView(ctx: ArchiveContext, elem: Element, parent: Option
         raise Exception(f"view in unknown key {key} (parent {parent.repr()})")
     
     obj["NSAutomaticallyAdjustsContentInsets"] = True
-    obj["NSvFlags"] = vFlags.AUTORESIZES_SUBVIEWS # clearing the values from elem - they don't seem to matter
+    if not is_main_view:
+        obj["NSvFlags"] = vFlags.AUTORESIZES_SUBVIEWS # clearing the values from elem - they don't seem to matter
     obj["NScvFlags"] = 4
     cursor = NibObject("NSCursor", obj)
     cursor["NSCursorType"] = 0
