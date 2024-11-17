@@ -611,11 +611,11 @@ def make_xib_object(ctx: ArchiveContext, classname: str, elem: Element, parent: 
 
 def _xibparser_parse_button(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> XibObject:
     obj = make_xib_object(ctx, "NSButton", elem, parent)
+    obj["NSSuperview"] = obj.xib_parent()
     __xibparser_ParseChildren(ctx, elem, obj)
     obj.setIfEmpty("NSFrame", NibNil())
     obj["NSEnabled"] = True
     obj.setIfEmpty("NSCell", NibNil())
-    obj["NSSuperview"] = obj.xib_parent()
     obj["NSAllowsLogicalLayoutDirection"] = False
     obj["NSControlSize"] = 0
     obj["NSControlSize2"] = 0
@@ -659,10 +659,10 @@ def _xibparser_parse_textView(ctx: ArchiveContext, elem: Element, parent: Option
     shared_data["NSTextCheckingTypes"] = 0
     shared_data["NSTextFinder"] = NibNil()
     obj["NSSharedData"] = shared_data
+    obj["NSSuperview"] = obj.xib_parent()
 
     __xibparser_ParseChildren(ctx, elem, obj)
     obj["NSDelegate"] = NibNil()
-    obj["NSSuperview"] = obj.xib_parent()
     obj["NSTVFlags"] = 134 | horizontally_resizable
     obj["NSNextResponder"] = obj.xib_parent()
 
@@ -983,14 +983,6 @@ def _xibparser_parse_rect(ctx: ArchiveContext, elem: Element, parent: XibObject)
     elif key == "frame":
         x = int(float(elem.attrib["x"]))
         y = int(float(elem.attrib["y"]))
-        hw_source = parent.xib_parent()
-        if hw_source is not None:
-            if "NSWindowRect" in hw_source.extraContext:
-                _, _, w, h = hw_source.extraContext["NSWindowRect"]
-            elif "NSFrame" in hw_source.extraContext:
-                _, _, w, h = hw_source.extraContext["NSFrame"]
-            elif "NSFrameSize" in hw_source.extraContext:
-                w, h = hw_source.extraContext["NSFrameSize"]
         if x == 0 and y == 0:
             parent["NSFrameSize"] = "{" + str(w) + ", " + str(h) + "}"
             parent.extraContext["NSFrameSize"] = (w, h)
@@ -1145,9 +1137,9 @@ def _xibparser_parse_windowPositionMask(ctx: ArchiveContext, elem: Element, pare
 def _xibparser_parse_textField(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
     obj = make_xib_object(ctx, "NSTextField", elem, parent)
 
+    obj["NSSuperview"] = obj.xib_parent()
     __xibparser_ParseChildren(ctx, elem, obj)
     obj.setIfEmpty("NSFrame", NibNil())
-    obj["NSSuperview"] = obj.xib_parent()
     obj["NSViewWantsBestResolutionOpenGLSurface"] = True
     obj["NSEnabled"] = True
     obj.setIfEmpty("NSCell", NibNil())
@@ -1249,13 +1241,13 @@ def _xibparser_parse_progressIndicator(ctx: ArchiveContext, elem: Element, paren
     style = {"bar": 0, "spinning": 0x1000}[style_value]
 
     _xibparser_common_view_attributes(ctx, elem, parent, obj)
+    obj["NSSuperview"] = obj.xib_parent()
     __xibparser_ParseChildren(ctx, elem, obj)
     if elem.attrib.get("maxValue"):
         obj["NSMaxValue"] = float(elem.attrib["maxValue"])
     if elem.attrib.get("minValue"):
         obj["NSMinValue"] = float(elem.attrib["minValue"])
     obj.flagsOr("NSpiFlags", 0x4004 | bezeled | indeterminate | style)
-    obj["NSSuperview"] = obj.xib_parent()
 
     if not obj.extraContext.get("parsed_autoresizing"):
         obj.flagsOr("NSvFlags", vFlags.DEFAULT_VFLAGS_AUTOLAYOUT if ctx.useAutolayout else vFlags.DEFAULT_VFLAGS)
@@ -1420,6 +1412,7 @@ def _xibparser_parse_size(ctx: ArchiveContext, elem: Element, parent: NibObject)
 def _xibparser_parse_scroller(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
     obj = XibObject("NSScroller", parent, elem.attrib["id"])
     _xibparser_common_view_attributes(ctx, elem, parent, obj)
+    obj["NSSuperview"] = obj.xib_parent()
     __xibparser_ParseChildren(ctx, elem, obj)
     obj["NSNextResponder"] = obj.xib_parent()
     obj["NSAction"] = NibString.intern("_doScroller:")
@@ -1437,7 +1430,6 @@ def _xibparser_parse_scroller(ctx: ArchiveContext, elem: Element, parent: NibObj
     obj["NSControlLineBreakMode"] = 0
     obj["NSViewIsLayerTreeHost"] = True
     obj["NSControlRefusesFirstResponder"] = elem.attrib.get("refusesFirstResponder", "NO") == "YES"
-    obj["NSSuperview"] = obj.xib_parent()
     if (cur_value := elem.attrib.get("doubleValue")) is not None:
         obj["NSCurValue"] = float(cur_value)
     if elem.attrib["horizontal"] == "YES":
