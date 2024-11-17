@@ -16,6 +16,7 @@ else
 		samples/test1.xib
 		samples/test2.xib
 		samples/test4.xib
+		samples/test5_connect.xib
 		"
 fi
 
