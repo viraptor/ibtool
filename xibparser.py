@@ -1070,8 +1070,8 @@ def calculate_window_rect(flags: int, content_rect: tuple[int, int, int, int], s
     if screen_rect == (0, 0, 0, 0):
         return content_rect
     res = (
-        content_rect[0] if (flags & WTFlags.STRUTS_MASK) in (WTFlags.STRUTS_LEFT, WTFlags.STRUTS_BOTTOM_LEFT, WTFlags.STRUTS_ALL) else screen_rect[2]/2 - content_rect[2]/2,
-        content_rect[1] if (flags & WTFlags.STRUTS_MASK) in (WTFlags.STRUTS_BOTTOM, WTFlags.STRUTS_BOTTOM_LEFT, WTFlags.STRUTS_ALL) else screen_rect[3]/2 - content_rect[3]/2,
+        content_rect[0] if (flags & WTFlags.STRUTS_MASK) in (WTFlags.STRUTS_LEFT, WTFlags.STRUTS_BOTTOM_LEFT) else screen_rect[2]/2 - content_rect[2]/2,
+        content_rect[1] if (flags & WTFlags.STRUTS_MASK) in (WTFlags.STRUTS_BOTTOM, WTFlags.STRUTS_BOTTOM_LEFT) else screen_rect[3]/2 - content_rect[3]/2,
         content_rect[2],
         content_rect[3],
         )
