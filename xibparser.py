@@ -35,6 +35,7 @@ class WTFlags(IntEnum):
     STRUTS_RIGHT = 0x700000
     STRUTS_BOTTOM = 0x580000
     STRUTS_TOP = 0x380000
+    STRUTS_ALL = 0x780000
     STRUTS_MASK = 0x780000
 
 class TVFlags(IntEnum):
@@ -1064,8 +1065,8 @@ def calculate_window_rect(flags: int, content_rect: tuple[int, int, int, int], s
     if screen_rect == (0, 0, 0, 0):
         return content_rect
     res = (
-        content_rect[0] if (flags & WTFlags.STRUTS_MASK) in (WTFlags.STRUTS_LEFT, WTFlags.STRUTS_BOTTOM_LEFT) else screen_rect[2]/2 - content_rect[2]/2,
-        content_rect[1] if (flags & WTFlags.STRUTS_MASK) in (WTFlags.STRUTS_BOTTOM, WTFlags.STRUTS_BOTTOM_LEFT) else screen_rect[3]/2 - content_rect[3]/2,
+        content_rect[0] if (flags & WTFlags.STRUTS_MASK) in (WTFlags.STRUTS_LEFT, WTFlags.STRUTS_BOTTOM_LEFT, WTFlags.STRUTS_ALL) else screen_rect[2]/2 - content_rect[2]/2,
+        content_rect[1] if (flags & WTFlags.STRUTS_MASK) in (WTFlags.STRUTS_BOTTOM, WTFlags.STRUTS_BOTTOM_LEFT, WTFlags.STRUTS_ALL) else screen_rect[3]/2 - content_rect[3]/2,
         content_rect[2],
         content_rect[3],
         )
@@ -1099,6 +1100,7 @@ def _xibparser_parse_windowStyleMask(ctx: ArchiveContext, elem: Element, parent:
         "titled": 1 << 0,
         "closable": 1 << 1,
         "miniaturizable": 1 << 2,
+        "resizable": 1 << 3,
     }
     value = sum((elem.attrib.get(attr, "NO") == "YES") * val for attr, val in maskmap.items())
     parent["NSWindowStyleMask"] = value
@@ -1112,7 +1114,9 @@ def _xibparser_parse_windowPositionMask(ctx: ArchiveContext, elem: Element, pare
         "bottom": elem.attrib.get("bottomStrut", "NO") == "YES",
         "top": elem.attrib.get("topStrut", "NO") == "YES",
     }
-    if struts["bottom"] and struts["left"]:
+    if struts["bottom"] and struts["left"] and struts["top"] and struts["right"]:
+        flags = WTFlags.STRUTS_ALL
+    elif struts["bottom"] and struts["left"]:
         flags = WTFlags.STRUTS_BOTTOM_LEFT
     elif struts["bottom"] and struts["right"]:
         flags = WTFlags.STRUTS_BOTTOM_RIGHT
