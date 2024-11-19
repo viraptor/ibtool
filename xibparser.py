@@ -185,8 +185,9 @@ class XibId:
 
 
 class ArchiveContext:
-    def __init__(self, useAutolayout: bool=False) -> None:
+    def __init__(self, useAutolayout: bool=False, customObjectInstantitationMethod: Optional[str]=None) -> None:
         self.useAutolayout = useAutolayout
+        self.customObjectInstantitationMethod = customObjectInstantitationMethod
         self.connections: list[NibObject] = []
 
         # We need the list of constraints to be able to set the NSDoNotTranslateAutoresizingMask prop correctly
@@ -321,7 +322,10 @@ def ParseXIBObjects(root: Element, context: Optional[ArchiveContext]=None, resol
     objects = next(root.iter("objects"))
     toplevel: list[XibObject] = []
 
-    context = context or ArchiveContext(useAutolayout=(root.attrib.get("useAutolayout") == "YES"))
+    context = context or ArchiveContext(
+        useAutolayout=(root.attrib.get("useAutolayout") == "YES"),
+        customObjectInstantitationMethod=root.attrib.get("customObjectInstantitationMethod")
+        )
 
     for nib_object_element in objects:
         obj = __xibparser_ParseXIBObject(context, nib_object_element, parent)
@@ -1077,11 +1081,11 @@ def calculate_window_rect(flags: int, content_rect: tuple[int, int, int, int], s
         )
     return tuple(int(x) if x==int(x) else x for x in res)
 
-def make_class_reference(class_name: str) -> NibObject:
+def make_class_reference(class_name: str, module_name: Optional[str]=None, module_provider: Optional[str]=None) -> NibObject:
     return NibObject("IBClassReference", None, {
         "IBClassName": NibString(class_name),
-        "IBModuleName": NibNil(),
-        "IBModuleProvider": NibNil(),
+        "IBModuleName": NibNil() if module_name is None else NibString(module_name),
+        "IBModuleProvider": NibNil() if module_provider is None else NibString(module_provider),
     })
 
 
@@ -1091,19 +1095,22 @@ def _xibparser_parse_customObject(ctx, elem, parent):
         ctx.addObject(obj.xibid, obj)
     if not obj.xibid.is_negative_id():
         ctx.extraNibObjects.append(obj)
+    custom_module = elem.attrib.get("customModule")
+    custom_class = elem.attrib.get("customClass")
+    custom_module_provider = elem.attrib.get("customModuleProvider")
 
-    if custom_class := elem.attrib.get("customClass"):
-        if custom_module := elem.attrib.get("customModule"):
+    if custom_class:
+        if ctx.customObjectInstantitationMethod == "direct" and custom_module:
             obj["NSClassName"] = NibString.intern(f"_TtC{len(custom_module)}{custom_module}{len(custom_class)}{custom_class}")
             obj["NSInitializeWithInit"] = True
             obj["NSOriginalClassName"] = NibString.intern("NSObject")
             obj.setclassname("NSClassSwapper")
         else:
-            obj["IBClassReference"] = make_class_reference(custom_class)
+            obj["IBClassReference"] = make_class_reference(custom_class, custom_module, custom_module_provider)
             if obj.xibid == XibId("-3"):
                 obj["NSClassName"] = NibString.intern("NSApplication")
             else:
-                obj["NSClassName"] = NibString.intern(custom_class)
+                obj["NSClassName"] = NibString.intern(f"_TtC{len(custom_module)}{custom_module}{len(custom_class)}{custom_class}" if custom_module else custom_class)
 
     elif obj.xibid.is_negative_id():
         obj["NSClassName"] = NibString.intern("NSApplication")
