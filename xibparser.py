@@ -1086,19 +1086,23 @@ def make_class_reference(class_name: str) -> NibObject:
 
 
 def _xibparser_parse_customObject(ctx, elem, parent):
-    item = XibObject("NSCustomObject", parent, elem.attrib["id"])
+    obj = XibObject("NSCustomObject", parent, elem.attrib["id"])
+    if obj.xibid is not None:
+        ctx.addObject(obj.xibid, obj)
+    if not obj.xibid.is_negative_id():
+        ctx.extraNibObjects.append(obj)
     if custom_class := elem.attrib.get("customClass"):
-        item["IBClassReference"] = make_class_reference(custom_class)
-        if item.xibid == XibId("-3"):
-            item["NSClassName"] = NibString.intern("NSApplication")
+        obj["IBClassReference"] = make_class_reference(custom_class)
+        if obj.xibid == XibId("-3"):
+            obj["NSClassName"] = NibString.intern("NSApplication")
         else:
-            item["NSClassName"] = NibString.intern(custom_class)
-    elif item.xibid.is_negative_id():
-        item["NSClassName"] = NibString.intern("NSApplication")
+            obj["NSClassName"] = NibString.intern(custom_class)
+    elif obj.xibid.is_negative_id():
+        obj["NSClassName"] = NibString.intern("NSApplication")
     else:
-        item["NSClassName"] = NibString.intern("NSObject")
-    __xibparser_ParseChildren(ctx, elem, item)
-    return item
+        obj["NSClassName"] = NibString.intern("NSObject")
+    __xibparser_ParseChildren(ctx, elem, obj)
+    return obj
 
 def _xibparser_parse_windowStyleMask(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
     maskmap = {
@@ -1452,16 +1456,42 @@ def _xibparser_parse_scroller(ctx: ArchiveContext, elem: Element, parent: NibObj
 
 def _xibparser_parse_menu(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
     obj = make_xib_object(ctx, "NSMenu", elem, parent, view_attributes=False)
-    obj["NSSuperview"] = obj.xib_parent()
     __xibparser_ParseChildren(ctx, elem, obj)
     obj["NSTitle"] = elem.attrib.get("title", NibNil())
     if elem.attrib.get("key") == "submenu":
-        parent["NSMenu"] = obj
+        parent["NSAction"] = NibString.intern("submenuAction:")
+    if parent and parent.originalclassname() == "NSMenuItem":
+        parent["NSTarget"] = obj
+        parent["NSSubmenu"] = obj
     return obj
+
+MENU_MIXED_IMAGE = NibObject("NSCustomResource", None, {
+    "IBDesignImageConfiguration": NibNil(),
+    "IBDesignSize": NibObject("NSValue", None, {
+        "NS.sizeval": NibString.intern("{18, 4}"),
+        "NS.special": 2,
+    }),
+    "IBNamespaceID": NibNil(),
+    "NSClassName": NibString.intern("NSImage"),
+    "NSResourceName": NibString.intern("NSMenuMixedState"),
+})
+
+MENU_ON_IMAGE = NibObject("NSCustomResource", None, {
+    "IBDesignImageConfiguration": NibNil(),
+    "IBDesignSize": NibObject("NSValue", None, {
+        "NS.sizeval": NibString.intern("{18, 16}"),
+        "NS.special": 2,
+    }),
+    "IBNamespaceID": NibNil(),
+    "NSClassName": NibString.intern("NSImage"),
+    "NSResourceName": NibString.intern("NSMenuCheckmark"),
+})
 
 def _xibparser_parse_menuItem(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
     obj = make_xib_object(ctx, "NSMenuItem", elem, parent, view_attributes=False)
     __xibparser_ParseChildren(ctx, elem, obj)
+    if parent and parent.originalclassname() == "NSMenu":
+        obj["NSMenu"] = parent
     obj["NSAllowsKeyEquivalentLocalization"] = True
     obj["NSAllowsKeyEquivalentMirroring"] = True
     obj["NSHiddenInRepresentation"] = False
@@ -1469,14 +1499,15 @@ def _xibparser_parse_menuItem(ctx: ArchiveContext, elem: Element, parent: NibObj
         obj["NSKeyEquiv"] = NibString.intern(key_equiv)
     else:
         obj["NSKeyEquiv"] = NibString.intern('')
-    if (key_equiv_mod_mask := elem.attrib.get("keyEquivalentModifierMask")) is not None:
+    if elem.attrib.get("keyEquivalentModifierMask") is not None or key_equiv:
         obj["NSKeyEquivModMask"] = 0x100000
-    obj["NSMixedImage"] = ""
+    obj["NSMixedImage"] = MENU_MIXED_IMAGE
     obj["NSMnemonicLoc"] = 0x7fffffff
-    obj["NSOnImage"] = ""
-    obj["NSTitle"] = elem.attrib.get("title", NibNil())
+    obj["NSOnImage"] = MENU_ON_IMAGE
+    obj["NSTitle"] = NibString.intern(elem.attrib.get("title", ""))
     if elem.attrib.get("isSeparatorItem") == "YES":
         obj["NSIsSeparator"] = True
+        obj["NSIsDisabled"] = True
     return obj
 
 def _xibparser_parse_items(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
