@@ -1010,6 +1010,10 @@ def _xibparser_parse_autoresizingMask(_ctx: ArchiveContext, elem: Element, paren
 
 def _xibparser_parse_point(_ctx: ArchiveContext, elem: Element, _parent: NibObject) -> None:
     point = (float(elem.attrib["x"]), float(elem.attrib["y"]))
+    if elem.attrib.get("key") == "canvasLocation":
+        pass # only useful for the designer
+    else:
+        raise Exception(f"unknown point key {elem.attrib.get('key')}")
 
 
 def _xibparser_parse_window(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
