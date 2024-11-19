@@ -1063,19 +1063,19 @@ def _xibparser_parse_window(ctx: ArchiveContext, elem: Element, parent: NibObjec
     if item.extraContext.get("NSWindowRect"):
         content_rect = item.extraContext["NSWindowRect"]
         screen_rect = item.extraContext["NSScreenRect"]
-        item.extraContext["NSWindowRect"] = calculate_window_rect(item["NSWTFlags"], content_rect, screen_rect)
+        item.extraContext["NSWindowRect"] = calculate_window_rect(item.extraContext.get("initialPositionMask", {}), content_rect, screen_rect)
         item["NSWindowRect"] = "{{" + str(item.extraContext["NSWindowRect"][0]) + ", " + str(item.extraContext["NSWindowRect"][1]) + "}, {" + str(item.extraContext["NSWindowRect"][2]) + ", " + str(item.extraContext["NSWindowRect"][3]) + "}}"
     if item.extraContext.get("NSScreenRect"):
         item["NSScreenRect"] = "{{" + str(item.extraContext["NSScreenRect"][0]) + ", " + str(item.extraContext["NSScreenRect"][1]) + "}, {" + str(item.extraContext["NSScreenRect"][2]) + ", " + str(item.extraContext["NSScreenRect"][3]) + "}}"
 
     return item
 
-def calculate_window_rect(flags: int, content_rect: tuple[int, int, int, int], screen_rect: tuple[int, int, int, int]) -> tuple[Union[int,float], ...]:
+def calculate_window_rect(struts: dict[str, bool], content_rect: tuple[int, int, int, int], screen_rect: tuple[int, int, int, int]) -> tuple[Union[int,float], ...]:
     if screen_rect == (0, 0, 0, 0):
         return content_rect
     res = (
-        content_rect[0] if (flags & WTFlags.STRUTS_MASK) in (WTFlags.STRUTS_LEFT, WTFlags.STRUTS_BOTTOM_LEFT) else screen_rect[2]/2 - content_rect[2]/2,
-        content_rect[1] if (flags & WTFlags.STRUTS_MASK) in (WTFlags.STRUTS_BOTTOM, WTFlags.STRUTS_BOTTOM_LEFT) else screen_rect[3]/2 - content_rect[3]/2,
+        content_rect[0] if struts.get("left") else screen_rect[2]/2 - content_rect[2]/2,
+        content_rect[1] if struts.get("bottom") else screen_rect[3]/2 - content_rect[3]/2,
         content_rect[2],
         content_rect[3],
         )
@@ -1129,7 +1129,8 @@ def _xibparser_parse_windowStyleMask(ctx: ArchiveContext, elem: Element, parent:
     value = sum((elem.attrib.get(attr, "NO") == "YES") * val for attr, val in maskmap.items())
     parent["NSWindowStyleMask"] = value
 
-def _xibparser_parse_windowPositionMask(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
+def _xibparser_parse_windowPositionMask(_ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
+    assert isinstance(parent, XibObject)
     assert elem.attrib.get("key") == "initialPositionMask"
 
     struts = {
@@ -1161,6 +1162,7 @@ def _xibparser_parse_windowPositionMask(ctx: ArchiveContext, elem: Element, pare
 
     parent.flagsAnd("NSWTFlags", ~WTFlags.STRUTS_MASK) # clear the default
     parent.flagsOr("NSWTFlags", flags)
+    parent.extraContext["initialPositionMask"] = struts
     #parent["NSWindowPositionMask"] = value
 
 
