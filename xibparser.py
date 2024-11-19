@@ -1463,6 +1463,11 @@ def _xibparser_parse_menu(ctx: ArchiveContext, elem: Element, parent: NibObject)
     if parent and parent.originalclassname() == "NSMenuItem":
         parent["NSTarget"] = obj
         parent["NSSubmenu"] = obj
+    system_menu = elem.attrib.get("systemMenu")
+    if system_menu == "apple":
+        obj["NSName"] = NibString.intern("_NSAppleMenu")
+    elif system_menu == "main":
+        obj["NSName"] = NibString.intern("_NSMainMenu")
     return obj
 
 MENU_MIXED_IMAGE = NibObject("NSCustomResource", None, {
