@@ -345,8 +345,8 @@ def createTopLevel(toplevelObjects: list["XibObject"], context) -> NibObject:
     #    for t in obj.getKeyValuePairs():
     #        print(t)
 
-    applicationObject = [o for o in toplevelObjects if o.xibid==XibId("-3")][0]
-    filesOwner = [o for o in toplevelObjects if o.xibid==XibId("-2")][0]
+    applicationObject = context.objects[XibId("-3")]
+    filesOwner = context.objects[XibId("-2")]
 
     rootData = NibObject("NSIBObjectData")
     rootData["NSRoot"] = toplevelObjects[0]
