@@ -1091,12 +1091,20 @@ def _xibparser_parse_customObject(ctx, elem, parent):
         ctx.addObject(obj.xibid, obj)
     if not obj.xibid.is_negative_id():
         ctx.extraNibObjects.append(obj)
+
     if custom_class := elem.attrib.get("customClass"):
-        obj["IBClassReference"] = make_class_reference(custom_class)
-        if obj.xibid == XibId("-3"):
-            obj["NSClassName"] = NibString.intern("NSApplication")
+        if custom_module := elem.attrib.get("customModule"):
+            obj["NSClassName"] = NibString.intern(f"_TtC{len(custom_module)}{custom_module}{len(custom_class)}{custom_class}")
+            obj["NSInitializeWithInit"] = True
+            obj["NSOriginalClassName"] = NibString.intern("NSObject")
+            obj.setclassname("NSClassSwapper")
         else:
-            obj["NSClassName"] = NibString.intern(custom_class)
+            obj["IBClassReference"] = make_class_reference(custom_class)
+            if obj.xibid == XibId("-3"):
+                obj["NSClassName"] = NibString.intern("NSApplication")
+            else:
+                obj["NSClassName"] = NibString.intern(custom_class)
+
     elif obj.xibid.is_negative_id():
         obj["NSClassName"] = NibString.intern("NSApplication")
     else:
