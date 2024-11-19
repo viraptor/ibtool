@@ -146,30 +146,33 @@ class LineBreakMode(Enum):
 
 
 class XibId:
-    def __init__(self, val: Union[str,int]) -> None:
-        if isinstance(val, str):
-            val = int(val)
-        assert isinstance(val, int), f"id reference {val}"
+    def __init__(self, val: str) -> None:
         self._val = val
 
-    def val(self) -> int:
+    def is_negative_id(self) -> bool:
+        try:
+            val = int(self._val)
+            return val < 0
+        except ValueError:
+            return False
+        
+    def is_placeholder_id(self) -> bool:
+        return len(self._val.split('-')) == 3
+
+    def val(self) -> str:
         return self._val
 
     def __repr__(self) -> str:
         return f"XibId({self._val})"
 
-    def __eq__(self, other: Union[int,"XibId"]) -> bool:
-        if isinstance(other, int):
-            return self._val == other
-        elif isinstance(other, XibId):
+    def __eq__(self, other: object) -> bool:
+        if isinstance(other, XibId):
             return self._val == other._val
         else:
             return False
 
-    def __lt__(self, other: Union[int,"XibId","XibObject"]) -> bool:
-        if isinstance(other, int):
-            return self.val() < other
-        elif isinstance(other, XibId):
+    def __lt__(self, other: object) -> bool:
+        if isinstance(other, XibId):
             return self.val() < other.val()
         elif isinstance(other, XibObject):
             return self.val() < other.xibid.val()
@@ -208,7 +211,7 @@ class ArchiveContext:
 
         # What I plan on using after the context revision:
 
-        self.upstreamPlaceholders: dict[str,str] = {}
+        self.upstreamPlaceholders: dict[str,XibId] = {}
         self.parentContext: Optional[ArchiveContext] = None
         # List of tuples (view id, referencing object, referencing key)
         self.viewReferences: list[tuple[str,NibObject,str]] = []
@@ -332,18 +335,18 @@ def ParseXIBObjects(root: Element, context: Optional[ArchiveContext]=None, resol
     return createTopLevel(toplevel, context)
 
 def createTopLevel(toplevelObjects: list["XibObject"], context) -> NibObject:
-    #for obj in rootObject:
+    #for obj in toplevelObjects:
     #    print('---', obj, obj.xibid)
     #    for t in obj.getKeyValuePairs():
     #        print(t)
     #print('+++')
-    #for obj in extraObjects:
+    #for obj in context.extraNibObjects:
     #    print('---', obj, obj.xibid)
     #    for t in obj.getKeyValuePairs():
     #        print(t)
 
-    applicationObject = [o for o in toplevelObjects if o.xibid==-3][0]
-    filesOwner = [o for o in toplevelObjects if o.xibid==-2][0]
+    applicationObject = [o for o in toplevelObjects if o.xibid==XibId("-3")][0]
+    filesOwner = [o for o in toplevelObjects if o.xibid==XibId("-2")][0]
 
     rootData = NibObject("NSIBObjectData")
     rootData["NSRoot"] = toplevelObjects[0]
@@ -355,11 +358,11 @@ def createTopLevel(toplevelObjects: list["XibObject"], context) -> NibObject:
     rootData["NSObjectsKeys"] = NibList([applicationObject] + context.extraNibObjects)
     # parents of XibObjects should be listed here with filesOwner as the highest parent
 
-    parent_objects = [(o.xib_parent() or filesOwner) for o in context.extraNibObjects if o.xibid is None or o.xibid.val() > 0]
+    parent_objects = [(o.xib_parent() or filesOwner) for o in context.extraNibObjects if o.xibid is None or not o.xibid.is_negative_id()]
     rootData["NSObjectsValues"] = NibList([filesOwner] + parent_objects)
 
     oid_objects = [filesOwner, applicationObject] + \
-        [o for o in context.extraNibObjects if o.xibid is None or o.xibid.val() > 0] + \
+        [o for o in context.extraNibObjects if o.xibid is None or not o.xibid.is_negative_id()] + \
         [o for o in context.connections if o.classname() == "NSNibOutletConnector"] + \
         [o for o in context.connections if o.classname() != "NSNibOutletConnector"]
     rootData["NSOidsKeys"] = NibList(oid_objects)
@@ -448,16 +451,12 @@ def _xibparser_parse_interfacebuilder_properties(ctx: ArchiveContext, elem: Elem
 
 
 class XibObject(NibObject):
-    def __init__(self, classname: str, parent: Optional["NibObject"], xibid: Optional[Union[str,int]]) -> None:
+    def __init__(self, classname: str, parent: Optional["NibObject"], xibid: Optional[str]) -> None:
         NibObject.__init__(self, classname, parent)
         self.xibid: Optional[XibId] = None
         if xibid is not None:
-            try:
-                int(xibid)
-                self.xibid = XibId(xibid)
-            except ValueError:
-                pass
-        self.extraContext = {}
+            self.xibid = XibId(xibid)
+        self.extraContext: dict[str,Any] = {}
 
     def originalclassname(self) -> Optional[str]:
         name = self.extraContext.get("original_class")
@@ -475,8 +474,10 @@ class XibObject(NibObject):
         else:
             return None
 
-    def __lt__(self, other: Union["XibId","XibObject"]) -> bool:
-        if isinstance(other, XibId):
+    def __lt__(self, other: object) -> bool:
+        if self.xibid is None:
+            return False
+        elif isinstance(other, XibId):
             return self.xibid.val() < other.val()
         elif isinstance(other, XibObject):
             return self.xibid.val() < other.xibid.val()
@@ -1082,11 +1083,11 @@ def _xibparser_parse_customObject(ctx, elem, parent):
     item = XibObject("NSCustomObject", parent, elem.attrib["id"])
     if custom_class := elem.attrib.get("customClass"):
         item["IBClassReference"] = make_class_reference(custom_class)
-        if item.xibid == -3:
+        if item.xibid == XibId("-3"):
             item["NSClassName"] = NibString.intern("NSApplication")
         else:
             item["NSClassName"] = NibString.intern(custom_class)
-    elif item.xibid.val() < 0:
+    elif item.xibid.is_negative_id():
         item["NSClassName"] = NibString.intern("NSApplication")
     else:
         item["NSClassName"] = NibString.intern("NSObject")
