@@ -603,12 +603,13 @@ def _xibparser_common_view_attributes(_ctx: ArchiveContext, elem: Element, paren
         obj.extraContext["NSDoNotTranslateAutoresizingMask"] = True
 
 
-def make_xib_object(ctx: ArchiveContext, classname: str, elem: Element, parent: Optional[NibObject]) -> XibObject:
+def make_xib_object(ctx: ArchiveContext, classname: str, elem: Element, parent: Optional[NibObject], view_attributes: bool = True) -> XibObject:
     obj = XibObject(classname, parent, elem.attrib.get("id"))
     if obj.xibid is not None:
         ctx.addObject(obj.xibid, obj)
     ctx.extraNibObjects.append(obj)
-    _xibparser_common_view_attributes(ctx, elem, parent, obj)
+    if view_attributes:
+        _xibparser_common_view_attributes(ctx, elem, parent, obj)
     return obj
 
 def _xibparser_parse_button(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> XibObject:
@@ -1444,6 +1445,43 @@ def _xibparser_parse_scroller(ctx: ArchiveContext, elem: Element, parent: NibObj
     else:
         parent["NSVScroller"] = obj
     return obj
+
+def _xibparser_parse_menu(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
+    obj = make_xib_object(ctx, "NSMenu", elem, parent, view_attributes=False)
+    obj["NSSuperview"] = obj.xib_parent()
+    __xibparser_ParseChildren(ctx, elem, obj)
+    obj["NSTitle"] = elem.attrib.get("title", NibNil())
+    if elem.attrib.get("key") == "submenu":
+        parent["NSMenu"] = obj
+    return obj
+
+def _xibparser_parse_menuItem(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
+    obj = make_xib_object(ctx, "NSMenuItem", elem, parent, view_attributes=False)
+    __xibparser_ParseChildren(ctx, elem, obj)
+    obj["NSAllowsKeyEquivalentLocalization"] = True
+    obj["NSAllowsKeyEquivalentMirroring"] = True
+    obj["NSHiddenInRepresentation"] = False
+    if (key_equiv := elem.attrib.get("keyEquivalent")) is not None:
+        obj["NSKeyEquiv"] = NibString.intern(key_equiv)
+    else:
+        obj["NSKeyEquiv"] = NibString.intern('')
+    if (key_equiv_mod_mask := elem.attrib.get("keyEquivalentModifierMask")) is not None:
+        obj["NSKeyEquivModMask"] = 0x100000
+    obj["NSMixedImage"] = ""
+    obj["NSMnemonicLoc"] = 0x7fffffff
+    obj["NSOnImage"] = ""
+    obj["NSTitle"] = elem.attrib.get("title", NibNil())
+    if elem.attrib.get("isSeparatorItem") == "YES":
+        obj["NSIsSeparator"] = True
+    return obj
+
+def _xibparser_parse_items(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
+    assert parent.originalclassname() == "NSMenu"
+    children = __xibparser_ParseChildren(ctx, elem, parent)
+    parent["NSMenuItems"] = NibMutableList(children)
+
+def _xibparser_parse_modifierMask(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
+    pass
 
 def makeSystemColor(name):
     def systemColorTemplate(name, components, white):
