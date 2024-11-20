@@ -931,14 +931,14 @@ def _xibparser_parse_connections(ctx: ArchiveContext, elem: Element, parent: Opt
 
 
 def _xibparser_parse_outlet(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> None:
-    con = XibObject("NSNibOutletConnector", parent, elem.attrib["id"])
-    con["NSSource"] = parent
-    con["NSDestination"] = XibId(elem.attrib.get("destination"))
-    con["NSLabel"] = elem.attrib.get("property")
-    con["NSChildControllerCreationSelectorName"] = NibNil()
+    obj = XibObject("NSNibOutletConnector", parent, elem.attrib["id"])
+    obj["NSSource"] = parent
+    obj["NSDestination"] = XibId(elem.attrib.get("destination"))
+    obj["NSLabel"] = elem.attrib.get("property")
+    obj["NSChildControllerCreationSelectorName"] = NibNil()
 
     # Add this to the list of connections we'll have to resolve later.
-    ctx.connections.append(con)
+    ctx.connections.append(obj)
 
 
 def _xibparser_parse_action(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
@@ -964,13 +964,13 @@ def _xibparser_parse_action(ctx: ArchiveContext, elem: Element, parent: NibObjec
 
     mask = maskmap[etype]
 
-    con = NibObject("NSNibControlConnector", parent)
-    con["NSLabel"] = elem.attrib["selector"]
-    con["NSSource"] = parent
-    con["NSDestination"] = XibId(elem.attrib.get("target"))
-    con["NSEventMask"] = mask # TODO
+    obj = NibObject("NSNibControlConnector", parent)
+    obj["NSLabel"] = elem.attrib["selector"]
+    obj["NSSource"] = parent
+    obj["NSDestination"] = XibId(elem.attrib.get("target"))
+    obj["NSEventMask"] = mask # TODO
 
-    ctx.connections.append(con)
+    ctx.connections.append(obj)
 
 
 # TODO: I think this function might need more logic when the bounds aren't set at 0, 0
