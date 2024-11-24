@@ -122,6 +122,9 @@ def diff(lhs: Union[NibValue,NibCollection,NibObject], rhs: Union[NibValue,NibCo
     assert isinstance(lhs, NibObject) or isinstance(lhs, NibCollection), type(lhs)
     assert isinstance(rhs, NibObject) or isinstance(rhs, NibCollection), type(rhs)
 
+    if lhs.classname in ("NSNibOutletConnector", "NSNibControlConnector") and rhs.classname in ("NSNibOutletConnector", "NSNibControlConnector"):
+        # Connections are unordered
+        return
     if lhs.classname != rhs.classname:
         yield f"{path} (in {parent_class}): Class name doesn't match {lhs.classname} != {rhs.classname}"
         return
@@ -145,6 +148,11 @@ def diff(lhs: Union[NibValue,NibCollection,NibObject], rhs: Union[NibValue,NibCo
             yield f"{path} Mismatched length: {len(lhs.entries)} != {len(rhs.entries)}"
         lhs_entries = sorted(lhs.entries, key=lambda x: (x.entries.get("NSFirstAttribute").value, x.entries.get("NSSecondAttribute"), x.entries.get("NSPriority", NibValue(1, 0)), x.entries.get("NSFirstItem"), x.entries.get("NSSecondItem")))
         rhs_entries = sorted(rhs.entries, key=lambda x: (x.entries.get("NSFirstAttribute").value, x.entries.get("NSSecondAttribute"), x.entries.get("NSPriority", NibValue(1, 0)), x.entries.get("NSFirstItem"), x.entries.get("NSSecondItem")))
+        for i, (left, right) in enumerate(zip(lhs_entries, rhs_entries)):
+            yield from diff(left, right, current_path + [str(i)], lhs_path, rhs_path, lhs.classname)
+    elif path.endswith("NSConnections"):
+        lhs_entries = sorted(lhs.entries, key=lambda x: x.rec_hash([]))
+        rhs_entries = sorted(rhs.entries, key=lambda x: x.rec_hash([]))
         for i, (left, right) in enumerate(zip(lhs_entries, rhs_entries)):
             yield from diff(left, right, current_path + [str(i)], lhs_path, rhs_path, lhs.classname)
     elif isinstance(lhs, NibCollection) and isinstance(rhs, NibCollection):
