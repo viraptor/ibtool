@@ -865,6 +865,7 @@ def make_system_image(name: str, parent: NibObject) -> NibObject:
 def _xibparser_parse_scrollView(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> XibObject:
     obj = make_xib_object(ctx, "NSScrollView", elem, parent)
     obj["NSSuperview"] = obj.xib_parent()
+    obj.extraContext["fixedFrame"] = elem.attrib.get("fixedFrame", "NO") == "YES"
     with __handle_view_chain(ctx, obj):
         __xibparser_ParseChildren(ctx, elem, obj)
     if not obj.extraContext.get("parsed_autoresizing"):
@@ -1488,7 +1489,8 @@ def _xibparser_parse_scroller(ctx: ArchiveContext, elem: Element, parent: NibObj
     obj["NSControlWritingDirection"] = 0
     obj["NSControlTextAlignment"] = 0
     obj["NSControlLineBreakMode"] = 0
-    obj.setIfNotDefault("NSViewIsLayerTreeHost", elem.attrib.get("wantsLayer") == "YES", False)
+    if not parent.extraContext["fixedFrame"]:
+        obj["NSViewIsLayerTreeHost"] = True
     obj["NSControlRefusesFirstResponder"] = elem.attrib.get("refusesFirstResponder", "NO") == "YES"
     if (cur_value := elem.attrib.get("doubleValue")) is not None:
         obj["NSCurValue"] = float(cur_value)
