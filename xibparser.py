@@ -667,6 +667,11 @@ def _xibparser_parse_textView(ctx: ArchiveContext, elem: Element, parent: Option
     imports_graphics = 0x8 if elem.attrib.get("importsGraphics") == "YES" else 0
     spelling_correction = 0x4000000 if elem.attrib.get("spellingCorrection") == "YES" else 0
     horizontally_resizable = TVFlags.HORIZONTALLY_RESIZABLE if elem.attrib.get("horizontallyResizable") == "YES" else 0
+    preferred_find_style = {
+        None: None,
+        "panel": 1,
+        "bar": 2,
+    }[elem.attrib.get("findStyle")]
 
     shared_data = XibObject("NSTextViewSharedData", obj, None)
     shared_data["NSAutomaticTextCompletionDisabled"] = False
@@ -681,6 +686,8 @@ def _xibparser_parse_textView(ctx: ArchiveContext, elem: Element, parent: Option
     shared_data["NSSelectedAttributes"] = NibDictionary([NibString.intern("NSBackgroundColor")])
     shared_data["NSTextCheckingTypes"] = 0
     shared_data["NSTextFinder"] = NibNil()
+    if preferred_find_style is not None:
+        shared_data["NSPreferredTextFinderStyle"] = preferred_find_style
     obj["NSSharedData"] = shared_data
     obj["NSSuperview"] = obj.xib_parent()
 
@@ -689,6 +696,7 @@ def _xibparser_parse_textView(ctx: ArchiveContext, elem: Element, parent: Option
     obj["NSDelegate"] = NibNil()
     obj["NSTVFlags"] = 134 | horizontally_resizable
     obj["NSNextResponder"] = obj.xib_parent()
+    obj.setIfNotDefault("NSViewIsLayerTreeHost", elem.attrib.get("wantsLayer") == "YES", False)
 
     text_container = NibObject("NSTextContainer", obj)
     text_container["NSLayoutManager"] = NibNil()
@@ -1480,7 +1488,7 @@ def _xibparser_parse_scroller(ctx: ArchiveContext, elem: Element, parent: NibObj
     obj["NSControlWritingDirection"] = 0
     obj["NSControlTextAlignment"] = 0
     obj["NSControlLineBreakMode"] = 0
-    obj["NSViewIsLayerTreeHost"] = True
+    obj.setIfNotDefault("NSViewIsLayerTreeHost", elem.attrib.get("wantsLayer") == "YES", False)
     obj["NSControlRefusesFirstResponder"] = elem.attrib.get("refusesFirstResponder", "NO") == "YES"
     if (cur_value := elem.attrib.get("doubleValue")) is not None:
         obj["NSCurValue"] = float(cur_value)
