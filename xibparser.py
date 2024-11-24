@@ -18,6 +18,7 @@ from genlib import (
 from xml.etree.ElementTree import Element
 from typing import Optional, Any, Union, cast, Callable
 from enum import IntEnum, Enum
+from contextlib import contextmanager
 
 
 class WTFlags(IntEnum):
@@ -220,6 +221,8 @@ class ArchiveContext:
         self.viewControllerLayoutGuides: list = []
         # self.view = None
         # self.viewController = None
+
+        self.viewKeyList: list[XibObject] = []
 
     def contextForSegues(self) -> 'ArchiveContext':
         if self.isPrototypeList:
@@ -668,7 +671,8 @@ def _xibparser_parse_textView(ctx: ArchiveContext, elem: Element, parent: Option
     obj["NSSharedData"] = shared_data
     obj["NSSuperview"] = obj.xib_parent()
 
-    __xibparser_ParseChildren(ctx, elem, obj)
+    with __handle_view_chain(ctx, obj):
+        __xibparser_ParseChildren(ctx, elem, obj)
     obj["NSDelegate"] = NibNil()
     obj["NSTVFlags"] = 134 | horizontally_resizable
     obj["NSNextResponder"] = obj.xib_parent()
@@ -690,10 +694,12 @@ def _xibparser_parse_textView(ctx: ArchiveContext, elem: Element, parent: Option
     text_container["NSTextLayoutManager"] = NibNil()
 
     text_container["NSTextView"] = obj
-    if obj.xib_parent().get("NSFrameSize"):
-        text_container["NSWidth"] = float(__parse_size(obj.xib_parent()["NSFrameSize"]._text)[0])
+    if frame_size := obj.xib_parent().get("NSFrameSize"):
+        text_container["NSWidth"] = float(__parse_size(frame_size._text)[0])
+    elif frame := obj.xib_parent().get("NSFrame"):
+        text_container["NSWidth"] = float(__parse_pos_size(frame._text)[2])
     else:
-        text_container["NSWidth"] = float(__parse_pos_size(obj.xib_parent()["NSFrame"]._text)[2])
+        text_container["NSWidth"] = 1.0
 
     obj["NSTextContainer"] = text_container
 
@@ -705,7 +711,8 @@ def _xibparser_parse_textView(ctx: ArchiveContext, elem: Element, parent: Option
 def _xibparser_parse_imageView(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> XibObject:
     obj = make_xib_object(ctx, "NSImageView", elem, parent)
     obj["NSSuperview"] = obj.xib_parent()
-    __xibparser_ParseChildren(ctx, elem, obj)
+    with __handle_view_chain(ctx, obj):
+        __xibparser_ParseChildren(ctx, elem, obj)
     obj["IBNSShadowedSymbolConfiguration"] = NibNil()
     obj["NSAllowsLogicalLayoutDirection"] = False
     obj["NSControlContinuous"] = False
@@ -837,7 +844,8 @@ def make_system_image(name: str, parent: NibObject) -> NibObject:
 def _xibparser_parse_scrollView(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> XibObject:
     obj = make_xib_object(ctx, "NSScrollView", elem, parent)
     obj["NSSuperview"] = obj.xib_parent()
-    __xibparser_ParseChildren(ctx, elem, obj)
+    with __handle_view_chain(ctx, obj):
+        __xibparser_ParseChildren(ctx, elem, obj)
     if not obj.extraContext.get("parsed_autoresizing"):
         obj.flagsOr("NSvFlags", vFlags.DEFAULT_VFLAGS_AUTOLAYOUT if ctx.useAutolayout else vFlags.DEFAULT_VFLAGS)
     obj["NSGestureRecognizers"] = NibList([default_pan_recognizer(obj)])
@@ -849,7 +857,6 @@ def _xibparser_parse_scrollView(ctx: ArchiveContext, elem: Element, parent: Opti
         obj["NSHScroller"],
         obj["NSVScroller"],
         ])
-    obj["NSNextKeyView"] = obj["NSContentView"]
     has_horizontal_scroller = 0x20 if elem.attrib.get("hasHorizontalScroller") == "YES" else 0
     uses_predominant_axis_scrolling = 0x10000 if elem.attrib.get("usesPredominantAxisScrolling") == "YES" else 0
     obj["NSsFlags"] = 0x20812 | has_horizontal_scroller | uses_predominant_axis_scrolling
@@ -895,7 +902,8 @@ def _xibparser_parse_clipView(ctx: ArchiveContext, elem: Element, parent: Option
     else:
         raise Exception(f"view in unknown key {key} (parent {parent.repr()})")
     
-    __xibparser_ParseChildren(ctx, elem, obj)
+    with __handle_view_chain(ctx, obj):
+        __xibparser_ParseChildren(ctx, elem, obj)
     if not is_main_view:
         obj["NSSuperview"] = obj.xib_parent()
     
@@ -910,7 +918,6 @@ def _xibparser_parse_clipView(ctx: ArchiveContext, elem: Element, parent: Option
     obj["NSNextResponder"] = NibNil() if is_main_view else obj.xib_parent()
     if obj.get("NSSubviews") and len(obj["NSSubviews"]) > 0:
         obj["NSDocView"] = obj["NSSubviews"][0]
-        obj["NSNextKeyView"] = obj["NSSubviews"][0]
     else:
         obj["NSDocView"] = NibNil()
     if not obj.get('NSBGColor'):
@@ -1566,6 +1573,15 @@ def makeSystemColor(name):
         return systemColorTemplate(name, b'1 1', b'1\x00')
     else:
         raise Exception(f"unknown name {name}")
+
+
+@contextmanager
+def __handle_view_chain(ctx: ArchiveContext, obj: XibObject):
+    if ctx.viewKeyList:
+        ctx.viewKeyList[-1]["NSNextKeyView"] = obj
+    ctx.viewKeyList.append(obj)
+    yield object()
+    ctx.viewKeyList.pop(-1)
 
 
 # is it default? TODO
