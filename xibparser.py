@@ -66,6 +66,9 @@ class vFlags(IntEnum):
     DEFAULT_VFLAGS = AUTORESIZES_SUBVIEWS | MIN_Y_MARGIN | MAX_Y_MARGIN
     DEFAULT_VFLAGS_AUTOLAYOUT = AUTORESIZES_SUBVIEWS | MAX_X_MARGIN | MIN_Y_MARGIN
 
+class cvFlags(IntEnum):
+    DRAW_BACKGROUND = 0x4
+
 class sFlags(IntEnum):
     HORIZONTAL = 0x01
 
@@ -920,7 +923,8 @@ def _xibparser_parse_clipView(ctx: ArchiveContext, elem: Element, parent: Option
     obj["NSAutomaticallyAdjustsContentInsets"] = True
     if not is_main_view:
         obj["NSvFlags"] = vFlags.AUTORESIZES_SUBVIEWS # clearing the values from elem - they don't seem to matter
-    obj["NScvFlags"] = 4
+    if elem.attrib.get("drawsBackground", "YES") == "YES":
+        obj["NScvFlags"] = cvFlags.DRAW_BACKGROUND
     cursor = NibObject("NSCursor", obj)
     cursor["NSCursorType"] = 0
     cursor["NSHotSpot"] = NibString.intern("{1, -1}")
