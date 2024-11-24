@@ -51,6 +51,7 @@ class WTFlags(IntEnum):
 
 class TVFlags(IntEnum):
     HORIZONTALLY_RESIZABLE = 0x1
+    VERTICALLY_RESIZABLE = 0x2
 
 class vFlags(IntEnum):
     AUTORESIZES_SUBVIEWS = 0x100
@@ -663,10 +664,13 @@ def __parse_pos_size(size: str) -> tuple[int, int, int, int]:
 def _xibparser_parse_textView(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> XibObject:
     obj = make_xib_object(ctx, "NSTextView", elem, parent)
     
-    editable = 0x2 if elem.attrib.get("editable") == "YES" else 0
+    editable = 0x2 if elem.attrib.get("editable", "YES") == "YES" else 0
     imports_graphics = 0x8 if elem.attrib.get("importsGraphics") == "YES" else 0
     spelling_correction = 0x4000000 if elem.attrib.get("spellingCorrection") == "YES" else 0
+    rich_text = 0x4 if elem.attrib.get("richText") == "YES" else 0
+    smart_insert_delete = 0x200 if elem.attrib.get("smartInsertDelete") == "YES" else 0
     horizontally_resizable = TVFlags.HORIZONTALLY_RESIZABLE if elem.attrib.get("horizontallyResizable") == "YES" else 0
+    vertically_resizable = TVFlags.VERTICALLY_RESIZABLE if elem.attrib.get("verticallyResizable") == "YES" else 0
     preferred_find_style = {
         None: None,
         "panel": 1,
@@ -677,7 +681,7 @@ def _xibparser_parse_textView(ctx: ArchiveContext, elem: Element, parent: Option
     shared_data["NSAutomaticTextCompletionDisabled"] = False
     shared_data["NSBackgroundColor"] = NibNil()
     shared_data["NSDefaultParagraphStyle"] = NibNil()
-    shared_data["NSFlags"] = 0x905 | spelling_correction | editable | imports_graphics
+    shared_data["NSFlags"] = 0x901 | spelling_correction | editable | imports_graphics | rich_text | smart_insert_delete
     shared_data["NSInsertionColor"] = NibNil()
     shared_data["NSLinkAttributes"] = NibDictionary([NibString.intern("NSColor")])
     shared_data["NSMarkedAttributes"] = NibNil()
@@ -694,7 +698,7 @@ def _xibparser_parse_textView(ctx: ArchiveContext, elem: Element, parent: Option
     with __handle_view_chain(ctx, obj):
         __xibparser_ParseChildren(ctx, elem, obj)
     obj["NSDelegate"] = NibNil()
-    obj["NSTVFlags"] = 134 | horizontally_resizable
+    obj["NSTVFlags"] = 132 | horizontally_resizable | vertically_resizable
     obj["NSNextResponder"] = obj.xib_parent()
     obj.setIfNotDefault("NSViewIsLayerTreeHost", elem.attrib.get("wantsLayer") == "YES", False)
 
@@ -865,7 +869,7 @@ def make_system_image(name: str, parent: NibObject) -> NibObject:
 def _xibparser_parse_scrollView(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> XibObject:
     obj = make_xib_object(ctx, "NSScrollView", elem, parent)
     obj["NSSuperview"] = obj.xib_parent()
-    obj.extraContext["fixedFrame"] = elem.attrib.get("fixedFrame", "NO") == "YES"
+    obj.extraContext["fixedFrame"] = elem.attrib.get("fixedFrame", "YES") == "YES"
     with __handle_view_chain(ctx, obj):
         __xibparser_ParseChildren(ctx, elem, obj)
     if not obj.extraContext.get("parsed_autoresizing"):
@@ -933,7 +937,7 @@ def _xibparser_parse_clipView(ctx: ArchiveContext, elem: Element, parent: Option
     if not is_main_view:
         obj["NSvFlags"] = vFlags.AUTORESIZES_SUBVIEWS # clearing the values from elem - they don't seem to matter
     if elem.attrib.get("drawsBackground", "YES") == "YES":
-        obj["NScvFlags"] = cvFlags.DRAW_BACKGROUND
+        obj.flagsOr("NScvFlags", cvFlags.DRAW_BACKGROUND)
     cursor = NibObject("NSCursor", obj)
     cursor["NSCursorType"] = 0
     cursor["NSHotSpot"] = NibString.intern("{1, -1}")
