@@ -1475,8 +1475,7 @@ def _xibparser_parse_size(ctx: ArchiveContext, elem: Element, parent: NibObject)
     parent.extraContext[elem.attrib["key"]] = (elem.attrib["width"], elem.attrib["height"])
 
 def _xibparser_parse_scroller(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
-    obj = XibObject("NSScroller", parent, elem.attrib["id"])
-    _xibparser_common_view_attributes(ctx, elem, parent, obj)
+    obj = make_xib_object(ctx, "NSScroller", elem, parent)
     obj["NSSuperview"] = obj.xib_parent()
     __xibparser_ParseChildren(ctx, elem, obj)
     obj["NSNextResponder"] = obj.xib_parent()
