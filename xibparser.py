@@ -21,6 +21,16 @@ from enum import IntEnum, Enum
 from contextlib import contextmanager
 
 
+class NSColorSpaceModels(IntEnum):
+    NSUnknownColorSpaceModel = -1
+    NSGrayColorSpaceModel = 0
+    NSRGBColorSpaceModel = 1
+    NSCMYKColorSpaceModel = 2
+    NSLABColorSpaceModel = 3
+    NSDeviceNColorSpaceModel = 4
+    NSIndexedColorSpaceModel = 5
+    NSPatternColorSpaceModel = 6
+
 class WTFlags(IntEnum):
     DEFER = 0x20000000
     RELEASED_WHEN_CLOSED = 0x40000000
@@ -1590,5 +1600,5 @@ DEFAULT_COLOR_SPACE_NSICC = NibData.intern(b'\x00\x00\x11\x9cappl\x02\x00\x00\x0
 DEFAULT_COLOR_SPACE = NibObject("NSColorSpace", None, {
     'NSICC': DEFAULT_COLOR_SPACE_NSICC,
     'NSID': 9,
-    'NSModel': 0,
+    'NSModel': int(NSColorSpaceModels.NSGrayColorSpaceModel),
     })
