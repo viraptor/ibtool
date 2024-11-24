@@ -10,6 +10,12 @@ class NibCollection:
     def __repr__(self):
         return f"{self.classname} ({len(self.entries)} entries)"
 
+    def rec_hash(self, path):
+        if id(self) in path:
+            return 999
+        else:
+            return hash((self.classname, tuple([x.rec_hash(path + [id(self)]) if getattr(x, "rec_hash", None) else x for x in self.entries])))
+
 class NibObject:
     def __init__(self, classname: str, entries: dict[str,Any]):
         self.classname = classname
@@ -25,7 +31,13 @@ class NibObject:
 
     def __repr__(self):
         return f"{self.classname} ({len(self.entries)} entries)"
-    
+
+    def rec_hash(self, path):
+        if id(self) in path:
+            return 999
+        else:
+            return hash((self.classname, tuple([(k,v.rec_hash(path + [id(self)]) if getattr(v, "rec_hash", None) else v) for k,v in self.entries.items()])))
+
 class NibValue:
     def __init__(self, value: Any, type: int):
         self.value = value
@@ -42,6 +54,9 @@ class NibValue:
 
     def __repr__(self):
         return f"{self.value} (type {self.type})"
+
+    def __hash__(self):
+        return hash((self.value, self.type))
 
 def pythonObjects(nib: NibStructure) -> tuple[NibObject, list[Any]]:
     objects, keys, values, classes = nib
@@ -80,7 +95,7 @@ def pythonObjects(nib: NibStructure) -> tuple[NibObject, list[Any]]:
                     obj.entries[entry_k] = res[idx]
         else:
             raise Exception(f"bad value type {type(obj_values)}")
-    
+
     #for k in res:
     #    print('---', k, res[k])
     #    if isinstance(res[k], NibObject):
