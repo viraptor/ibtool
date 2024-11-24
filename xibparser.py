@@ -934,8 +934,7 @@ def _xibparser_parse_clipView(ctx: ArchiveContext, elem: Element, parent: Option
         obj["NSDocView"] = obj["NSSubviews"][0]
     else:
         obj["NSDocView"] = NibNil()
-    if not obj.get('NSBGColor'):
-        obj["NSBGColor"] = makeSystemColor("controlBackgroundColor")
+    obj.setIfEmpty("NSBGColor", makeSystemColor("controlBackgroundColor"))
     return obj
 
 
