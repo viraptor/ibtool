@@ -70,8 +70,19 @@ class vFlags(IntEnum):
 class cvFlags(IntEnum):
     DRAW_BACKGROUND = 0x4
 
-class sFlags(IntEnum):
+class sFlagsScroller(IntEnum):
     HORIZONTAL = 0x01
+
+class sFlagsScrollView(IntEnum):
+    BORDER_NONE = 0x0
+    BORDER_LINE = 0x1
+    BORDER_BEZEL = 0x2
+    BORDER_GROOVE = 0x3
+    HAS_VERTICAL_SCROLLER = 0x10
+    HAS_HORIZONTAL_SCROLLER = 0x20
+    COPY_ON_SCROLL = 0x80
+    AUTOHIDES_SCROLLERS = 0x200
+    USES_PREDOMINANT_AXIS_SCROLLING = 0x10000
 
 class ButtonFlags(IntEnum):
     IMAGE_ONLY = 0x00400000
@@ -884,9 +895,17 @@ def _xibparser_parse_scrollView(ctx: ArchiveContext, elem: Element, parent: Opti
         obj["NSHScroller"],
         obj["NSVScroller"],
         ])
-    has_horizontal_scroller = 0x20 if elem.attrib.get("hasHorizontalScroller") == "YES" else 0
-    uses_predominant_axis_scrolling = 0x10000 if elem.attrib.get("usesPredominantAxisScrolling") == "YES" else 0
-    obj["NSsFlags"] = 0x20812 | has_horizontal_scroller | uses_predominant_axis_scrolling
+
+    border_type = {
+        "none": sFlagsScrollView.BORDER_NONE,
+        "line": sFlagsScrollView.BORDER_LINE,
+        "bezel": sFlagsScrollView.BORDER_BEZEL,
+        "groove": sFlagsScrollView.BORDER_GROOVE,
+    }[elem.attrib.get("borderType", "bezel")]
+    has_horizontal_scroller = sFlagsScrollView.HAS_HORIZONTAL_SCROLLER if elem.attrib.get("hasHorizontalScroller") == "YES" else 0
+    has_vertical_scroller = sFlagsScrollView.HAS_VERTICAL_SCROLLER if elem.attrib.get("hasVerticalScroller", "YES") == "YES" else 0
+    uses_predominant_axis_scrolling = sFlagsScrollView.USES_PREDOMINANT_AXIS_SCROLLING if elem.attrib.get("usesPredominantAxisScrolling", "YES") == "YES" else 0
+    obj["NSsFlags"] = 0x20800 | has_horizontal_scroller | has_vertical_scroller | uses_predominant_axis_scrolling | border_type
 
     horizontal_line_scroll = int(elem.attrib.get("horizontalLineScroll", "10"))
     vertical_line_scroll = int(elem.attrib.get("verticalLineScroll", "10"))
@@ -1501,7 +1520,7 @@ def _xibparser_parse_scroller(ctx: ArchiveContext, elem: Element, parent: NibObj
         obj["NSCurValue"] = float(cur_value)
     if elem.attrib["horizontal"] == "YES":
         parent["NSHScroller"] = obj
-        obj["NSsFlags"] = sFlags.HORIZONTAL
+        obj["NSsFlags"] = sFlagsScroller.HORIZONTAL
     else:
         parent["NSVScroller"] = obj
     return obj
