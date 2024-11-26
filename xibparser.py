@@ -517,6 +517,32 @@ class XibObject(NibObject):
         else:
             return False
 
+    def frame(self) -> Optional[tuple[int, int, int, int]]:
+        if auto_resizing := self.extraContext.get("parsed_autoresizing"):
+            assert (parent := self.xib_parent())
+            if my_frame := self.extraContext.get("NSFrame"):
+                x, y, mw, mh = my_frame
+            elif my_frame_size := self.extraContext.get("NSFrameSize"):
+                mw, mh = my_frame_size
+                x, y = 0, 0
+            else:
+                raise Exception(f"No frame or framesize for {self}")
+            parent_frame = parent.frame()
+
+            result = [x, y, mw, mh]
+            if auto_resizing.get("widthSizable"):
+                result[2] = parent_frame[2]
+            if auto_resizing.get("heightSizable"):
+                result[3] = parent_frame[3]
+            return tuple(result)
+        else:
+            if frame := self.extraContext.get("NSFrame"):
+                return frame
+            elif frame_size := self.extraContext.get("NSFrameSize"):
+                return (0, 0, frame_size[0], frame_size[1])
+            else:
+                return None
+
 class XibViewController(XibObject):
     def __init__(self, classname: str, parent: Optional[NibObject] = None) -> None:
         XibObject.__init__(self, classname, parent)
@@ -731,9 +757,9 @@ def _xibparser_parse_textView(ctx: ArchiveContext, elem: Element, parent: Option
     text_container["NSTextLayoutManager"] = NibNil()
 
     text_container["NSTextView"] = obj
-    if frame_size := obj.xib_parent().get("NSFrameSize"):
+    if frame_size := obj.get("NSFrameSize"):
         text_container["NSWidth"] = float(__parse_size(frame_size._text)[0])
-    elif frame := obj.xib_parent().get("NSFrame"):
+    elif frame := obj.get("NSFrame"):
         text_container["NSWidth"] = float(__parse_pos_size(frame._text)[2])
     else:
         text_container["NSWidth"] = 1.0
@@ -1062,7 +1088,14 @@ def _xibparser_parse_autoresizingMask(_ctx: ArchiveContext, elem: Element, paren
     widthSizable = vFlags.WIDTH_SIZABLE if elem.attrib.get("widthSizable", "NO") == "YES" else 0
     heightSizable = vFlags.HEIGHT_SIZABLE if elem.attrib.get("heightSizable", "NO") == "YES" else 0
     parent.flagsOr("NSvFlags", flexibleMaxX | flexibleMaxY | flexibleMinX | flexibleMinY | widthSizable | heightSizable)
-    parent.extraContext["parsed_autoresizing"] = True
+    parent.extraContext["parsed_autoresizing"] = {
+        "flexibleMaxX": bool(flexibleMaxX),
+        "flexibleMaxY": bool(flexibleMaxY),
+        "flexibleMinX": bool(flexibleMinX),
+        "flexibleMinY": bool(flexibleMinY),
+        "widthSizable": bool(widthSizable),
+        "heightSizable": bool(heightSizable),
+    }
 
 
 def _xibparser_parse_point(_ctx: ArchiveContext, elem: Element, _parent: NibObject) -> None:
@@ -1652,6 +1685,12 @@ def __handle_view_chain(ctx: ArchiveContext, obj: XibObject):
     ctx.viewKeyList.append(obj)
     yield object()
     ctx.viewKeyList.pop(-1)
+
+    x, y, w, h = obj.frame()
+    if x == 0 and y == 0:
+        obj["NSFrameSize"] = NibString.intern(f"{{{w}, {h}}}")
+    else:
+        obj["NSFrame"] = NibString.intern(f"{{{{{x}, {y}}}, {{{w}, {h}}}}}")
 
 
 # is it default? TODO
