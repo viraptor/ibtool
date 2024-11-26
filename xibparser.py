@@ -1445,10 +1445,11 @@ def _xibparser_parse_color(ctx: ArchiveContext, elem: Element, parent: NibObject
         color = makeSystemColor(elem.attrib["name"])
         target_obj[target_attribute] = color
     elif elem.attrib["colorSpace"] == "calibratedWhite":
+        white = f'{elem.attrib["white"]:.12} {elem.attrib["alpha"]:.12}\x00' if 'alpha' in elem.attrib else f'{elem.attrib["white"]:.12}\x00'
         if parent.originalclassname() == "NSClipView":
             color = NibObject("NSColor", None, {
                 "NSColorSpace": 3,
-                "NSWhite": NibInlineString(f'{elem.attrib["white"]}\x00')
+                "NSWhite": NibInlineString(white)
             })
         else:
             color = NibObject("NSColor", None, {
@@ -1462,7 +1463,7 @@ def _xibparser_parse_color(ctx: ArchiveContext, elem: Element, parent: NibObject
                     "NSColorSpace": 3,
                     "NSComponents": NibInlineString(b'1 1'),
                     "NSCustomColorSpace": GENERIC_GREY_COLOR_SPACE,
-                    "NSWhite": NibInlineString(f'{elem.attrib["white"]}\x00'),
+                    "NSWhite": NibInlineString(white),
                 }),
             })
         target_obj[target_attribute] = color
