@@ -211,9 +211,10 @@ class XibId:
 
 
 class ArchiveContext:
-    def __init__(self, useAutolayout: bool=False, customObjectInstantitationMethod: Optional[str]=None) -> None:
+    def __init__(self, useAutolayout: bool=False, customObjectInstantitationMethod: Optional[str]=None, toolsVersion: Optional[int]=None) -> None:
         self.useAutolayout = useAutolayout
         self.customObjectInstantitationMethod = customObjectInstantitationMethod
+        self.toolsVersion = toolsVersion
         self.connections: list[NibObject] = []
 
         # We need the list of constraints to be able to set the NSDoNotTranslateAutoresizingMask prop correctly
@@ -352,7 +353,8 @@ def ParseXIBObjects(root: Element, context: Optional[ArchiveContext]=None, resol
 
     context = context or ArchiveContext(
         useAutolayout=(root.attrib.get("useAutolayout") == "YES"),
-        customObjectInstantitationMethod=root.attrib.get("customObjectInstantitationMethod")
+        customObjectInstantitationMethod=root.attrib.get("customObjectInstantitationMethod"),
+        toolsVersion=int(root.attrib.get("toolsVersion", "0")),
         )
 
     for nib_object_element in objects:
@@ -1525,13 +1527,16 @@ def _xibparser_parse_color(ctx: ArchiveContext, elem: Element, parent: NibObject
         color = makeSystemColor(elem.attrib["name"])
         target_obj[target_attribute] = color
     elif elem.attrib["colorSpace"] == "calibratedWhite":
-        white = f'{elem.attrib["white"]:.12} {elem.attrib["alpha"]:.12}\x00' if 'alpha' in elem.attrib else f'{elem.attrib["white"]:.12}\x00'
-        if parent.originalclassname() == "NSClipView":
-            color = NibObject("NSColor", None, {
-                "NSColorSpace": 3,
-                "NSWhite": NibInlineString(white)
-            })
-        else:
+        if ctx.toolsVersion <= 11762:
+            parent_is_clip_view = parent.originalclassname() == "NSClipView"
+            attr_white = float(elem.attrib["white"])
+            if parent_is_clip_view:
+                attr_white = attr_white * 0.602715373
+            if attr_white.is_integer():
+                attr_white = int(attr_white)
+                white = f'{attr_white} {elem.attrib["alpha"]:.12}\x00' if 'alpha' in elem.attrib and elem.attrib["alpha"] != "1" else f'{attr_white}\x00'
+            else:
+                white = f'{attr_white:.12} {elem.attrib["alpha"]:.12}\x00' if 'alpha' in elem.attrib and elem.attrib["alpha"] != "1" else f'{attr_white:.12}\x00'
             color = NibObject("NSColor", None, {
                 "NSColorSpace": 6,
                 "NSCatalogName": "System",
@@ -1541,10 +1546,16 @@ def _xibparser_parse_color(ctx: ArchiveContext, elem: Element, parent: NibObject
                 }[parent.originalclassname()],
                 "NSColor": NibObject("NSColor", None, {
                     "NSColorSpace": 3,
-                    "NSComponents": NibInlineString(b'1 1'),
+                    "NSComponents": NibInlineString(b'0.6666666667 1' if parent_is_clip_view else b'1 1'),
                     "NSCustomColorSpace": GENERIC_GREY_COLOR_SPACE,
                     "NSWhite": NibInlineString(white),
                 }),
+            })
+        else:
+            white = f'{elem.attrib["white"]:.12} {elem.attrib["alpha"]:.12}\x00' if 'alpha' in elem.attrib else f'{elem.attrib["white"]:.12}\x00'
+            color = NibObject("NSColor", None, {
+                "NSColorSpace": 3,
+                "NSWhite": NibInlineString(white),
             })
         target_obj[target_attribute] = color
     else:
