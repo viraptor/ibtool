@@ -117,7 +117,7 @@ class ButtonFlags2(IntEnum):
 class CellFlags(IntEnum):
     STATE_ON = 0xffffffff80000000
     HIGHLIGHTED = 0x40000000
-    ENABLED = 0x20000000
+    DISABLED = 0x20000000
     EDITABLE = 0x10000000
     UNKNOWN_TEXT_FIELD = 0x04000000
     BORDERED = 0x00800000
@@ -1341,14 +1341,17 @@ def __xibparser_cell_flags(elem: Element, obj: NibObject, parent: NibObject) -> 
     }[lineBreakMode]
     textAlignment = elem.attrib.get("alignment")
     textAlignmentMask = {None: CellFlags2.TEXT_ALIGN_NONE, "left": CellFlags2.TEXT_ALIGN_LEFT, "center": CellFlags2.TEXT_ALIGN_CENTER, "right": CellFlags2.TEXT_ALIGN_RIGHT}[textAlignment]
-    selectable = (CellFlags.SELECTABLE + 1) if elem.attrib.get("selectable", "NO") == "YES" else 0
+    selectable = (CellFlags.SELECTABLE + 1) if elem.attrib.get("selectable") == "YES" else 0
     state_on = CellFlags.STATE_ON if (elem.attrib.get("state") == "on") else 0
     text_field_flag = CellFlags.UNKNOWN_TEXT_FIELD if obj.originalclassname() in ["NSTextFieldCell", "NSButtonCell"] else 0
     refuses_first_responder = elem.attrib.get("refusesFirstResponder", "NO") == "YES"
     refuses_first_responder_mask = CellFlags2.REFUSES_FIRST_RESPONDER if refuses_first_responder else 0
     scrollable = CellFlags.SCROLLABLE if elem.attrib.get("scrollable", "NO") == "YES" else 0
+    disabled = 0 if elem.attrib.get("enabled", "YES") == "YES" else CellFlags.DISABLED
+    editable = CellFlags.EDITABLE if elem.attrib.get("editable") == "YES" else 0
+    bezeled = CellFlags.BEZELED if elem.attrib.get("borderStyle") == "bezel" else 0
 
-    obj.flagsOr("NSCellFlags", lineBreakModeMask | text_field_flag | selectable | state_on | scrollable)
+    obj.flagsOr("NSCellFlags", lineBreakModeMask | text_field_flag | selectable | state_on | scrollable | disabled | editable | bezeled)
     obj.flagsOr("NSCellFlags2", textAlignmentMask | sendsActionMask | lineBreakModeMask2 | refuses_first_responder_mask)
     parent["NSControlRefusesFirstResponder"] = refuses_first_responder
     parent["NSControlLineBreakMode"] = {
@@ -1374,6 +1377,8 @@ def _xibparser_parse_textFieldCell(ctx: ArchiveContext, elem: Element, parent: N
     obj["NSSupport"] = NibNil() # TODO
     obj["NSControlView"] = obj.xib_parent()
     obj["NSCharacterPickerEnabled"] = True
+    if elem.attrib.get("drawsBackground") == "YES":
+        obj["NSDrawsBackground"] = True
     __xibparser_ParseChildren(ctx, elem, obj)
 
     parent["NSCell"] = obj
