@@ -1673,6 +1673,20 @@ def _xibparser_parse_items(ctx: ArchiveContext, elem: Element, parent: NibObject
 def _xibparser_parse_modifierMask(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
     pass
 
+def _xibparser_parse_value(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
+    assert parent is not None
+    assert elem.attrib["type"] == "size"
+
+    key = elem.attrib["key"]
+    if key == "minSize":
+        parent["NSMinSize"] = NibString.intern(f"{{{elem.attrib['width']}, {elem.attrib['height']}}}")
+        parent["NSWindowContentMinSize"] = NibString.intern(f"{{{elem.attrib['width']}, {elem.attrib['height']}}}")
+    elif key == "maxSize":
+        parent["NSMaxSize"] = NibString.intern(f"{{{elem.attrib['width']}, {elem.attrib['height']}}}")
+        parent["NSWindowContentMaxSize"] = NibString.intern(f"{{{elem.attrib['width']}, {elem.attrib['height']}}}")
+    else:
+        raise Exception(f"unknown key {key}")
+
 def makeSystemColor(name):
     def systemGrayColorTemplate(name, components, white):
         return NibObject('NSColor', None, {
