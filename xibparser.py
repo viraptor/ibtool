@@ -721,7 +721,7 @@ def _xibparser_parse_textView(ctx: ArchiveContext, elem: Element, parent: Option
     editable = 0x2 if elem.attrib.get("editable", "YES") == "YES" else 0
     imports_graphics = 0x8 if elem.attrib.get("importsGraphics") == "YES" else 0
     spelling_correction = 0x4000000 if elem.attrib.get("spellingCorrection") == "YES" else 0
-    rich_text = 0x4 if elem.attrib.get("richText") == "YES" else 0
+    rich_text = 0x4 if elem.attrib.get("richText", "YES") == "YES" else 0
     smart_insert_delete = 0x200 if elem.attrib.get("smartInsertDelete") == "YES" else 0
     horizontally_resizable = TVFlags.HORIZONTALLY_RESIZABLE if elem.attrib.get("horizontallyResizable") == "YES" else 0
     vertically_resizable = TVFlags.VERTICALLY_RESIZABLE if elem.attrib.get("verticallyResizable", "YES") == "YES" else 0
