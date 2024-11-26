@@ -19,6 +19,7 @@ else
 		samples/test5_connect.xib
 		samples/test8_menu.xib
 		samples/test9_menu_conn.xib
+		samples/test11_text_view_back.xib
 		"
 fi
 
