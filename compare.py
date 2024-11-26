@@ -113,8 +113,12 @@ def pythonObjects(nib: NibStructure) -> tuple[NibObject, list[Any]]:
 
     return cast(NibObject, res[0]), [] #not_referenced
 
+already_seen = set()
 
 def diff(lhs: Union[NibValue,NibCollection,NibObject], rhs: Union[NibValue,NibCollection,NibObject], current_path: list[str]=[], lhs_path: list[int]=[], rhs_path: list[int]=[], parent_class: Optional[str] = None) -> Iterable[str]:
+    if (id(lhs), id(rhs)) in already_seen:
+        return
+    already_seen.add((id(lhs), id(rhs)))
     lhs_path = lhs_path + [id(lhs)]
     rhs_path = rhs_path + [id(rhs)]
 
