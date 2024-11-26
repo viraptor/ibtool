@@ -730,12 +730,17 @@ def _xibparser_parse_textView(ctx: ArchiveContext, elem: Element, parent: Option
         "panel": 1,
         "bar": 2,
     }[elem.attrib.get("findStyle")]
+    preferred_find_style_flag = {
+        None: None,
+        "panel": 0x2000,
+        "bar": 0,
+    }[elem.attrib.get("findStyle")]
 
     shared_data = XibObject("NSTextViewSharedData", obj, None)
     shared_data["NSAutomaticTextCompletionDisabled"] = False
     shared_data["NSBackgroundColor"] = NibNil()
     shared_data["NSDefaultParagraphStyle"] = NibNil()
-    shared_data["NSFlags"] = 0x901 | spelling_correction | editable | imports_graphics | rich_text | smart_insert_delete
+    shared_data["NSFlags"] = 0x901 | spelling_correction | editable | imports_graphics | rich_text | smart_insert_delete | preferred_find_style_flag
     shared_data["NSInsertionColor"] = makeSystemColor('textInsertionPointColor')
     shared_data["NSLinkAttributes"] = NibDictionary([NibString.intern("NSColor")])
     shared_data["NSMarkedAttributes"] = NibNil()
