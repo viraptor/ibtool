@@ -726,7 +726,7 @@ def _xibparser_parse_textView(ctx: ArchiveContext, elem: Element, parent: Option
     rich_text = 0x4 if elem.attrib.get("richText", "YES") == "YES" else 0
     smart_insert_delete = 0x200 if elem.attrib.get("smartInsertDelete") == "YES" else 0
     horizontally_resizable = TVFlags.HORIZONTALLY_RESIZABLE if elem.attrib.get("horizontallyResizable") == "YES" else 0
-    vertically_resizable = TVFlags.VERTICALLY_RESIZABLE if elem.attrib.get("verticallyResizable", "YES") == "YES" else 0
+    vertically_resizable = TVFlags.VERTICALLY_RESIZABLE if elem.attrib.get("verticallyResizable", "YES" if ctx.toolsVersion < 23504 else "NO") == "YES" else 0
     preferred_find_style = {
         None: None,
         "panel": 1,
