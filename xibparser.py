@@ -789,7 +789,8 @@ def _xibparser_parse_textView(ctx: ArchiveContext, elem: Element, parent: Option
 
     obj["NSTextContainer"] = text_container
 
-    obj["NSTextViewTextColor"] = makeSystemColor("textColor")
+    if ctx.toolsVersion < 23504:
+        obj["NSTextViewTextColor"] = makeSystemColor("textColor")
 
     return obj
 
@@ -1011,7 +1012,7 @@ def _xibparser_parse_clipView(ctx: ArchiveContext, elem: Element, parent: Option
     obj["NSAutomaticallyAdjustsContentInsets"] = True
     if not is_main_view:
         obj["NSvFlags"] = vFlags.AUTORESIZES_SUBVIEWS # clearing the values from elem - they don't seem to matter
-    if elem.attrib.get("drawsBackground", "YES") == "YES":
+    if elem.attrib.get("drawsBackground", "YES" if ctx.toolsVersion >= 23504 else "NO") == "YES":
         obj.flagsOr("NScvFlags", cvFlags.DRAW_BACKGROUND)
     cursor = NibObject("NSCursor", obj)
     cursor["NSCursorType"] = 0
