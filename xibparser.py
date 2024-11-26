@@ -731,7 +731,7 @@ def _xibparser_parse_textView(ctx: ArchiveContext, elem: Element, parent: Option
         "bar": 2,
     }[elem.attrib.get("findStyle")]
     preferred_find_style_flag = {
-        None: None,
+        None: 0,
         "panel": 0x2000,
         "bar": 0,
     }[elem.attrib.get("findStyle")]
