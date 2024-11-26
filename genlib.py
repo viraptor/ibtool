@@ -131,7 +131,7 @@ class NibString(NibObject):
         return [("NS.bytes", self._text)]
 
     def __repr__(self) -> str:
-        return f"{object.__repr__(self)} {self._text}"
+        return f"<{self.classname()} \"{self._text}\">"
 
 
 class NibMutableString(NibObject):
@@ -166,6 +166,9 @@ class NibData(NibObject):
         # print("MARCO YOLO", type(self._data))
         # raise Exception("EVERYTHING IS OK")
         return [("NS.bytes", self._data)]
+
+    def __repr__(self) -> str:
+        return f"<{self.classname()} \"{self._data}\">"
 
 
 class NibInlineString:
