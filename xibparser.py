@@ -330,7 +330,7 @@ class ArchiveContext:
 
             assert isinstance(dst, XibId)
 
-            print("Resolving standalone xib connection with id", dst)
+            #print("Resolving standalone xib connection with id", dst)
             if dst in self.objects:
                 con["NSDestination"] = self.objects[dst]
                 result.append(con)
