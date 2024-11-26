@@ -1619,7 +1619,7 @@ def makeSystemColor(name):
     elif name == 'textBackgroundColor':
         return systemGrayColorTemplate(name, b'1 1', b'1\x00')
     elif name == 'labelColor':
-        return systemGrayColorTemplate(name, b'9 9', b'9\x00')
+        return systemGrayColorTemplate(name, b'0 1', b'0\x00')
     elif name == 'textInsertionPointColor':
         return systemRGBColorTemplate(name, 'systemBlueColor', '0 0 1 1', b'0 0 0.9981992245\x00')
     else:
