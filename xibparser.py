@@ -791,7 +791,7 @@ def _xibparser_parse_textView(ctx: ArchiveContext, elem: Element, parent: Option
     obj["NSTextContainer"] = text_container
 
     if ctx.toolsVersion < 23504:
-        obj["NSTextViewTextColor"] = makeSystemColor("textColor")
+        obj.setIfEmpty("NSTextViewTextColor", makeSystemColor("textColor"))
 
     return obj
 
@@ -1377,7 +1377,8 @@ def _xibparser_parse_textFieldCell(ctx: ArchiveContext, elem: Element, parent: N
     obj["NSContents"] = elem.attrib.get("title", NibString.intern(''))
     obj["NSSupport"] = NibNil() # TODO
     obj["NSControlView"] = obj.xib_parent()
-    obj["NSCharacterPickerEnabled"] = True
+    if ctx.toolsVersion < 23504:
+        obj["NSCharacterPickerEnabled"] = True
     if elem.attrib.get("drawsBackground") == "YES":
         obj["NSDrawsBackground"] = True
     __xibparser_ParseChildren(ctx, elem, obj)
@@ -1543,7 +1544,12 @@ def _xibparser_parse_color(ctx: ArchiveContext, elem: Element, parent: NibObject
     if elem.attrib["colorSpace"] == "catalog":
         assert elem.attrib["catalog"] == "System", elem.attrib["catalog"]
 
-        color = makeSystemColor(elem.attrib["name"])
+        # hack - does it generalize to other types of cells?
+        if parent.originalclassname() == "NSTextFieldCell" and elem.attrib["name"] == "textColor" and parent["NSCellFlags"] & CellFlags.EDITABLE:
+            colorName = 'controlTextColor'
+        else:
+            colorName = elem.attrib["name"]
+        color = makeSystemColor(colorName)
         target_obj[target_attribute] = color
     elif elem.attrib["colorSpace"] == "calibratedWhite":
         if ctx.toolsVersion <= 11762:
