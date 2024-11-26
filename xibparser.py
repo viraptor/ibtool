@@ -1,4 +1,5 @@
 import re
+import base64
 from genlib import (
     NibData,
     NibInlineString,
@@ -1444,7 +1445,7 @@ def _xibparser_parse_buttonCell(ctx: ArchiveContext, elem: Element, parent: NibO
             })
     obj["NSBezelStyle"] = bezelStyle
     obj["NSAlternateContents"] = NibString.intern('')
-    obj["NSKeyEquivalent"] = NibString.intern('')
+    obj.setIfEmpty("NSKeyEquivalent", NibString.intern(''))
     obj["NSPeriodicDelay"] = 400
     obj["NSPeriodicInterval"] = 75
     obj["NSAuxButtonType"] = 7
@@ -1494,7 +1495,17 @@ def _xibparser_parse_behavior(ctx: ArchiveContext, elem: Element, parent: NibObj
 
 def _xibparser_parse_string(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
     assert parent.originalclassname() == "NSButtonCell"
-    parent["NSContents"] = NibString.intern(elem.attrib.get("", ""))
+
+    key = elem.attrib.get("key")
+    if key == "keyEquivalent":
+        if elem.attrib.get("base64-UTF8") == "YES":
+            text = (elem.text or '').strip()
+            value = base64.b64decode(text + ((4 - (len(text) % 4)) * '=')).decode('utf-8')
+        else:
+            value = (elem.text or '').strip()
+        parent["NSKeyEquivalent"] = NibString.intern(value)
+    else:
+        raise Exception(f"unknown key {key}")
 
 def _xibparser_parse_color(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
     assert isinstance(parent, XibObject), type(parent)
