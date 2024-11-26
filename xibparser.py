@@ -1552,7 +1552,7 @@ def _xibparser_parse_color(ctx: ArchiveContext, elem: Element, parent: NibObject
                 }),
             })
         else:
-            white = f'{elem.attrib["white"]:.12} {elem.attrib["alpha"]:.12}\x00' if 'alpha' in elem.attrib else f'{elem.attrib["white"]:.12}\x00'
+            white = f'{elem.attrib["white"]:.12} {elem.attrib["alpha"]:.12}\x00' if 'alpha' in elem.attrib and elem.attrib["alpha"] != "1" else f'{elem.attrib["white"]:.12}\x00'
             color = NibObject("NSColor", None, {
                 "NSColorSpace": 3,
                 "NSWhite": NibInlineString(white),
