@@ -1422,6 +1422,7 @@ def _xibparser_parse_color(ctx: ArchiveContext, elem: Element, parent: NibObject
         "NSTextView": {
             "backgroundColor": ["NSSharedData", "NSBackgroundColor"],
             "insertionPointColor": ["NSSharedData", "NSInsertionColor"],
+            "textColor": ["NSTextViewTextColor"],
         },
         None: {
             "textColor": ["NSTextColor"],
