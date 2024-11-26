@@ -20,6 +20,7 @@ else
 		samples/test8_menu.xib
 		samples/test9_menu_conn.xib
 		samples/test11_text_view_back.xib
+		samples/test12_text_view_border.xib
 		"
 fi
 
