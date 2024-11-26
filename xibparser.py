@@ -518,6 +518,11 @@ class XibObject(NibObject):
             return False
 
     def frame(self) -> Optional[tuple[int, int, int, int]]:
+        if parent := self.xib_parent():
+            insets = parent.extraContext.get("insets")
+        else:
+            insets = None
+
         if auto_resizing := self.extraContext.get("parsed_autoresizing"):
             assert (parent := self.xib_parent())
             if my_frame := self.extraContext.get("NSFrame"):
@@ -534,12 +539,23 @@ class XibObject(NibObject):
                 result[2] = parent_frame[2]
             if auto_resizing.get("heightSizable"):
                 result[3] = parent_frame[3]
+            if insets:
+                result[2] -= insets[0]
+                result[3] -= insets[1]
             return tuple(result)
         else:
             if frame := self.extraContext.get("NSFrame"):
+                result = list(frame)
+                if insets:
+                    result[2] -= insets[0]
+                    result[3] -= insets[1]
                 return frame
             elif frame_size := self.extraContext.get("NSFrameSize"):
-                return (0, 0, frame_size[0], frame_size[1])
+                result = [0, 0, frame_size[0], frame_size[1]]
+                if insets:
+                    result[2] -= insets[0]
+                    result[3] -= insets[1]
+                return result
             else:
                 return None
 
@@ -908,19 +924,6 @@ def _xibparser_parse_scrollView(ctx: ArchiveContext, elem: Element, parent: Opti
     obj = make_xib_object(ctx, "NSScrollView", elem, parent)
     obj["NSSuperview"] = obj.xib_parent()
     obj.extraContext["fixedFrame"] = elem.attrib.get("fixedFrame", "YES") == "YES"
-    with __handle_view_chain(ctx, obj):
-        __xibparser_ParseChildren(ctx, elem, obj)
-    if not obj.extraContext.get("parsed_autoresizing"):
-        obj.flagsOr("NSvFlags", vFlags.DEFAULT_VFLAGS_AUTOLAYOUT if ctx.useAutolayout else vFlags.DEFAULT_VFLAGS)
-    obj["NSGestureRecognizers"] = NibList([default_pan_recognizer(obj)])
-    obj["NSMagnification"] = 1.0
-    obj["NSMaxMagnification"] = 4.0
-    obj["NSMinMagnification"] = 0.25
-    obj["NSSubviews"] = NibMutableList([
-        obj["NSContentView"],
-        obj["NSHScroller"],
-        obj["NSVScroller"],
-        ])
 
     border_type = {
         "none": sFlagsScrollView.BORDER_NONE,
@@ -932,6 +935,25 @@ def _xibparser_parse_scrollView(ctx: ArchiveContext, elem: Element, parent: Opti
     has_vertical_scroller = sFlagsScrollView.HAS_VERTICAL_SCROLLER if elem.attrib.get("hasVerticalScroller", "YES") == "YES" else 0
     uses_predominant_axis_scrolling = sFlagsScrollView.USES_PREDOMINANT_AXIS_SCROLLING if elem.attrib.get("usesPredominantAxisScrolling", "YES") == "YES" else 0
     obj["NSsFlags"] = 0x20800 | has_horizontal_scroller | has_vertical_scroller | uses_predominant_axis_scrolling | border_type
+    if border_type in [sFlagsScrollView.BORDER_LINE, sFlagsScrollView.BORDER_BEZEL]:
+        obj.extraContext["insets"] = (2, 2)
+    if border_type == sFlagsScrollView.BORDER_GROOVE:
+        obj.extraContext["insets"] = (4, 4)
+
+    with __handle_view_chain(ctx, obj):
+        __xibparser_ParseChildren(ctx, elem, obj)
+
+    if not obj.extraContext.get("parsed_autoresizing"):
+        obj.flagsOr("NSvFlags", vFlags.DEFAULT_VFLAGS_AUTOLAYOUT if ctx.useAutolayout else vFlags.DEFAULT_VFLAGS)
+    obj["NSGestureRecognizers"] = NibList([default_pan_recognizer(obj)])
+    obj["NSMagnification"] = 1.0
+    obj["NSMaxMagnification"] = 4.0
+    obj["NSMinMagnification"] = 0.25
+    obj["NSSubviews"] = NibMutableList([
+        obj["NSContentView"],
+        obj["NSHScroller"],
+        obj["NSVScroller"],
+        ])
 
     horizontal_line_scroll = int(elem.attrib.get("horizontalLineScroll", "10"))
     vertical_line_scroll = int(elem.attrib.get("verticalLineScroll", "10"))
