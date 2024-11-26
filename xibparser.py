@@ -1171,6 +1171,8 @@ def _xibparser_parse_window(ctx: ArchiveContext, elem: Element, parent: NibObjec
         item["NSWindowTabbingMode"] = {"disallowed": 2}[elem.attrib["tabbingMode"]]
     if elem.attrib.get("visibleAtLaunch", "YES") == "YES":
         ctx.visibleWindows.append(item)
+    if frame_autosave_name := elem.attrib.get("frameAutosaveName"):
+        item["NSFrameAutosaveName"] = NibString.intern(frame_autosave_name)
     if custom_class := elem.attrib.get("customClass"):
         item["IBClassReference"] = make_class_reference(custom_class)
         item["NSWindowClass"] = custom_class
