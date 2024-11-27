@@ -748,6 +748,8 @@ def _xibparser_parse_button(ctx: ArchiveContext, elem: Element, parent: Optional
     obj["IBNSShadowedSymbolConfiguration"] = NibNil()
     if not obj.extraContext.get("parsed_autoresizing"):
         obj.flagsOr("NSvFlags", vFlags.DEFAULT_VFLAGS_AUTOLAYOUT if ctx.useAutolayout else vFlags.DEFAULT_VFLAGS)
+    if obj.extraContext.get("NSDoNotTranslateAutoresizingMask"):
+        obj["NSDoNotTranslateAutoresizingMask"] = True
     return obj
 
 
