@@ -754,7 +754,7 @@ def _xibparser_parse_popUpButtonCell(ctx: ArchiveContext, elem: Element, parent:
     assert parent is not None
     obj = make_xib_object(ctx, "NSPopUpButtonCell", elem, parent, view_attributes=False)
     __xibparser_ParseChildren(ctx, elem, obj)
-    __xibparser_cell_flags(elem, obj, parent)
+    __xibparser_cell_options(elem, obj, parent)
     obj["NSAlternateContents"] = NibString.intern("")
     obj["NSAltersState"] = True
     obj["NSBezelStyle"] = 13
@@ -977,7 +977,7 @@ def _xibparser_parse_imageCell(ctx: ArchiveContext, elem: Element, parent: Optio
         ctx.addObject(obj.xibid, obj)
     ctx.extraNibObjects.append(obj)
     __xibparser_ParseChildren(ctx, elem, obj)
-    __xibparser_cell_flags(elem, obj, parent)
+    __xibparser_cell_options(elem, obj, parent)
 
     alignment_value = {None: 4, "left": 0, "center": 1, "right": 2}[elem.attrib.get("alignment")]
     obj["NSAlign"] = alignment_value
@@ -1501,7 +1501,7 @@ def _xibparser_parse_textField(ctx: ArchiveContext, elem: Element, parent: NibOb
 
     return obj
 
-def __xibparser_cell_flags(elem: Element, obj: NibObject, parent: NibObject) -> None:
+def __xibparser_cell_flags(elem: Element, obj: NibObject, _parent: NibObject) -> None:
     sendsAction = elem.attrib.get("sendsActionOnEndEditing", "NO") == "YES"
     sendsActionMask = CellFlags2.SENDS_ACTION_ON_END_EDITING if sendsAction else 0
     lineBreakMode = elem.attrib.get("lineBreakMode")
@@ -1540,10 +1540,27 @@ def __xibparser_cell_flags(elem: Element, obj: NibObject, parent: NibObject) -> 
         "mini": CellFlags2.CONTROL_SIZE_MINI,
         "small": CellFlags2.CONTROL_SIZE_SMALL,
     }[elem.attrib.get("controlSize")]
-
     obj.flagsOr("NSCellFlags", lineBreakModeMask | text_field_flag | selectable | state_on | scrollable | disabled | editable | bezeled)
     obj.flagsOr("NSCellFlags2", textAlignmentMask | sendsActionMask | lineBreakModeMask2 | refuses_first_responder_mask | size_flag)
-    parent["NSControlRefusesFirstResponder"] = refuses_first_responder
+
+CONTROL_SIZE_MAP = {
+    None: 0,
+    "small": 1,
+    "mini": 2,
+    "large": 0,
+    "regular": 0,
+}
+CONTROL_SIZE_MAP2 = {
+    None: 0,
+    "small": 1,
+    "mini": 2,
+    "large": 3,
+    "regular": 0,
+}
+
+def __xibparser_cell_options(elem: Element, obj: NibObject, parent: NibObject) -> None:
+    __xibparser_cell_flags(elem, obj, parent)
+    parent["NSControlRefusesFirstResponder"] = elem.attrib.get("refusesFirstResponder") == "YES"
     parent["NSControlLineBreakMode"] = {
         None: LineBreakMode.BY_WORD_WRAPPING,
         "wordWrapping": LineBreakMode.BY_WORD_WRAPPING,
@@ -1552,29 +1569,15 @@ def __xibparser_cell_flags(elem: Element, obj: NibObject, parent: NibObject) -> 
         "truncatingHead": LineBreakMode.BY_TRUNCATING_HEAD,
         "truncatingTail": LineBreakMode.BY_TRUNCATING_TAIL,
         "truncatingMiddle": LineBreakMode.BY_TRUNCATING_MIDDLE,
-    }[lineBreakMode].value
+    }[elem.attrib.get("lineBreakMode")].value
     if obj.originalclassname() in ['NSButtonCell', 'NSTextFieldCell', 'NSImageCell', 'NSSearchFieldCell', 'NSPopUpButtonCell']:
-        textAlignmentValue = {None: 4, "left": 0, "center": 1, "right": 2}[textAlignment]
+        textAlignmentValue = {None: 4, "left": 0, "center": 1, "right": 2}[elem.attrib.get("alignment")]
         parent["NSControlTextAlignment"] = textAlignmentValue
 
-    size_map = {
-        None: 0,
-        "small": 1,
-        "mini": 2,
-        "large": 0,
-        "regular": 0,
-    }
-    size_map2 = {
-        None: 0,
-        "small": 1,
-        "mini": 2,
-        "large": 3,
-        "regular": 0,
-    }
     control_size = elem.attrib.get("controlSize")
-    parent["NSControlSize"] = size_map[control_size]
-    parent["NSControlSize2"] = size_map2[control_size]
-    obj["NSControlSize2"] = size_map2[control_size]
+    parent["NSControlSize"] = CONTROL_SIZE_MAP[control_size]
+    parent["NSControlSize2"] = CONTROL_SIZE_MAP2[control_size]
+    obj["NSControlSize2"] = CONTROL_SIZE_MAP2[control_size]
 
 def _xibparser_parse_textFieldCell(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
     obj = XibObject(ctx, "NSTextFieldCell", elem, parent)
@@ -1582,7 +1585,7 @@ def _xibparser_parse_textFieldCell(ctx: ArchiveContext, elem: Element, parent: N
 
     key = elem.attrib.get("key")
     if key == "cell":
-        __xibparser_cell_flags(elem, obj, parent)
+        __xibparser_cell_options(elem, obj, parent)
 
         obj["NSContents"] = elem.attrib.get("title", NibString.intern(''))
         obj["NSSupport"] = NibNil() # TODO
@@ -1598,10 +1601,9 @@ def _xibparser_parse_textFieldCell(ctx: ArchiveContext, elem: Element, parent: N
     elif key == "dataCell":
         __xibparser_ParseChildren(ctx, elem, obj)
         parent["NSDataCell"] = obj
-        obj["NSCellFlags"] = 0
-        obj["NSCellFlags2"] = 0
-        obj["NSContents"] = NibString.intern("")
-        obj["NSControlSize2"] = 0
+        __xibparser_cell_flags(elem, obj, parent)
+        obj["NSContents"] = NibString.intern(elem.attrib.get("title", ""))
+        obj["NSControlSize2"] = CONTROL_SIZE_MAP2[elem.attrib.get("controlSize")]
         obj["NSControlView"] = parent
 
     return obj
@@ -1653,7 +1655,7 @@ def _xibparser_parse_buttonCell(ctx: ArchiveContext, elem: Element, parent: NibO
     ctx.extraNibObjects.append(obj)
 
     __xibparser_ParseChildren(ctx, elem, obj)
-    __xibparser_cell_flags(elem, obj, parent)
+    __xibparser_cell_options(elem, obj, parent)
     if title := elem.attrib.get("title"):
         obj["NSContents"] = title
     obj.setIfEmpty("NSSupport", NibObject("NSFont", obj, {
@@ -1915,7 +1917,7 @@ def _xibparser_parse_searchFieldCell(ctx: ArchiveContext, elem: Element, parent:
     assert parent.originalclassname() == "NSSearchField"
     obj = make_xib_object(ctx, "NSSearchFieldCell", elem, parent, view_attributes=False)
     __xibparser_ParseChildren(ctx, elem, obj)
-    __xibparser_cell_flags(elem, obj, parent)
+    __xibparser_cell_options(elem, obj, parent)
     obj["NSAutomaticTextCompletionStored"] = True
     obj["NSCancelButtonCell"] = NibObject("NSButtonCell", None, {
         "NSAccessibilityOverriddenAttributes": NibMutableList([
