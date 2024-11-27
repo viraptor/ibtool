@@ -823,11 +823,26 @@ def _xibparser_parse_textView(ctx: ArchiveContext, elem: Element, parent: Option
     shared_data["NSDefaultParagraphStyle"] = NibNil()
     shared_data["NSFlags"] = 0x901 | spelling_correction | editable | imports_graphics | rich_text | smart_insert_delete | preferred_find_style_flag
     shared_data["NSInsertionColor"] = makeSystemColor('textInsertionPointColor')
-    shared_data["NSLinkAttributes"] = NibDictionary([NibString.intern("NSColor")])
+    shared_data["NSLinkAttributes"] = NibDictionary([
+        NibString.intern("NSColor"),
+        makeSystemColor("linkColor"),
+        NibString.intern("NSCursor"),
+        NibObject("NSCursor", None, {
+            "NSCursorType": 13,
+            "NSHotSpot": NibString.intern("{8, -8}"),
+        }),
+        NibString.intern("NSUnderline"),
+        NibNSNumber(1),
+    ])
     shared_data["NSMarkedAttributes"] = NibNil()
     shared_data["NSMoreFlags"] = 0x1
     shared_data["NSPreferredTextFinderStyle"] = 0
-    shared_data["NSSelectedAttributes"] = NibDictionary([NibString.intern("NSBackgroundColor")])
+    shared_data["NSSelectedAttributes"] = NibDictionary([
+        NibString.intern("NSBackgroundColor"),
+        makeSystemColor("selectedTextBackgroundColor"),
+        NibString.intern("NSColor"),
+        makeSystemColor("selectedTextColor"),
+    ])
     shared_data["NSTextCheckingTypes"] = 0
     shared_data["NSTextFinder"] = NibNil()
     if preferred_find_style is not None:
@@ -2012,7 +2027,7 @@ def makeSystemColor(name):
             'NSColorSpace': 6,
             })
 
-    def systemRGBColorTemplate(name, sub_name, components, rgb):
+    def systemCustomRGBColorTemplate(name, sub_name, components, rgb):
         return NibObject("NSColor", None, {
             "NSCatalogName": NibString.intern("System"),
             "NSColorName": NibString.intern(name),
@@ -2028,7 +2043,20 @@ def makeSystemColor(name):
                     "NSCustomColorSpace": RGB_COLOR_SPACE,
                 }),
             })
-    })
+        })
+
+    def systemRGBColorTemplate(name, components, rgb):
+        return NibObject("NSColor", None, {
+            "NSCatalogName": NibString.intern("System"),
+            "NSColorName": NibString.intern(name),
+            "NSColorSpace": 6,
+            "NSColor": NibObject("NSColor", None, {
+                "NSColorSpace": 1,
+                "NSComponents": NibInlineString(components),
+                "NSRGB": NibInlineString(rgb),
+                "NSCustomColorSpace": RGB_COLOR_SPACE,
+            }),
+        })
 
 
     if name == 'controlColor':
@@ -2044,7 +2072,13 @@ def makeSystemColor(name):
     elif name == 'labelColor':
         return systemGrayColorTemplate(name, b'0 1', b'0\x00')
     elif name == 'textInsertionPointColor':
-        return systemRGBColorTemplate(name, 'systemBlueColor', '0 0 1 1', b'0 0 0.9981992245\x00')
+        return systemCustomRGBColorTemplate(name, 'systemBlueColor', '0 0 1 1', b'0 0 0.9981992245\x00')
+    elif name == 'selectedTextBackgroundColor':
+        return systemGrayColorTemplate(name, b'0.6666666667 1', b'0.602715373\x00')
+    elif name == 'selectedTextColor':
+        return systemGrayColorTemplate(name, b'0 1', b'0\x00')
+    elif name == 'linkColor':
+        return systemRGBColorTemplate(name, '0 0 1 1', b'0 0 0.9981992245\x00')
     else:
         raise Exception(f"unknown name {name}")
 
