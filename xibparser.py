@@ -15,6 +15,7 @@ from genlib import (
     NibDictionary,
     NibMutableDictionary,
     NibFloat,
+    NibFloatToWord,
     PropValue,
     PropPair,
 )
@@ -110,6 +111,8 @@ class ButtonFlags(IntEnum):
 
     TYPE_RADIO = 0x100
     TYPE_RECESSED = 0x0
+    TYPE_CHECK = 0x100
+    TYPE_ROUND_RECT = 0x100
 
     INSET_1 = 0x2000
     INSET_2 = 0x4000
@@ -1070,9 +1073,7 @@ def _xibparser_parse_scrollView(ctx: ArchiveContext, elem: Element, parent: Opti
     horizontal_page_scroll = int(elem.attrib.get("horizontalPageScroll", "10"))
     vertical_page_scroll = int(elem.attrib.get("verticalPageScroll", "10"))
     if (horizontal_line_scroll, vertical_line_scroll, horizontal_page_scroll, vertical_page_scroll) != (10, 10, 10, 10):
-        raise Exception("TODO: NSScrollAmts")
-        # TODO figure out the encoding
-        obj["NSScrollAmts"] = NibInlineString("...")
+        obj["NSScrollAmts"] = NibInlineString(NibFloatToWord(vertical_page_scroll) + NibFloatToWord(horizontal_page_scroll) + NibFloatToWord(vertical_line_scroll) + NibFloatToWord(horizontal_line_scroll))
 
     return obj
 
@@ -1119,6 +1120,42 @@ def _xibparser_parse_stackView(ctx: ArchiveContext, elem: Element, parent: Optio
         "fillProportionally": 2,
     }[elem.attrib.get("distribution")]
 
+    return obj
+
+def _xibparser_parse_outlineView(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> XibObject:
+    obj = make_xib_object(ctx, "NSOutlineView", elem, parent)
+    obj["NSSuperview"] = obj.xib_parent()
+
+    with __handle_view_chain(ctx, obj):
+        __xibparser_ParseChildren(ctx, elem, obj)
+    
+    if not obj.extraContext.get("parsed_autoresizing"):
+        obj.flagsOr("NSvFlags", vFlags.DEFAULT_VFLAGS_AUTOLAYOUT if ctx.useAutolayout else vFlags.DEFAULT_VFLAGS)
+
+    return obj
+
+def _xibparser_parse_tableColumns(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> None:
+    __xibparser_ParseChildren(ctx, elem, parent)
+
+def _xibparser_parse_tableColumn(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> XibObject:
+    obj = make_xib_object(ctx, "NSTableColumn", elem, parent)
+
+    __xibparser_ParseChildren(ctx, elem, obj)
+ 
+    return obj
+
+def _xibparser_parse_tableHeaderCell(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> NibObject:
+    obj = NibObject("NSTableHeaderCell", parent)
+
+    __xibparser_ParseChildren(ctx, elem, obj)
+ 
+    return obj
+
+def _xibparser_parse_tableFieldCell(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> XibObject:
+    obj = make_xib_object(ctx, "NSTableFieldCell", elem, parent)
+
+    __xibparser_ParseChildren(ctx, elem, obj)
+    
     return obj
 
 def default_pan_recognizer(scrollView: XibObject) -> NibObject:
@@ -1276,6 +1313,10 @@ def _xibparser_parse_autoresizingMask(_ctx: ArchiveContext, elem: Element, paren
         "widthSizable": bool(widthSizable),
         "heightSizable": bool(heightSizable),
     }
+
+
+def _xibparser_parse_tableColumnResizingMask(_ctx: ArchiveContext, elem: Element, parent: XibObject) -> None:
+    pass
 
 
 def _xibparser_parse_point(_ctx: ArchiveContext, elem: Element, _parent: NibObject) -> None:
@@ -1579,8 +1620,8 @@ def __xibparser_button_flags(elem: Element, obj: XibObject, parent: NibObject) -
     inset = min(max(inset, 0), 3)
     inset = {0: 0, 1: ButtonFlags.INSET_1, 2: ButtonFlags.INSET_2, 3: (ButtonFlags.INSET_1|ButtonFlags.INSET_2)}[inset]
     buttonType = elem.attrib.get("type", "push")
-    buttonTypeMask = {"push": 0, "radio": ButtonFlags.TYPE_RADIO, "recessed": ButtonFlags.TYPE_RECESSED}[buttonType]
-    buttonTypeMask2 = {"push": 0, "radio": 0, "recessed": ButtonFlags2.TYPE_RECESSED}[buttonType]
+    buttonTypeMask = {"push": 0, "radio": ButtonFlags.TYPE_RADIO, "recessed": ButtonFlags.TYPE_RECESSED, "check": ButtonFlags.TYPE_CHECK, "roundRect": ButtonFlags.TYPE_ROUND_RECT}[buttonType]
+    buttonTypeMask2 = {"push": 0, "radio": 0, "recessed": ButtonFlags2.TYPE_RECESSED, "check": 0, "roundRect": 0}[buttonType]
     borderStyle = elem.attrib.get("borderStyle")
     borderStyleMask = {None: 0, "border": ButtonFlags.BORDERED, "borderAndBezel": ButtonFlags.BORDERED | ButtonFlags.BEZEL}[borderStyle]
     imageScaling = elem.attrib.get("imageScaling")
@@ -1596,7 +1637,8 @@ def _xibparser_parse_buttonCell(ctx: ArchiveContext, elem: Element, parent: NibO
 
     __xibparser_ParseChildren(ctx, elem, obj)
     __xibparser_cell_flags(elem, obj, parent)
-    obj["NSContents"] = elem.attrib["title"]
+    if title := elem.attrib.get("title"):
+        obj["NSContents"] = title
     obj.setIfEmpty("NSSupport", NibObject("NSFont", obj, {
         "NSName": ".AppleSystemUIFont",
         "NSSize": 13.0,
@@ -1629,7 +1671,6 @@ def _xibparser_parse_buttonCell(ctx: ArchiveContext, elem: Element, parent: NibO
 def _xibparser_parse_font(ctx: ArchiveContext, elem: Element, parent: NibObject) -> NibObject:
     item = NibObject("NSFont")
     meta_font = elem.attrib.get("metaFont")
-    assert meta_font in ["system", "systemBold", "smallSystem", "miniSystem", "smallSystemBold"], f"metaFont: {meta_font}" # other options unknown
 
     if meta_font == 'system':
         item["NSName"] = NibString.intern(".AppleSystemUIFont")
@@ -1648,6 +1689,10 @@ def _xibparser_parse_font(ctx: ArchiveContext, elem: Element, parent: NibObject)
         item["NSSize"] = 11.0
         item["NSfFlags"] = 3357
     elif meta_font == 'miniSystem':
+        item["NSName"] = NibString.intern(".AppleSystemUIFont")
+        item["NSSize"] = 9.0
+        item["NSfFlags"] = 3614
+    elif meta_font == 'cellTitle':
         item["NSName"] = NibString.intern(".AppleSystemUIFont")
         item["NSSize"] = 9.0
         item["NSfFlags"] = 3614
@@ -1693,7 +1738,7 @@ def _xibparser_parse_string(ctx: ArchiveContext, elem: Element, parent: NibObjec
         raise Exception(f"unknown key {key}")
 
 def _xibparser_parse_color(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
-    assert isinstance(parent, XibObject), type(parent)
+    assert isinstance(parent, XibObject) or isinstance(parent, NibObject), type(parent)
     assert elem.attrib["colorSpace"] in ["catalog", "calibratedWhite"], elem.attrib["colorSpace"]
 
     key = elem.attrib["key"]
@@ -1714,6 +1759,7 @@ def _xibparser_parse_color(ctx: ArchiveContext, elem: Element, parent: NibObject
             "textColor": ["NSTextColor"],
             "backgroundColor": ["NSBackgroundColor"],
             "insertionPointColor": ["NSInsertionPointColor"],
+            "gridColor": ["NSGridColor"],
         }
     }
 
@@ -2090,6 +2136,12 @@ def makeSystemColor(name):
         return systemGrayColorTemplate(name, b'0 1', b'0\x00')
     elif name == 'linkColor':
         return systemRGBColorTemplate(name, '0 0 1 1', b'0 0 0.9981992245\x00')
+    elif name == 'gridColor':
+        return systemGrayColorTemplate(name, b'0.6666666667 1', b'0.602715373\x00')
+    elif name == 'headerTextColor':
+        return systemGrayColorTemplate(name, b'0.6666666667 1', b'0.602715373\x00')
+    elif name == 'headerColor':
+        return systemGrayColorTemplate(name, b'0.6666666667 1', b'0.602715373\x00')
     else:
         raise Exception(f"unknown name {name}")
 

@@ -27,6 +27,9 @@ class NibObject:
     def setclassname(self, newname: str):
         self._classname = newname
 
+    def originalclassname(self):
+        return self._classname
+
     def classname(self) -> str:
         return self._classname
 
@@ -201,8 +204,7 @@ class NibNil:
 
 
 def NibFloatToWord(num: int) -> bytes:
-    b = struct.pack("<f", num)
-    return struct.unpack("<I", b)[0]
+    return struct.pack(">f", num)
 
 
 class ArrayLike(NibObject):
