@@ -949,7 +949,11 @@ def _xibparser_parse_constraint(ctx: ArchiveContext, elem: Element, parent: Opti
     first_attribute = elem.attrib["firstAttribute"]
 
     obj = XibObject("NSLayoutConstraint", parent, elem.attrib["id"])
-    ctx.extraNibObjects.append(obj)
+    placeholder = elem.attrib.get("placeholder") == "YES"
+    if placeholder:
+        obj.extraContext["placeholder"] = True
+    else:
+        ctx.extraNibObjects.append(obj)
     obj["NSFirstAttribute"] = ATTRIBUTE_MAP[first_attribute]
     obj["NSFirstAttributeV2"] = ATTRIBUTE_MAP[first_attribute]
     if (second_attribute := elem.attrib.get("secondAttribute")) is not None:
@@ -963,6 +967,8 @@ def _xibparser_parse_constraint(ctx: ArchiveContext, elem: Element, parent: Opti
         obj["NSSecondItem"] = XibId(second_item)
     if (relation := elem.attrib.get("relation")) is not None:
         obj["NSRelation"] = {"greaterThanOrEqual": 1, "lessThanOrEqual": 2}[relation]
+    if placeholder:
+        obj["NSRelation"] = -1
     if (priority := elem.attrib.get("priority")) is not None:
         obj["NSPriority"] = int(priority)
 
@@ -973,9 +979,11 @@ def _xibparser_parse_constraint(ctx: ArchiveContext, elem: Element, parent: Opti
     if symbolic:
         obj["NSSymbolicConstant"] = NibString.intern("NSSpace")
     obj["NSShouldBeArchived"] = True
-    parent.setIfEmpty("NSViewConstraints", NibList())
-    ctx.constraints.append(obj)
-    cast(NibList, parent["NSViewConstraints"]).addItem(obj)
+
+    if not placeholder:
+        parent.setIfEmpty("NSViewConstraints", NibList())
+        ctx.constraints.append(obj)
+        cast(NibList, parent["NSViewConstraints"]).addItem(obj)
 
 
 def _xibparser_parse_imageCell(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> XibObject:
