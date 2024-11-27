@@ -1621,10 +1621,11 @@ def _xibparser_parse_buttonCell(ctx: ArchiveContext, elem: Element, parent: NibO
     obj["NSBezelStyle"] = {
         None: 0,
         "rounded": 1,
+        "regularSquare": 2,
         "circular": 7,
         "helpButton": 9,
         "smallSquare": 10,
-        "regularSquare": 12,
+        "roundedRect": 12,
         "recessed": 13
     }.get(elem.attrib.get("bezelStyle"))
     obj["NSAlternateContents"] = NibString.intern('')
