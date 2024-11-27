@@ -440,19 +440,6 @@ def makePlaceholderIdentifier() -> str:
     return "UpstreamPlaceholder-" + makexibid()
 
 
-def classSwapper(func: Callable):
-    def inner(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject], *args, **kwargs) -> NibObject:
-        obj = func(ctx, elem, parent, *args, **kwargs)
-        if obj:
-            if customClass := elem.attrib.get("customClass"):
-                obj.extraContext["original_class"] = obj.originalclassname()
-                obj.setclassname(customClass)
-
-        return obj
-
-    return inner
-
-
 def __xibparser_ParseXIBObject(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> NibObject:
     tag = elem.tag
     fnname = "_xibparser_parse_" + tag
@@ -467,6 +454,40 @@ def __xibparser_ParseXIBObject(ctx: ArchiveContext, elem: Element, parent: Optio
         return obj
     else:
         raise Exception(f"Unknown type {tag}")
+
+
+def _xibparser_handle_custom_class(ctx: ArchiveContext, elem: Element, obj: "XibObject") -> None:
+    custom_module = elem.attrib.get("customModule")
+    custom_module_provider = elem.attrib.get("customModuleProvider")
+    custom_class = elem.attrib.get("customClass")
+
+    if obj.xibid.is_negative_id():
+        if obj.xibid == XibId("-2"):
+            obj["NSClassName"] = NibString.intern(custom_class or "NSApplication")
+        else:
+            obj["NSClassName"] = NibString.intern("NSApplication")
+        if custom_class:
+            obj["IBClassReference"] = make_class_reference(custom_class or "NSApplication", None, None)
+    elif custom_class:
+        #print(obj.xibid, obj.originalclassname(), obj.classname(), custom_class)
+        if ctx.customObjectInstantitationMethod == "direct" and not (obj.originalclassname() in ["NSCustomObject", "NSWindowTemplate"] and not custom_module) or obj.originalclassname() == "NSView":
+            #print("direct")
+            if custom_module:
+                obj["NSClassName"] = NibString.intern(f"_TtC{len(custom_module)}{custom_module}{len(custom_class)}{custom_class}")
+            else:
+                obj["NSClassName"] = NibString.intern(custom_class)
+            if obj.classname() not in ["NSView", "NSCustomView"]:
+                obj["NSInitializeWithInit"] = True
+            final_original_class = {
+                "NSCustomObject": "NSObject",
+                "NSCustomView": "NSView",
+            }.get(obj.classname(), obj.classname())
+            obj["NSOriginalClassName"] = NibString.intern(final_original_class)
+            obj.setclassname("NSClassSwapper")
+        else:
+            #print("other")
+            obj["IBClassReference"] = make_class_reference(custom_class, custom_module, custom_module_provider)
+            obj["NSClassName"] = NibString.intern(f"_TtC{len(custom_module)}{custom_module}{len(custom_class)}{custom_class}" if custom_module else custom_class)
 
 
 def __xibparser_ParseChildren(ctx: ArchiveContext, elem: Element, obj: Optional[NibObject]) -> list[NibObject]:
@@ -499,12 +520,17 @@ def _xibparser_parse_interfacebuilder_properties(ctx: ArchiveContext, elem: Elem
 
 
 class XibObject(NibObject):
-    def __init__(self, classname: str, parent: Optional["NibObject"], xibid: Optional[str]) -> None:
+    def __init__(self, ctx: ArchiveContext, classname: str, elem: Optional[Element], parent: Optional["NibObject"], ) -> None:
         NibObject.__init__(self, classname, parent)
-        self.xibid: Optional[XibId] = None
-        if xibid is not None:
+
+        if elem is not None and (xibid := elem.attrib.get("id")) is not None:
             self.xibid = XibId(xibid)
+        else:
+            self.xibid = None
         self.extraContext: dict[str,Any] = {"original_class": classname}
+
+        if isinstance(self, XibObject) and elem is not None:
+            _xibparser_handle_custom_class(ctx, elem, self)
 
     def originalclassname(self) -> Optional[str]:
         name = self.extraContext.get("original_class")
@@ -512,6 +538,9 @@ class XibObject(NibObject):
             return self.classname()
         assert isinstance(name, str)
         return name
+    
+    def classname(self) -> str:
+        return self.extraContext.get("swapped_class") or super().classname()
     
     def xib_parent(self) -> Optional["XibObject"]:
         parent = self.parent()
@@ -584,59 +613,8 @@ class XibViewController(XibObject):
         self.sceneConnections: list[NibObject] = [] # Populated in ArchiveContext.resolveConnections()
 
 
-@classSwapper
-def _xibparser_parse_viewController(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject], **kwargs) -> XibViewController:
-    obj = XibViewController(kwargs.get("uikit_class") or "UIViewController")
-    ctx.extraNibObjects.append(obj)
-
-    if elem.attrib.get("sceneMemberID") == "viewController":
-        ctx.storyboardViewController = obj
-
-    obj.xibattributes = elem.attrib or {}
-    __xibparser_ParseChildren(ctx, elem, obj)
-    _xibparser_parse_interfacebuilder_properties(ctx, elem, parent, obj)
-    obj["UIStoryboardIdentifier"] = elem.attrib.get("storyboardIdentifier")
-
-    return obj
-
-
-"""
-List of attributes I've seen on 'view' elements
-
-Unhandled
-
-adjustsFontSizeToFit
-baselineAdjustment
-clipsSubviews
-horizontalHuggingPriority
-lineBreakMode
-opaque
-text
-userInteractionEnabled
-verticalHuggingPriority
-
-contentHorizontalAlignment="center"
-contentVerticalAlignment="center"
-buttonType="roundedRect"
-
-
-Started
-    key  -  'view' (for view controllers)
-
-Done
-    contentMode - TODO: Make sure the string values we check are correct.
-    customClass
-    restorationIdentifier
-    translatesAutoresizingMaskIntoConstraints
-
-WontDo
-    fixedFrame - I think this is only for interface builder. (it gets set on UISearchBar)
-    id - Not arhived in nib.
-"""
-
-
 def _xibparser_parse_view(ctx: ArchiveContext, elem: Element, parent: XibObject, **kwargs) -> XibObject:
-    obj = XibObject("NSView", parent, elem.attrib["id"])
+    obj = XibObject(ctx, "NSView", elem, parent)
     ctx.extraNibObjects.append(obj)
     obj.setrepr(elem)
 
@@ -667,17 +645,12 @@ def _xibparser_parse_view(ctx: ArchiveContext, elem: Element, parent: XibObject,
 
     if isMainView:
         ctx.isParsingStoryboardView = False
-    
-    if custom_class := elem.attrib.get("customClass"):
-        obj["NSOriginalClassName"] = obj.originalclassname()
-        obj.setclassname("NSClassSwapper")
-        obj["NSClassName"] = custom_class
 
     return obj
 
 
 def _xibparser_parse_customView(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> XibObject:
-    obj = XibObject("NSCustomView", parent, elem.attrib["id"])
+    obj = XibObject(ctx, "NSCustomView", elem, parent)
     ctx.extraNibObjects.append(obj)
     obj.setrepr(elem)
 
@@ -691,14 +664,6 @@ def _xibparser_parse_customView(ctx: ArchiveContext, elem: Element, parent: Opti
 
     if obj.get("NSNextKeyView"):
         del obj["NSNextKeyView"]
-    if custom_class := elem.attrib.get("customClass"):
-        if ctx.customObjectInstantitationMethod == "direct":
-            obj.setclassname("NSClassSwapper")
-            obj["NSClassName"] = custom_class
-            obj["NSOriginalClassName"] = "NSView"
-        else:
-            obj["NSClassName"] = custom_class
-            obj["IBClassReference"] = make_class_reference(custom_class)
 
     if not obj.extraContext.get("parsed_autoresizing"):
         obj.flagsOr("NSvFlags", vFlags.DEFAULT_VFLAGS_AUTOLAYOUT if ctx.useAutolayout else vFlags.DEFAULT_VFLAGS)
@@ -733,7 +698,7 @@ def _xibparser_common_view_attributes(ctx: ArchiveContext, elem: Element, parent
 
 
 def make_xib_object(ctx: ArchiveContext, classname: str, elem: Element, parent: Optional[NibObject], view_attributes: bool = True) -> XibObject:
-    obj = XibObject(classname, parent, elem.attrib.get("id"))
+    obj = XibObject(ctx, classname, elem, parent)
     if obj.xibid is not None:
         ctx.addObject(obj.xibid, obj)
     ctx.extraNibObjects.append(obj)
@@ -743,10 +708,6 @@ def make_xib_object(ctx: ArchiveContext, classname: str, elem: Element, parent: 
 
 def _xibparser_parse_button(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> XibObject:
     obj = make_xib_object(ctx, "NSButton", elem, parent)
-    if custom_class := elem.attrib.get("customClass"):
-        obj.setclassname("NSClassSwapper")
-        obj["NSOriginalClassName"] = "NSButton"
-        obj["NSClassName"] = custom_class
     obj["NSSuperview"] = obj.xib_parent()
     __xibparser_ParseChildren(ctx, elem, obj)
     obj["NSNextResponder"] = obj.xib_parent()
@@ -835,7 +796,7 @@ def _xibparser_parse_textView(ctx: ArchiveContext, elem: Element, parent: Option
         "bar": 0,
     }[elem.attrib.get("findStyle")]
 
-    shared_data = XibObject("NSTextViewSharedData", obj, None)
+    shared_data = XibObject(ctx, "NSTextViewSharedData", None, obj)
     shared_data["NSAutomaticTextCompletionDisabled"] = False
     shared_data["NSBackgroundColor"] = NibNil()
     shared_data["NSDefaultParagraphStyle"] = NibNil()
@@ -965,7 +926,7 @@ def _xibparser_parse_constraint(ctx: ArchiveContext, elem: Element, parent: Opti
     assert parent is not None
     first_attribute = elem.attrib["firstAttribute"]
 
-    obj = XibObject("NSLayoutConstraint", parent, elem.attrib["id"])
+    obj = XibObject(ctx, "NSLayoutConstraint", elem, parent)
     placeholder = elem.attrib.get("placeholder") == "YES"
     if placeholder:
         obj.extraContext["placeholder"] = True
@@ -1006,7 +967,7 @@ def _xibparser_parse_constraint(ctx: ArchiveContext, elem: Element, parent: Opti
 def _xibparser_parse_imageCell(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> XibObject:
     assert parent is not None
     assert parent.originalclassname() == "NSImageView"
-    obj = XibObject("NSImageCell", parent, elem.attrib.get("id"))
+    obj = XibObject(ctx, "NSImageCell", elem, parent)
     if obj.xibid:
         ctx.addObject(obj.xibid, obj)
     ctx.extraNibObjects.append(obj)
@@ -1239,7 +1200,7 @@ def _xibparser_parse_connections(ctx: ArchiveContext, elem: Element, parent: Opt
 
 
 def _xibparser_parse_outlet(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> None:
-    obj = XibObject("NSNibOutletConnector", parent, elem.attrib["id"])
+    obj = XibObject(ctx, "NSNibOutletConnector", elem, parent)
     obj["NSSource"] = parent
     obj["NSDestination"] = XibId(elem.attrib.get("destination"))
     obj["NSLabel"] = elem.attrib.get("property")
@@ -1340,7 +1301,7 @@ def _xibparser_parse_point(_ctx: ArchiveContext, elem: Element, _parent: NibObje
 
 
 def _xibparser_parse_window(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
-    item = XibObject("NSWindowTemplate", parent, elem.attrib["id"])
+    item = XibObject(ctx, "NSWindowTemplate", elem, parent)
     ctx.extraNibObjects.append(item)
     item.flagsOr("NSWTFlags", 0x780000) # default initial position mask, can be overriden by children
 
@@ -1359,7 +1320,9 @@ def _xibparser_parse_window(ctx: ArchiveContext, elem: Element, parent: NibObjec
 
     item["NSWindowTitle"] = NibString.intern(elem.attrib.get("title", ''))
     item["NSWindowSubtitle"] = ""
-    item["NSWindowClass"] = NibString.intern("NSWindow")
+    item["NSWindowClass"] = item.get("NSClassName") or NibString.intern("NSWindow")
+    if item.get("NSClassName"):
+        del item["NSClassName"]
     item["NSViewClass"] = NibNil() # TODO
     item["NSUserInterfaceItemIdentifier"] = NibNil() # TODO
     if not item.get("NSWindowView"):
@@ -1376,9 +1339,6 @@ def _xibparser_parse_window(ctx: ArchiveContext, elem: Element, parent: NibObjec
         ctx.visibleWindows.append(item)
     if frame_autosave_name := elem.attrib.get("frameAutosaveName"):
         item["NSFrameAutosaveName"] = NibString.intern(frame_autosave_name)
-    if custom_class := elem.attrib.get("customClass"):
-        item["IBClassReference"] = make_class_reference(custom_class)
-        item["NSWindowClass"] = custom_class
 
     # fixup the rects
     if item.extraContext.get("NSWindowRect"):
@@ -1410,33 +1370,20 @@ def make_class_reference(class_name: str, module_name: Optional[str]=None, modul
     })
 
 
-def _xibparser_parse_customObject(ctx, elem, parent):
-    obj = XibObject("NSCustomObject", parent, elem.attrib["id"])
+def _xibparser_parse_customObject(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
+    obj = XibObject(ctx, "NSCustomObject", elem, parent)
     if obj.xibid is not None:
         ctx.addObject(obj.xibid, obj)
     if not obj.xibid.is_negative_id():
         ctx.extraNibObjects.append(obj)
-    custom_module = elem.attrib.get("customModule")
-    custom_class = elem.attrib.get("customClass")
-    custom_module_provider = elem.attrib.get("customModuleProvider")
-
-    if custom_class:
-        if ctx.customObjectInstantitationMethod == "direct" and custom_module:
-            obj["NSClassName"] = NibString.intern(f"_TtC{len(custom_module)}{custom_module}{len(custom_class)}{custom_class}")
-            obj["NSInitializeWithInit"] = True
-            obj["NSOriginalClassName"] = NibString.intern("NSObject")
-            obj.setclassname("NSClassSwapper")
-        else:
-            obj["IBClassReference"] = make_class_reference(custom_class, custom_module, custom_module_provider)
-            if obj.xibid == XibId("-3"):
-                obj["NSClassName"] = NibString.intern("NSApplication")
-            else:
-                obj["NSClassName"] = NibString.intern(f"_TtC{len(custom_module)}{custom_module}{len(custom_class)}{custom_class}" if custom_module else custom_class)
-
+    
+    if elem.attrib.get("customClass"):
+        pass
     elif obj.xibid.is_negative_id():
         obj["NSClassName"] = NibString.intern("NSApplication")
     else:
         obj["NSClassName"] = NibString.intern("NSObject")
+
     __xibparser_ParseChildren(ctx, elem, obj)
     return obj
 
@@ -1585,7 +1532,7 @@ def __xibparser_cell_flags(elem: Element, obj: NibObject, parent: NibObject) -> 
     obj["NSControlSize2"] = size_map2[control_size]
 
 def _xibparser_parse_textFieldCell(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
-    obj = XibObject("NSTextFieldCell", parent, elem.attrib["id"])
+    obj = XibObject(ctx, "NSTextFieldCell", elem, parent)
     ctx.extraNibObjects.append(obj)
 
     key = elem.attrib.get("key")
@@ -1652,7 +1599,7 @@ def __xibparser_button_flags(elem: Element, obj: XibObject, parent: NibObject) -
 
 
 def _xibparser_parse_buttonCell(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
-    obj = XibObject("NSButtonCell", parent, elem.attrib["id"])
+    obj = XibObject(ctx, "NSButtonCell", elem, parent)
     ctx.extraNibObjects.append(obj)
 
     __xibparser_ParseChildren(ctx, elem, obj)
