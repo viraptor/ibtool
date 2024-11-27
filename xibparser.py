@@ -107,7 +107,7 @@ class ButtonFlags(IntEnum):
     IMAGE_DIMS_WHEN_DISABLED = 0x00002000
 
     TYPE_RADIO = 0x100
-    TYPE_RECESSED = 0x200
+    TYPE_RECESSED = 0x0
 
     INSET_1 = 0x2000
     INSET_2 = 0x4000
@@ -115,6 +115,7 @@ class ButtonFlags(IntEnum):
 class ButtonFlags2(IntEnum):
     BORDER_ONLY_WHILE_MOUSE_INSIDE = 0x8
     IMAGE_SCALING_PROPORTIONALLY_DOWN = 0x80
+    TYPE_RECESSED = 0x2d
 
 
 class CellFlags(IntEnum):
@@ -739,6 +740,7 @@ def _xibparser_parse_button(ctx: ArchiveContext, elem: Element, parent: Optional
     obj["IBNSShadowedSymbolConfiguration"] = NibNil()
     if not obj.extraContext.get("parsed_autoresizing"):
         obj.flagsOr("NSvFlags", vFlags.DEFAULT_VFLAGS_AUTOLAYOUT if ctx.useAutolayout else vFlags.DEFAULT_VFLAGS)
+    __xibparser_set_compression_priority(ctx, obj, elem)
     return obj
 
 
@@ -1393,14 +1395,7 @@ def _xibparser_parse_textField(ctx: ArchiveContext, elem: Element, parent: NibOb
     if not obj.extraContext.get("parsed_autoresizing"):
         obj.flagsOr("NSvFlags", vFlags.DEFAULT_VFLAGS_AUTOLAYOUT if ctx.useAutolayout else vFlags.DEFAULT_VFLAGS)
 
-    horizontal_compression_prio = elem.attrib.get('horizontalCompressionResistancePriority')
-    vertical_compression_prio = elem.attrib.get('verticalCompressionResistancePriority')
-    if horizontal_compression_prio is not None or vertical_compression_prio is not None:
-        if horizontal_compression_prio is None:
-            horizontal_compression_prio = "750"
-        if vertical_compression_prio is None:
-            vertical_compression_prio = "750"
-        obj["NSAntiCompressionPriority"] = f"{{{horizontal_compression_prio}, {vertical_compression_prio}}}"
+    __xibparser_set_compression_priority(ctx, obj, elem)
 
     return obj
 
@@ -1437,9 +1432,15 @@ def __xibparser_cell_flags(elem: Element, obj: NibObject, parent: NibObject) -> 
     disabled = 0 if elem.attrib.get("enabled", "YES") == "YES" else CellFlags.DISABLED
     editable = CellFlags.EDITABLE if elem.attrib.get("editable") == "YES" else 0
     bezeled = CellFlags.BEZELED if elem.attrib.get("borderStyle") == "bezel" else 0
+    size_flag = {
+        None: 0,
+        "regular": 0,
+        "mini": CellFlags2.CONTROL_SIZE_MINI,
+        "small": CellFlags2.CONTROL_SIZE_SMALL,
+    }[elem.attrib.get("controlSize")]
 
     obj.flagsOr("NSCellFlags", lineBreakModeMask | text_field_flag | selectable | state_on | scrollable | disabled | editable | bezeled)
-    obj.flagsOr("NSCellFlags2", textAlignmentMask | sendsActionMask | lineBreakModeMask2 | refuses_first_responder_mask)
+    obj.flagsOr("NSCellFlags2", textAlignmentMask | sendsActionMask | lineBreakModeMask2 | refuses_first_responder_mask | size_flag)
     parent["NSControlRefusesFirstResponder"] = refuses_first_responder
     parent["NSControlLineBreakMode"] = {
         None: LineBreakMode.BY_WORD_WRAPPING,
@@ -1525,8 +1526,9 @@ def _xibparser_parse_buttonCell(ctx: ArchiveContext, elem: Element, parent: NibO
     inset = {0: 0, 1: ButtonFlags.INSET_1, 2: ButtonFlags.INSET_2, 3: (ButtonFlags.INSET_1|ButtonFlags.INSET_2)}[inset]
     buttonType = elem.attrib.get("type", "push")
     buttonTypeMask = {"push": 0, "radio": ButtonFlags.TYPE_RADIO, "recessed": ButtonFlags.TYPE_RECESSED}[buttonType]
+    buttonTypeMask2 = {"push": 0, "radio": 0, "recessed": ButtonFlags2.TYPE_RECESSED}[buttonType]
     bezelStyleName = elem.attrib.get("bezelStyle")
-    bezelStyle = {None: 0, "rounded": 1, "recessed": 13}[bezelStyleName]
+    bezelStyle = {None: 0, "rounded": 1, "circular": 7, "helpButton": 9, "smallSquare": 10, "recessed": 13}.get(bezelStyleName, 0)
     borderStyle = elem.attrib.get("borderStyle")
     borderStyleMask = {None: 0, "border": ButtonFlags.BORDERED}[borderStyle]
     imageScaling = elem.attrib.get("imageScaling")
@@ -1542,7 +1544,7 @@ def _xibparser_parse_buttonCell(ctx: ArchiveContext, elem: Element, parent: NibO
     }))
     obj["NSControlView"] = parent
     obj.flagsOr("NSButtonFlags", inset | buttonTypeMask | borderStyleMask | 0xffffffff00000000)
-    obj.flagsOr("NSButtonFlags2", 0x1 | imageScalingMask)
+    obj.flagsOr("NSButtonFlags2", 0x1 | imageScalingMask | buttonTypeMask2)
     if buttonType == "radio":
         obj["NSAlternateContents"] = NibObject("NSButtonImageSource", None, {
             "NSImageName": "NSRadioButton"
@@ -1605,6 +1607,8 @@ def _xibparser_parse_behavior(ctx: ArchiveContext, elem: Element, parent: NibObj
         parent["NSAuxButtonType"] = 1
     elif value == 0x36000000:
         parent["NSAuxButtonType"] = 6
+    elif value == 0x86000000:
+        parent["NSAuxButtonType"] = 7
     elif value == sum(maskmap.values()):
         parent["NSAuxButtonType"] = 7
     else:
@@ -1737,6 +1741,13 @@ def _xibparser_parse_searchField(ctx: ArchiveContext, elem: Element, parent: Nib
     obj["NSTextFieldAlignmentRectInsetsVersion"] = 2
     obj["NSvFlags"] = vFlags.DEFAULT_VFLAGS_AUTOLAYOUT
 
+    __xibparser_set_compression_priority(ctx, obj, elem)
+
+    obj.setIfNotDefault("NSViewIsLayerTreeHost", elem.attrib.get("wantsLayer") == "YES", False)
+
+    return obj
+
+def __xibparser_set_compression_priority(ctx: ArchiveContext, obj: XibObject, elem: Element) -> None:
     horizontal_compression_prio = elem.attrib.get('horizontalCompressionResistancePriority')
     vertical_compression_prio = elem.attrib.get('verticalCompressionResistancePriority')
     if horizontal_compression_prio is not None or vertical_compression_prio is not None:
@@ -1745,10 +1756,6 @@ def _xibparser_parse_searchField(ctx: ArchiveContext, elem: Element, parent: Nib
         if vertical_compression_prio is None:
             vertical_compression_prio = "750"
         obj["NSAntiCompressionPriority"] = f"{{{horizontal_compression_prio}, {vertical_compression_prio}}}"
-
-    obj.setIfNotDefault("NSViewIsLayerTreeHost", elem.attrib.get("wantsLayer") == "YES", False)
-
-    return obj
 
 def _xibparser_parse_searchFieldCell(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> XibObject:
     assert parent is not None
