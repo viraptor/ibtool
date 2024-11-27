@@ -1600,7 +1600,7 @@ def _xibparser_parse_behavior(ctx: ArchiveContext, elem: Element, parent: NibObj
         "lightByBackground": 1<<26,
         "lightByGray": 1<<25,
     }
-    value = sum((elem.attrib[attr] == "YES") * val for attr, val in maskmap.items())
+    value = sum((elem.attrib.get(attr) == "YES") * val for attr, val in maskmap.items())
     if value == sum(maskmap.values()):
         parent["NSAuxButtonType"] = 7
     else:
