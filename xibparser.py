@@ -504,7 +504,7 @@ class XibObject(NibObject):
         self.xibid: Optional[XibId] = None
         if xibid is not None:
             self.xibid = XibId(xibid)
-        self.extraContext: dict[str,Any] = {}
+        self.extraContext: dict[str,Any] = {"original_class": classname}
 
     def originalclassname(self) -> Optional[str]:
         name = self.extraContext.get("original_class")
@@ -654,7 +654,7 @@ def _xibparser_parse_view(ctx: ArchiveContext, elem: Element, parent: XibObject,
         raise Exception(f"view in unknown key {key} (parent {parent.repr()})")
 
     isMainView = key == "view"  # and isinstance(parent, XibViewController)?
-    
+
     # Parse these props first, in case any of our children point to us.
     _xibparser_parse_interfacebuilder_properties(ctx, elem, parent, obj)
     __xibparser_ParseChildren(ctx, elem, obj)
@@ -667,6 +667,11 @@ def _xibparser_parse_view(ctx: ArchiveContext, elem: Element, parent: XibObject,
 
     if isMainView:
         ctx.isParsingStoryboardView = False
+    
+    if custom_class := elem.attrib.get("customClass"):
+        obj["NSOriginalClassName"] = obj.originalclassname()
+        obj.setclassname("NSClassSwapper")
+        obj["NSClassName"] = custom_class
 
     return obj
 
@@ -684,15 +689,22 @@ def _xibparser_parse_customView(ctx: ArchiveContext, elem: Element, parent: Opti
     _xibparser_common_view_attributes(ctx, elem, parent, obj, topLevelView=(parent is None))
     obj.setIfNotDefault("NSViewIsLayerTreeHost", elem.attrib.get("wantsLayer") == "YES", False)
 
-    del obj["NSNextKeyView"]
+    if obj.get("NSNextKeyView"):
+        del obj["NSNextKeyView"]
     if custom_class := elem.attrib.get("customClass"):
-        obj["IBClassReference"] = make_class_reference(custom_class)
-        obj["NSClassName"] = custom_class
+        if ctx.customObjectInstantitationMethod == "direct":
+            obj.setclassname("NSClassSwapper")
+            obj["NSClassName"] = custom_class
+            obj["NSOriginalClassName"] = "NSView"
+        else:
+            obj["NSClassName"] = custom_class
+            obj["IBClassReference"] = make_class_reference(custom_class)
 
     if not obj.extraContext.get("parsed_autoresizing"):
         obj.flagsOr("NSvFlags", vFlags.DEFAULT_VFLAGS_AUTOLAYOUT if ctx.useAutolayout else vFlags.DEFAULT_VFLAGS)
 
-    obj["NSViewClipsToBoundsKeyName"] = True
+    if elem.attrib.get("clipsToBounds") == "YES":
+        obj["NSViewClipsToBoundsKeyName"] = True
 
     return obj
 
@@ -1138,7 +1150,7 @@ def _xibparser_parse_tableColumns(ctx: ArchiveContext, elem: Element, parent: Op
     __xibparser_ParseChildren(ctx, elem, parent)
 
 def _xibparser_parse_tableColumn(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> XibObject:
-    obj = make_xib_object(ctx, "NSTableColumn", elem, parent)
+    obj = make_xib_object(ctx, "NSTableColumn", elem, parent, view_attributes=False)
 
     __xibparser_ParseChildren(ctx, elem, obj)
  
@@ -1575,18 +1587,26 @@ def __xibparser_cell_flags(elem: Element, obj: NibObject, parent: NibObject) -> 
 def _xibparser_parse_textFieldCell(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
     obj = XibObject("NSTextFieldCell", parent, elem.attrib["id"])
     ctx.extraNibObjects.append(obj)
-    __xibparser_cell_flags(elem, obj, parent)
 
-    obj["NSContents"] = elem.attrib.get("title", NibString.intern(''))
-    obj["NSSupport"] = NibNil() # TODO
-    obj["NSControlView"] = obj.xib_parent()
-    if ctx.toolsVersion < 23504:
-        obj["NSCharacterPickerEnabled"] = True
-    if elem.attrib.get("drawsBackground") == "YES":
-        obj["NSDrawsBackground"] = True
-    __xibparser_ParseChildren(ctx, elem, obj)
+    key = elem.attrib.get("key")
+    if key == "cell":
+        __xibparser_cell_flags(elem, obj, parent)
 
-    parent["NSCell"] = obj
+        obj["NSContents"] = elem.attrib.get("title", NibString.intern(''))
+        obj["NSSupport"] = NibNil() # TODO
+        obj["NSControlView"] = obj.xib_parent()
+        if ctx.toolsVersion < 23504:
+            obj["NSCharacterPickerEnabled"] = True
+        if elem.attrib.get("drawsBackground") == "YES":
+            obj["NSDrawsBackground"] = True
+        __xibparser_ParseChildren(ctx, elem, obj)
+
+        parent["NSCell"] = obj
+
+    elif key == "dataCell":
+        __xibparser_ParseChildren(ctx, elem, obj)
+        parent["NSDataCell"] = obj
+
     return obj
 
 
@@ -1657,6 +1677,7 @@ def _xibparser_parse_buttonCell(ctx: ArchiveContext, elem: Element, parent: NibO
         "circular": 7,
         "helpButton": 9,
         "smallSquare": 10,
+        "regularSquare": 12,
         "recessed": 13
     }.get(elem.attrib.get("bezelStyle"))
     obj["NSAlternateContents"] = NibString.intern('')
