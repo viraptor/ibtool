@@ -22,6 +22,7 @@ else
 		samples/test11_text_view_back.xib
 		samples/test12_text_view_border.xib
 		samples/test13_clip_flags.xib
+		samples/test14_custom_classes.xib
 		"
 fi
 
