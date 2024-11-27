@@ -1552,7 +1552,7 @@ def _xibparser_parse_buttonCell(ctx: ArchiveContext, elem: Element, parent: NibO
     obj.setIfEmpty("NSKeyEquivalent", NibString.intern(''))
     obj["NSPeriodicDelay"] = 400
     obj["NSPeriodicInterval"] = 75
-    obj["NSAuxButtonType"] = 7
+    obj.setIfEmpty("NSAuxButtonType", 7)
     parent["NSCell"] = obj
 
     if borderStyle == "border":
@@ -1601,7 +1601,11 @@ def _xibparser_parse_behavior(ctx: ArchiveContext, elem: Element, parent: NibObj
         "lightByGray": 1<<25,
     }
     value = sum((elem.attrib.get(attr) == "YES") * val for attr, val in maskmap.items())
-    if value == sum(maskmap.values()):
+    if value == 0xb6000000:
+        parent["NSAuxButtonType"] = 1
+    elif value == 0x36000000:
+        parent["NSAuxButtonType"] = 6
+    elif value == sum(maskmap.values()):
         parent["NSAuxButtonType"] = 7
     else:
         parent["NSAuxButtonType"] = 0
