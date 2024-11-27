@@ -13,6 +13,7 @@ from genlib import (
     NibMutableList,
     NibMutableSet,
     NibDictionary,
+    NibFloat,
     PropValue,
     PropPair,
 )
@@ -106,6 +107,7 @@ class ButtonFlags(IntEnum):
     IMAGE_DIMS_WHEN_DISABLED = 0x00002000
 
     TYPE_RADIO = 0x100
+    TYPE_RECESSED = 0x200
 
     INSET_1 = 0x2000
     INSET_2 = 0x4000
@@ -162,7 +164,10 @@ class CellFlags2(IntEnum):
     LINE_BREAK_MODE_TRUNCATING_HEAD = 0x600
     LINE_BREAK_MODE_TRUNCATING_TAIL = 0x800
     LINE_BREAK_MODE_TRUNCATING_MIDDLE = 0xa00
+
     CONTROL_SIZE_MASK = 0x000E0000
+    CONTROL_SIZE_SMALL = 0x20000
+    CONTROL_SIZE_MINI = 0x40000
 
 class LineBreakMode(Enum):
     BY_WORD_WRAPPING = 0
@@ -309,7 +314,8 @@ class ArchiveContext:
     def processConstraints(self) -> None:
         for constraint in self.constraints:
             self._add_translation_flag(constraint["NSFirstItem"])
-            self._add_translation_flag(constraint.get("NSSecondItem"))
+            if second_item := constraint.get("NSSecondItem"):
+                self._add_translation_flag(second_item)
 
     def resolveConnections(self) -> None:
         self._resolveConnections_xib()
@@ -526,7 +532,7 @@ class XibObject(NibObject):
         else:
             insets = None
 
-        if auto_resizing := self.extraContext.get("parsed_autoresizing"):
+        if self.xib_parent() and (auto_resizing := self.extraContext.get("parsed_autoresizing")):
             assert (parent := self.xib_parent())
             if my_frame := self.extraContext.get("NSFrame"):
                 x, y, mw, mh = my_frame
@@ -659,12 +665,34 @@ def _xibparser_parse_view(ctx: ArchiveContext, elem: Element, parent: XibObject,
     return obj
 
 
-def _xibparser_common_view_attributes(_ctx: ArchiveContext, elem: Element, parent: Optional[NibObject], obj: XibObject, topLevelView: bool = False) -> None:
-    assert parent is not None
+def _xibparser_parse_customView(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> XibObject:
+    obj = XibObject("NSCustomView", parent, elem.attrib["id"])
+    ctx.extraNibObjects.append(obj)
+    obj.setrepr(elem)
 
+    # Parse these props first, in case any of our children point to us.
+    _xibparser_parse_interfacebuilder_properties(ctx, elem, parent, obj)
+    with __handle_view_chain(ctx, obj):
+        __xibparser_ParseChildren(ctx, elem, obj)
+
+    _xibparser_common_view_attributes(ctx, elem, parent, obj, topLevelView=(parent is None))
+    obj.setIfNotDefault("NSViewIsLayerTreeHost", elem.attrib.get("wantsLayer") == "YES", False)
+
+    if custom_class := elem.attrib.get("customClass"):
+        obj["IBClassReference"] = make_class_reference(custom_class)
+        obj["NSWindowClass"] = custom_class
+        obj["NSClassName"] = custom_class
+
+    if not obj.extraContext.get("parsed_autoresizing"):
+        obj.flagsOr("NSvFlags", vFlags.DEFAULT_VFLAGS_AUTOLAYOUT if ctx.useAutolayout else vFlags.DEFAULT_VFLAGS)
+
+    return obj
+
+
+def _xibparser_common_view_attributes(_ctx: ArchiveContext, elem: Element, parent: Optional[NibObject], obj: XibObject, topLevelView: bool = False) -> None:
     obj["IBNSSafeAreaLayoutGuide"] = NibNil()
     obj["IBNSLayoutMarginsGuide"] = NibNil()
-    obj["IBNSClipsToBounds"] = 0
+    obj["IBNSClipsToBounds"] = int(elem.attrib.get("clipsToBounds") == "YES")
     if elem.attrib.get("hidden", "NO") == "YES":
         obj.flagsOr("NSvFlags", vFlags.HIDDEN)
     obj.flagsOr("NSvFlags", vFlags.AUTORESIZES_SUBVIEWS)
@@ -692,18 +720,20 @@ def make_xib_object(ctx: ArchiveContext, classname: str, elem: Element, parent: 
 
 def _xibparser_parse_button(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> XibObject:
     obj = make_xib_object(ctx, "NSButton", elem, parent)
+    if custom_class := elem.attrib.get("customClass"):
+        obj.setclassname("NSClassSwapper")
+        obj["NSOriginalClassName"] = "NSButton"
+        obj["NSClassName"] = custom_class
     obj["NSSuperview"] = obj.xib_parent()
     __xibparser_ParseChildren(ctx, elem, obj)
     obj.setIfEmpty("NSFrame", NibNil())
     obj["NSEnabled"] = True
     obj.setIfEmpty("NSCell", NibNil())
     obj["NSAllowsLogicalLayoutDirection"] = False
-    obj["NSControlSize"] = 0
-    obj["NSControlSize2"] = 0
     obj["NSControlContinuous"] = False
     obj["NSControlRefusesFirstResponder"] = elem.attrib.get("refusesFirstResponder", "NO") == "YES"
     obj["NSControlUsesSingleLineMode"] = False
-    obj["NSControlLineBreakMode"] = 0
+    obj.setIfEmpty("NSControlLineBreakMode", 0)
     obj["NSControlWritingDirection"] = -1
     obj["NSControlSendActionMask"] = 4
     obj["IBNSShadowedSymbolConfiguration"] = NibNil()
@@ -711,6 +741,19 @@ def _xibparser_parse_button(ctx: ArchiveContext, elem: Element, parent: Optional
         obj.flagsOr("NSvFlags", vFlags.DEFAULT_VFLAGS_AUTOLAYOUT if ctx.useAutolayout else vFlags.DEFAULT_VFLAGS)
     return obj
 
+
+def _xibparser_parse_popUpButton(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> XibObject:
+    obj = make_xib_object(ctx, "NSPopUpButton", elem, parent)
+    obj["NSSuperview"] = obj.xib_parent()
+    __xibparser_ParseChildren(ctx, elem, obj)
+    return obj
+
+def _xibparser_parse_popUpButtonCell(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> XibObject:
+    obj = make_xib_object(ctx, "NSPopUpButtonCell", elem, parent)
+    obj["NSSuperview"] = obj.xib_parent()
+    __xibparser_ParseChildren(ctx, elem, obj)
+    __xibparser_cell_flags(elem, obj, parent)
+    return obj
 
 def __parse_size(size: str) -> tuple[int, int]:
     return tuple(int(x) for x in re.findall(r'-?\d+', size))
@@ -804,8 +847,6 @@ def _xibparser_parse_imageView(ctx: ArchiveContext, elem: Element, parent: Optio
     obj["IBNSShadowedSymbolConfiguration"] = NibNil()
     obj["NSAllowsLogicalLayoutDirection"] = False
     obj["NSControlContinuous"] = False
-    obj["NSControlSize"] = 0
-    obj["NSControlSize2"] = 0
     obj["NSControlUsesSingleLineMode"] = False
     obj["NSControlWritingDirection"] = -1
     obj["NSDragTypes"] = default_drag_types()
@@ -870,7 +911,7 @@ def _xibparser_parse_constraint(ctx: ArchiveContext, elem: Element, parent: Opti
     if (second_item := elem.attrib.get("secondItem")) is not None:
         obj["NSSecondItem"] = XibId(second_item)
     if (relation := elem.attrib.get("relation")) is not None:
-        obj["NSRelation"] = {"greaterThanOrEqual": 1}[relation]
+        obj["NSRelation"] = {"greaterThanOrEqual": 1, "lessThanOrEqual": 2}[relation]
     if (priority := elem.attrib.get("priority")) is not None:
         obj["NSPriority"] = int(priority)
 
@@ -908,7 +949,6 @@ def _xibparser_parse_imageCell(ctx: ArchiveContext, elem: Element, parent: Optio
         "proportionallyUpOrDown": 3,
     }[elem.attrib.get("imageScaling", "none")]
     obj["NSStyle"] = 0
-    obj["NSControlSize2"] = 0
     if image_name := elem.attrib.get("image"):
         obj["NSContents"] = make_system_image(image_name, obj)
     parent["NSCell"] = obj
@@ -975,6 +1015,51 @@ def _xibparser_parse_scrollView(ctx: ArchiveContext, elem: Element, parent: Opti
 
     return obj
 
+def _xibparser_parse_stackView(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> XibObject:
+    obj = make_xib_object(ctx, "NSStackView", elem, parent)
+    obj["NSSuperview"] = obj.xib_parent()
+
+    with __handle_view_chain(ctx, obj):
+        __xibparser_ParseChildren(ctx, elem, obj)
+    
+    if not obj.extraContext.get("parsed_autoresizing"):
+        obj.flagsOr("NSvFlags", vFlags.DEFAULT_VFLAGS_AUTOLAYOUT if ctx.useAutolayout else vFlags.DEFAULT_VFLAGS)
+
+    obj["NSStackViewAlignment"] = 10
+    obj["NSStackViewBeginningContainer"] = NibObject("NSStackViewContainer", obj, {
+        "IBNSClipsToBounds": 0,
+        "IBNSLayoutMarginsGuide": NibNil(),
+        "IBNSSafeAreaLayoutGuide": NibNil(),
+        "NSDoNotTranslateAutoresizingMask": True,
+        "NSFrameSize": NibString.intern("{0, 0}"),
+        "NSNextResponder": NibNil(),
+        "NSNibTouchBar": NibNil(),
+        "NSStackViewContainerNonDroppedViews": NibMutableList(obj["NSSubviews"]._items),
+        "NSStackViewContainerStackView": obj,
+        "NSStackViewContainerVisibilityPriorities": NibNil(),
+        "NSStackViewContainerViewToCustomAfterSpaceMap": NibNil(),
+        "NSViewWantsBestResolutionOpenGLSurface": True,
+        "NSvFlags": vFlags.AUTORESIZES_SUBVIEWS,
+    })
+    obj["NSStackViewDetachesHiddenViews"] = True
+    obj["NSStackViewEdgeInsets.bottom"] = NibFloat(0.0)
+    obj["NSStackViewEdgeInsets.left"] = NibFloat(0.0)
+    obj["NSStackViewEdgeInsets.right"] = NibFloat(0.0)
+    obj["NSStackViewEdgeInsets.top"] = NibFloat(0.0)
+    obj["NSStackViewHasFlatViewHierarchy"] = True
+    obj["NSStackViewHorizontalClippingResistance"] = NibFloat(float(elem.attrib.get("horizontalClippingResistancePriority")))
+    obj["NSStackViewHorizontalHugging"] = NibFloat(float(elem.attrib.get("horizontalStackHuggingPriority")))
+    obj["NSStackViewVerticalClippingResistance"] = NibFloat(float(elem.attrib.get("verticalClippingResistancePriority", "1000")))
+    obj["NSStackViewVerticalHugging"] = NibFloat(float(elem.attrib.get("verticalStackHuggingPriority")))
+    obj["NSStackViewOrientation"] = 0
+    obj["NSStackViewSecondaryAlignment"] = 3
+    obj["NSStackViewSpacing"] = NibFloat(1.0)
+    obj["NSStackViewdistribution"] = {
+        "fillProportionally": 2,
+    }[elem.attrib.get("distribution")]
+
+    return obj
+
 def default_pan_recognizer(scrollView: XibObject) -> NibObject:
     obj = NibObject("NSPanGestureRecognizer", None)
     obj["NSGestureRecognizer.action"] = NibString.intern("_panWithGestureRecognizer:")
@@ -1031,7 +1116,10 @@ def _xibparser_parse_clipView(ctx: ArchiveContext, elem: Element, parent: Option
 def _xibparser_parse_subviews(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> None:
     assert parent is not None
     views = __xibparser_ParseChildren(ctx, elem, parent)
-    parent["NSSubviews"] = NibMutableList(views)
+    if parent.originalclassname() == "NSCustomView":
+        parent["NSSubviews"] = NibMutableList(reversed(views))
+    else:
+        parent["NSSubviews"] = NibMutableList(views)
 
 
 # Types of connections: outlet, action, segue, *outletConnection (any more?)
@@ -1295,8 +1383,6 @@ def _xibparser_parse_textField(ctx: ArchiveContext, elem: Element, parent: NibOb
     obj["NSEnabled"] = True
     obj.setIfEmpty("NSCell", NibNil())
     obj["NSAllowsLogicalLayoutDirection"] = False
-    obj["NSControlSize"] = 0
-    obj["NSControlSize2"] = 0
     obj["NSControlContinuous"] = False
     obj["NSControlRefusesFirstResponder"] = elem.attrib.get("refusesFirstResponder", "NO") == "YES"
     obj["NSControlUsesSingleLineMode"] = False
@@ -1344,7 +1430,7 @@ def __xibparser_cell_flags(elem: Element, obj: NibObject, parent: NibObject) -> 
     textAlignmentMask = {None: CellFlags2.TEXT_ALIGN_NONE, "left": CellFlags2.TEXT_ALIGN_LEFT, "center": CellFlags2.TEXT_ALIGN_CENTER, "right": CellFlags2.TEXT_ALIGN_RIGHT}[textAlignment]
     selectable = (CellFlags.SELECTABLE + 1) if elem.attrib.get("selectable") == "YES" else 0
     state_on = CellFlags.STATE_ON if (elem.attrib.get("state") == "on") else 0
-    text_field_flag = CellFlags.UNKNOWN_TEXT_FIELD if obj.originalclassname() in ["NSTextFieldCell", "NSButtonCell"] else 0
+    text_field_flag = CellFlags.UNKNOWN_TEXT_FIELD if obj.originalclassname() in ["NSTextFieldCell", "NSButtonCell", "NSSearchFieldCell"] else 0
     refuses_first_responder = elem.attrib.get("refusesFirstResponder", "NO") == "YES"
     refuses_first_responder_mask = CellFlags2.REFUSES_FIRST_RESPONDER if refuses_first_responder else 0
     scrollable = CellFlags.SCROLLABLE if elem.attrib.get("scrollable", "NO") == "YES" else 0
@@ -1364,16 +1450,34 @@ def __xibparser_cell_flags(elem: Element, obj: NibObject, parent: NibObject) -> 
         "truncatingTail": LineBreakMode.BY_TRUNCATING_TAIL,
         "truncatingMiddle": LineBreakMode.BY_TRUNCATING_MIDDLE,
     }[lineBreakMode].value
-    if obj.originalclassname() in ['NSButtonCell', 'NSTextFieldCell', 'NSImageCell']:
+    if obj.originalclassname() in ['NSButtonCell', 'NSTextFieldCell', 'NSImageCell', 'NSSearchFieldCell']:
         textAlignmentValue = {None: 4, "left": 0, "center": 1, "right": 2}[textAlignment]
         parent["NSControlTextAlignment"] = textAlignmentValue
+
+    size_map = {
+        None: 0,
+        "small": 1,
+        "mini": 2,
+        "large": 0,
+        "regular": 0,
+    }
+    size_map2 = {
+        None: 0,
+        "small": 1,
+        "mini": 2,
+        "large": 3,
+        "regular": 0,
+    }
+    control_size = elem.attrib.get("controlSize")
+    parent["NSControlSize"] = size_map[control_size]
+    parent["NSControlSize2"] = size_map2[control_size]
+    obj["NSControlSize2"] = size_map2[control_size]
 
 def _xibparser_parse_textFieldCell(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
     obj = XibObject("NSTextFieldCell", parent, elem.attrib["id"])
     ctx.extraNibObjects.append(obj)
     __xibparser_cell_flags(elem, obj, parent)
 
-    obj["NSControlSize2"] = 0
     obj["NSContents"] = elem.attrib.get("title", NibString.intern(''))
     obj["NSSupport"] = NibNil() # TODO
     obj["NSControlView"] = obj.xib_parent()
@@ -1420,9 +1524,9 @@ def _xibparser_parse_buttonCell(ctx: ArchiveContext, elem: Element, parent: NibO
     inset = min(max(inset, 0), 3)
     inset = {0: 0, 1: ButtonFlags.INSET_1, 2: ButtonFlags.INSET_2, 3: (ButtonFlags.INSET_1|ButtonFlags.INSET_2)}[inset]
     buttonType = elem.attrib.get("type", "push")
-    buttonTypeMask = {"push": 0, "radio": ButtonFlags.TYPE_RADIO}[buttonType]
+    buttonTypeMask = {"push": 0, "radio": ButtonFlags.TYPE_RADIO, "recessed": ButtonFlags.TYPE_RECESSED}[buttonType]
     bezelStyleName = elem.attrib.get("bezelStyle")
-    bezelStyle = {None: 0, "rounded": 1}[bezelStyleName]
+    bezelStyle = {None: 0, "rounded": 1, "recessed": 13}[bezelStyleName]
     borderStyle = elem.attrib.get("borderStyle")
     borderStyleMask = {None: 0, "border": ButtonFlags.BORDERED}[borderStyle]
     imageScaling = elem.attrib.get("imageScaling")
@@ -1430,13 +1534,12 @@ def _xibparser_parse_buttonCell(ctx: ArchiveContext, elem: Element, parent: NibO
 
     __xibparser_ParseChildren(ctx, elem, obj)
     __xibparser_cell_flags(elem, obj, parent)
-    obj["NSControlSize2"] = 0
     obj["NSContents"] = elem.attrib["title"]
-    obj["NSSupport"] = NibObject("NSFont", obj, {
+    obj.setIfEmpty("NSSupport", NibObject("NSFont", obj, {
         "NSName": ".AppleSystemUIFont",
         "NSSize": 13.0,
         "NSfFlags": 1044,
-        })
+    }))
     obj["NSControlView"] = parent
     obj.flagsOr("NSButtonFlags", inset | buttonTypeMask | borderStyleMask | 0xffffffff00000000)
     obj.flagsOr("NSButtonFlags2", 0x1 | imageScalingMask)
@@ -1461,7 +1564,7 @@ def _xibparser_parse_buttonCell(ctx: ArchiveContext, elem: Element, parent: NibO
 def _xibparser_parse_font(ctx: ArchiveContext, elem: Element, parent: NibObject) -> NibObject:
     item = NibObject("NSFont")
     meta_font = elem.attrib.get("metaFont")
-    assert meta_font in ["system", "systemBold", "smallSystem"], f"metaFont: {meta_font}" # other options unknown
+    assert meta_font in ["system", "systemBold", "smallSystem", "miniSystem", "smallSystemBold"], f"metaFont: {meta_font}" # other options unknown
 
     if meta_font == 'system':
         item["NSName"] = NibString.intern(".AppleSystemUIFont")
@@ -1475,15 +1578,25 @@ def _xibparser_parse_font(ctx: ArchiveContext, elem: Element, parent: NibObject)
         item["NSName"] = NibString.intern(".AppleSystemUIFont")
         item["NSSize"] = 11.0
         item["NSfFlags"] = 3100
+    elif meta_font == 'smallSystemBold':
+        item["NSName"] = NibString.intern(".AppleSystemUIFontBold")
+        item["NSSize"] = 11.0
+        item["NSfFlags"] = 3357
+    elif meta_font == 'miniSystem':
+        item["NSName"] = NibString.intern(".AppleSystemUIFont")
+        item["NSSize"] = 10.0
+        item["NSfFlags"] = 3100
     else:
         raise Exception(f"missing font {meta_font}")
     parent["NSSupport"] = item
     return item
 
 def _xibparser_parse_behavior(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
-    assert parent.originalclassname() == "NSButtonCell"
+    assert parent.originalclassname() in ("NSButtonCell", "NSPopUpButtonCell"), parent.originalclassname()
     maskmap = {
         "pushIn": 1<<31,
+        "changeGray": 1<<28,
+        "changeBackground": 1<<29,
         "lightByBackground": 1<<26,
         "lightByGray": 1<<25,
     }
@@ -1591,6 +1704,95 @@ def _xibparser_parse_size(ctx: ArchiveContext, elem: Element, parent: NibObject)
     if elem.attrib["key"] == "maxSize":
         parent["NSMaxSize"] = f'{{{elem.attrib["width"]}, {elem.attrib["height"]}}}'
     parent.extraContext[elem.attrib["key"]] = (elem.attrib["width"], elem.attrib["height"])
+
+def _xibparser_parse_box(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
+    obj = make_xib_object(ctx, "NSBox", elem, parent, view_attributes=False)
+    __xibparser_ParseChildren(ctx, elem, obj)
+    return obj
+
+def _xibparser_parse_visibilityPriorities(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
+    pass
+
+def _xibparser_parse_customSpacing(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
+    pass
+
+def _xibparser_parse_searchField(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
+    obj = make_xib_object(ctx, "NSSearchField", elem, parent)
+    obj["NSSuperview"] = obj.xib_parent()
+    if elem.attrib.get('allowsCharacterPickerTouchBarItem') == "YES":
+        obj.extraContext["allowsCharacterPickerTouchBarItem"] = True
+
+    __xibparser_ParseChildren(ctx, elem, obj)
+    obj["NSAllowsLogicalLayoutDirection"] = False
+    obj["NSAntiCompressionPriority"] = NibString.intern("foo")
+    obj["NSControlContinuous"] = False
+    obj["NSEnabled"] = True
+    obj["NSControlSendActionMask"] = 4
+    obj["NSControlUsesSingleLineMode"] = False
+    obj["NSControlWritingDirection"] = -1
+    obj["NSTextFieldAlignmentRectInsetsVersion"] = 2
+    obj["NSvFlags"] = vFlags.DEFAULT_VFLAGS_AUTOLAYOUT
+
+    horizontal_compression_prio = elem.attrib.get('horizontalCompressionResistancePriority')
+    vertical_compression_prio = elem.attrib.get('verticalCompressionResistancePriority')
+    if horizontal_compression_prio is not None or vertical_compression_prio is not None:
+        if horizontal_compression_prio is None:
+            horizontal_compression_prio = "750"
+        if vertical_compression_prio is None:
+            vertical_compression_prio = "750"
+        obj["NSAntiCompressionPriority"] = f"{{{horizontal_compression_prio}, {vertical_compression_prio}}}"
+
+    obj.setIfNotDefault("NSViewIsLayerTreeHost", elem.attrib.get("wantsLayer") == "YES", False)
+
+    return obj
+
+def _xibparser_parse_searchFieldCell(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> XibObject:
+    assert parent is not None
+    assert parent.originalclassname() == "NSSearchField"
+    obj = make_xib_object(ctx, "NSSearchFieldCell", elem, parent, view_attributes=False)
+    __xibparser_ParseChildren(ctx, elem, obj)
+    __xibparser_cell_flags(elem, obj, parent)
+    obj["NSAutomaticTextCompletionStored"] = True
+    obj["NSCancelButtonCell"] = NibObject("NSButtonCell", None, {
+        "NSAccessibilityOverriddenAttributes": NibMutableList([NibObject("NSMutableDictionary", None, {})]),
+        "NSAction": NibString.intern("_searchFieldCancel:"),
+        "NSAuxButtonType": 5,
+        "NSBezelStyle": 0,
+        "NSButtonFlags": ButtonFlags.HIGHLIGHT_CONTENTS_CELL | ButtonFlags.INSET_2 | ButtonFlags.IMAGE_ONLY,
+        "NSButtonFlags2": 0,
+        "NSCellFlags": CellFlags.STATE_ON,
+        "NSCellFlags2": 0,
+        "NSControlSize2": 0,
+        "NSKeyEquivalent": NibString.intern(''),
+        "NSPeriodicDelay": 400,
+        "NSPeriodicInterval": 75,
+        "NSTarget": obj,
+    })
+    obj["NSSearchButtonCell"] = NibObject("NSButtonCell", None, {
+        "NSAction": NibString.intern("_searchFieldSearch:"),
+        "NSAuxButtonType": 5,
+        "NSBezelStyle": 0,
+        "NSButtonFlags": ButtonFlags.HIGHLIGHT_CONTENTS_CELL | ButtonFlags.INSET_2 | ButtonFlags.IMAGE_ONLY,
+        "NSButtonFlags2": 0,
+        "NSCellFlags": 0,
+        "NSCellFlags2": 0,
+        "NSControlSize2": 0,
+        "NSKeyEquivalent": NibString.intern(''),
+        "NSPeriodicDelay": 400,
+        "NSPeriodicInterval": 75,
+        "NSTarget": obj,
+        "NSContents": NibString.intern('search'),
+    })
+    if parent.extraContext.get("allowsCharacterPickerTouchBarItem"):
+        obj["NSCharacterPickerEnabled"] = True
+    obj["NSContents"] = NibString.intern('')
+    obj["NSControlView"] = parent
+    obj["NSMaximumRecents"] = 255
+    obj["NSTextBezelStyle"] = 1
+    obj["NSSearchFieldFlags"] = NibInlineString(b"\x16\x00\x00\x00")
+
+    parent["NSCell"] = obj
+    return obj
 
 def _xibparser_parse_scroller(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
     obj = make_xib_object(ctx, "NSScroller", elem, parent)

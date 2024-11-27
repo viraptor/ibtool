@@ -187,6 +187,14 @@ class NibByte:
         return self._val
 
 
+class NibFloat:
+    def __init__(self, val: float = 0.0) -> None:
+        self._val = val
+
+    def val(self) -> float:
+        return self._val
+
+
 class NibNil:
     def __init__(self) -> None:
         pass
@@ -395,6 +403,10 @@ class CompilationContext:
                 elif isinstance(v, NibByte):
                     out_values.append(
                         (idx_of_key(k), nibencoding.NIB_TYPE_BYTE, v.val())
+                    )
+                elif isinstance(v, NibFloat):
+                    out_values.append(
+                        (idx_of_key(k), nibencoding.NIB_TYPE_FLOAT, v.val())
                     )
                 elif v is True:
                     out_values.append((idx_of_key(k), nibencoding.NIB_TYPE_TRUE))
