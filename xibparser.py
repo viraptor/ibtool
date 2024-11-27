@@ -657,6 +657,7 @@ def _xibparser_parse_customView(ctx: ArchiveContext, elem: Element, parent: Opti
     obj = XibObject(ctx, "NSCustomView", elem, parent)
     ctx.extraNibObjects.append(obj)
     obj.setrepr(elem)
+    obj.setIfEmpty("NSClassName", "NSView")
 
     # Parse these props first, in case any of our children point to us.
     _xibparser_parse_interfacebuilder_properties(ctx, elem, parent, obj)
