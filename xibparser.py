@@ -690,7 +690,7 @@ def _xibparser_parse_customView(ctx: ArchiveContext, elem: Element, parent: Opti
     return obj
 
 
-def _xibparser_common_view_attributes(_ctx: ArchiveContext, elem: Element, parent: Optional[NibObject], obj: XibObject, topLevelView: bool = False) -> None:
+def _xibparser_common_view_attributes(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject], obj: XibObject, topLevelView: bool = False) -> None:
     obj["IBNSSafeAreaLayoutGuide"] = NibNil()
     obj["IBNSLayoutMarginsGuide"] = NibNil()
     obj["IBNSClipsToBounds"] = int(elem.attrib.get("clipsToBounds") == "YES")
@@ -705,6 +705,7 @@ def _xibparser_common_view_attributes(_ctx: ArchiveContext, elem: Element, paren
     obj["NSNibTouchBar"] = NibNil()
     obj.extraContext["verticalHuggingPriority"] = elem.attrib.get("verticalHuggingPriority")
     obj.extraContext["horizontalHuggingPriority"] = elem.attrib.get("horizontalHuggingPriority")
+    __xibparser_set_compression_priority(ctx, obj, elem)
 
     if elem.attrib.get('translatesAutoresizingMaskIntoConstraints', "YES") == "NO":
         obj.extraContext["NSDoNotTranslateAutoresizingMask"] = True
@@ -741,7 +742,6 @@ def _xibparser_parse_button(ctx: ArchiveContext, elem: Element, parent: Optional
     obj["IBNSShadowedSymbolConfiguration"] = NibNil()
     if not obj.extraContext.get("parsed_autoresizing"):
         obj.flagsOr("NSvFlags", vFlags.DEFAULT_VFLAGS_AUTOLAYOUT if ctx.useAutolayout else vFlags.DEFAULT_VFLAGS)
-    __xibparser_set_compression_priority(ctx, obj, elem)
     return obj
 
 
@@ -1396,8 +1396,6 @@ def _xibparser_parse_textField(ctx: ArchiveContext, elem: Element, parent: NibOb
     if not obj.extraContext.get("parsed_autoresizing"):
         obj.flagsOr("NSvFlags", vFlags.DEFAULT_VFLAGS_AUTOLAYOUT if ctx.useAutolayout else vFlags.DEFAULT_VFLAGS)
 
-    __xibparser_set_compression_priority(ctx, obj, elem)
-
     return obj
 
 def __xibparser_cell_flags(elem: Element, obj: NibObject, parent: NibObject) -> None:
@@ -1715,8 +1713,10 @@ def _xibparser_parse_size(ctx: ArchiveContext, elem: Element, parent: NibObject)
     parent.extraContext[elem.attrib["key"]] = (elem.attrib["width"], elem.attrib["height"])
 
 def _xibparser_parse_box(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
-    obj = make_xib_object(ctx, "NSBox", elem, parent, view_attributes=False)
+    obj = make_xib_object(ctx, "NSBox", elem, parent)
+    obj["NSSuperview"] = obj.xib_parent()
     __xibparser_ParseChildren(ctx, elem, obj)
+
     return obj
 
 def _xibparser_parse_visibilityPriorities(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
@@ -1742,13 +1742,11 @@ def _xibparser_parse_searchField(ctx: ArchiveContext, elem: Element, parent: Nib
     obj["NSTextFieldAlignmentRectInsetsVersion"] = 2
     obj["NSvFlags"] = vFlags.DEFAULT_VFLAGS_AUTOLAYOUT
 
-    __xibparser_set_compression_priority(ctx, obj, elem)
-
     obj.setIfNotDefault("NSViewIsLayerTreeHost", elem.attrib.get("wantsLayer") == "YES", False)
 
     return obj
 
-def __xibparser_set_compression_priority(ctx: ArchiveContext, obj: XibObject, elem: Element) -> None:
+def __xibparser_set_compression_priority(_ctx: ArchiveContext, obj: XibObject, elem: Element) -> None:
     horizontal_compression_prio = elem.attrib.get('horizontalCompressionResistancePriority')
     vertical_compression_prio = elem.attrib.get('verticalCompressionResistancePriority')
     if horizontal_compression_prio is not None or vertical_compression_prio is not None:
