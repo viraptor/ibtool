@@ -1109,11 +1109,51 @@ def _xibparser_parse_outlineView(ctx: ArchiveContext, elem: Element, parent: Opt
     
     if not obj.extraContext.get("parsed_autoresizing"):
         obj.flagsOr("NSvFlags", vFlags.DEFAULT_VFLAGS_AUTOLAYOUT if ctx.useAutolayout else vFlags.DEFAULT_VFLAGS)
+    
+    obj["NSAllowsLogicalLayoutDirection"] = False
+    obj["NSAllowsTypeSelect"] = True
+    obj["NSColumnAutoresizingStyle"] = 1
+    obj["NSControlAllowsExpansionToolTips"] = True
+    obj["NSControlContinuous"] = False
+    obj["NSControlLineBreakMode"] = 0
+    obj["NSControlRefusesFirstResponder"] = False
+    obj["NSControlSize"] = 0
+    obj["NSControlSize2"] = 0
+    obj["NSControlTextAlignment"] = 0
+    obj["NSControlUsesSingleLineMode"] = False
+    obj["NSControlWritingDirection"] = 0
+    obj["NSCornerView"] = NibObject("_NSCornerView", obj, {
+        "IBNSClipsToBounds": 0,
+        "IBNSLayoutMarginsGuide": NibNil(),
+        "IBNSSafeAreaLayoutGuide": NibNil(),
+        "NSFrameSize": NibString.intern("{15, 28}"),
+        "NSNextResponder": NibNil(),
+        "NSNibTouchBar": NibNil(),
+        "NSViewWantsBestResolutionOpenGLSurface": True,
+        "NSvFlags": 256,
+    })
+    obj["NSDataSource"] = NibNil()
+    obj["NSDelegate"] = NibNil()
+    obj["NSDraggingSourceMaskForLocal"] = -1
+    obj["NSDraggingSourceMaskForNonLocal"] = 0
+    obj["NSEnabled"] = True
+    obj["NSControlSendActionMask"] = 0
+    obj["NSIntercellSpacingHeight"] = 2.0
+    obj["NSIntercellSpacingWidth"] = 3.0
+    obj["NSOutineViewStronglyReferencesItems"] = True
+    obj["NSOutlineViewIndentationPerLevelKey"] = NibFloat(16.0)
+    obj["NSRowHeight"] = 34.0
+    obj["NSTableViewDraggingDestinationStyle"] = 0
+    obj["NSTableViewGroupRowStyle"] = 1
+    obj["NSTvFlags"] = 440434688
 
     return obj
 
 def _xibparser_parse_tableColumns(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> None:
-    __xibparser_ParseChildren(ctx, elem, parent)
+    assert parent.originalclassname() == "NSOutlineView"
+
+    columns = __xibparser_ParseChildren(ctx, elem, parent)
+    parent["NSTableColumns"] = NibMutableList(columns)
 
 def _xibparser_parse_tableColumn(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> XibObject:
     obj = make_xib_object(ctx, "NSTableColumn", elem, parent, view_attributes=False)
@@ -1558,6 +1598,11 @@ def _xibparser_parse_textFieldCell(ctx: ArchiveContext, elem: Element, parent: N
     elif key == "dataCell":
         __xibparser_ParseChildren(ctx, elem, obj)
         parent["NSDataCell"] = obj
+        obj["NSCellFlags"] = 0
+        obj["NSCellFlags2"] = 0
+        obj["NSContents"] = NibString.intern("")
+        obj["NSControlSize2"] = 0
+        obj["NSControlView"] = parent
 
     return obj
 
@@ -2111,7 +2156,7 @@ def makeSystemColor(name):
     elif name == 'linkColor':
         return systemRGBColorTemplate(name, '0 0 1 1', b'0 0 0.9981992245\x00')
     elif name == 'gridColor':
-        return systemGrayColorTemplate(name, b'0.6666666667 1', b'0.602715373\x00')
+        return systemGrayColorTemplate(name, b'0.5 1', b'0.4246723652\x00')
     elif name == 'headerTextColor':
         return systemGrayColorTemplate(name, b'0.6666666667 1', b'0.602715373\x00')
     elif name == 'headerColor':
