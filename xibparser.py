@@ -470,7 +470,7 @@ def _xibparser_handle_custom_class(ctx: ArchiveContext, elem: Element, obj: "Xib
             obj["IBClassReference"] = make_class_reference(custom_class or "NSApplication", None, None)
     elif custom_class:
         #print(obj.xibid, obj.originalclassname(), obj.classname(), custom_class)
-        if ctx.customObjectInstantitationMethod == "direct" and not (obj.originalclassname() in ["NSCustomObject", "NSWindowTemplate"] and not custom_module) or obj.originalclassname() == "NSView":
+        if ctx.customObjectInstantitationMethod == "direct" and not (obj.originalclassname() in ("NSCustomObject", "NSWindowTemplate") and not custom_module) or obj.originalclassname() in ("NSView", "NSOutlineView"):
             #print("direct")
             if custom_module:
                 obj["NSClassName"] = NibString.intern(f"_TtC{len(custom_module)}{custom_module}{len(custom_class)}{custom_class}")
