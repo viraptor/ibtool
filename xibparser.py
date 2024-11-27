@@ -112,7 +112,7 @@ class ButtonFlags(IntEnum):
     TYPE_RADIO = 0x100
     TYPE_RECESSED = 0x0
     TYPE_CHECK = 0x100
-    TYPE_ROUND_RECT = 0x100
+    TYPE_ROUND_RECT = 0x0
 
     INSET_1 = 0x2000
     INSET_2 = 0x4000
@@ -121,6 +121,10 @@ class ButtonFlags2(IntEnum):
     BORDER_ONLY_WHILE_MOUSE_INSIDE = 0x8
     IMAGE_SCALING_PROPORTIONALLY_DOWN = 0x80
     TYPE_RECESSED = 0x2d
+    TYPE_ROUND_RECT = 0x24
+    TYPE_PUSH = 0x01
+    TYPE_RADIO = 0x24
+    TYPE_CHECK = 0x24
 
 
 class CellFlags(IntEnum):
@@ -1588,14 +1592,14 @@ def __xibparser_button_flags(elem: Element, obj: XibObject, parent: NibObject) -
     inset = {0: 0, 1: ButtonFlags.INSET_1, 2: ButtonFlags.INSET_2, 3: (ButtonFlags.INSET_1|ButtonFlags.INSET_2)}[inset]
     buttonType = elem.attrib.get("type", "push")
     buttonTypeMask = {"push": 0, "radio": ButtonFlags.TYPE_RADIO, "recessed": ButtonFlags.TYPE_RECESSED, "check": ButtonFlags.TYPE_CHECK, "roundRect": ButtonFlags.TYPE_ROUND_RECT}[buttonType]
-    buttonTypeMask2 = {"push": 0, "radio": 0, "recessed": ButtonFlags2.TYPE_RECESSED, "check": 0, "roundRect": 0}[buttonType]
+    buttonTypeMask2 = {"push": ButtonFlags2.TYPE_PUSH, "radio": ButtonFlags2.TYPE_RADIO, "recessed": ButtonFlags2.TYPE_RECESSED, "check": ButtonFlags2.TYPE_CHECK, "roundRect": ButtonFlags2.TYPE_ROUND_RECT}[buttonType]
     borderStyle = elem.attrib.get("borderStyle")
     borderStyleMask = {None: 0, "border": ButtonFlags.BORDERED, "borderAndBezel": ButtonFlags.BORDERED | ButtonFlags.BEZEL}[borderStyle]
     imageScaling = elem.attrib.get("imageScaling")
     imageScalingMask = {None: 0, "proportionallyDown": ButtonFlags2.IMAGE_SCALING_PROPORTIONALLY_DOWN}[imageScaling]
 
     obj.flagsOr("NSButtonFlags", inset | buttonTypeMask | borderStyleMask | 0xffffffff00000000)
-    obj.flagsOr("NSButtonFlags2", 0x1 | imageScalingMask | buttonTypeMask2)
+    obj.flagsOr("NSButtonFlags2", imageScalingMask | buttonTypeMask2)
 
 
 def _xibparser_parse_buttonCell(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
