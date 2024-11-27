@@ -67,7 +67,7 @@ def pythonObjects(nib: NibStructure) -> tuple[NibObject, list[Any]]:
         classname = classes[obj_tup[0]]
         obj_values = values[obj_tup[1] : obj_tup[1] + obj_tup[2]]
 
-        if classname in ['NSArray', 'NSMutableArray', 'NSMutableSet']:
+        if classname in ['NSArray', 'NSMutableArray', 'NSMutableSet', 'NSDictionary', 'NSMutableDictionary']:
             lentries: list[Any] = []
             for k_idx, v, v_type in obj_values:
                 if keys[k_idx] == 'NSInlinedValue':

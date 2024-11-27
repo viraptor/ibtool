@@ -13,6 +13,7 @@ from genlib import (
     NibMutableList,
     NibMutableSet,
     NibDictionary,
+    NibMutableDictionary,
     NibFloat,
     PropValue,
     PropPair,
@@ -103,6 +104,7 @@ class ButtonFlags(IntEnum):
     HIGHLIGHT_CHANGE_GRAY_CELL = 0x02000000
 
     BORDERED = 0x00800000
+    BEZEL = 0x300000
     TRANSPARENT = 0x00008000
     IMAGE_DIMS_WHEN_DISABLED = 0x00002000
 
@@ -679,13 +681,15 @@ def _xibparser_parse_customView(ctx: ArchiveContext, elem: Element, parent: Opti
     _xibparser_common_view_attributes(ctx, elem, parent, obj, topLevelView=(parent is None))
     obj.setIfNotDefault("NSViewIsLayerTreeHost", elem.attrib.get("wantsLayer") == "YES", False)
 
+    del obj["NSNextKeyView"]
     if custom_class := elem.attrib.get("customClass"):
         obj["IBClassReference"] = make_class_reference(custom_class)
-        obj["NSWindowClass"] = custom_class
         obj["NSClassName"] = custom_class
 
     if not obj.extraContext.get("parsed_autoresizing"):
         obj.flagsOr("NSvFlags", vFlags.DEFAULT_VFLAGS_AUTOLAYOUT if ctx.useAutolayout else vFlags.DEFAULT_VFLAGS)
+
+    obj["NSViewClipsToBoundsKeyName"] = True
 
     return obj
 
@@ -703,8 +707,10 @@ def _xibparser_common_view_attributes(ctx: ArchiveContext, elem: Element, parent
     else:
         obj.setIfEmpty("NSNextResponder", NibNil())
     obj["NSNibTouchBar"] = NibNil()
-    obj.extraContext["verticalHuggingPriority"] = elem.attrib.get("verticalHuggingPriority")
-    obj.extraContext["horizontalHuggingPriority"] = elem.attrib.get("horizontalHuggingPriority")
+    if elem.attrib.get("verticalHuggingPriority") is not None:
+        obj.extraContext["verticalHuggingPriority"] = elem.attrib.get("verticalHuggingPriority")
+    if elem.attrib.get("horizontalHuggingPriority") is not None:
+        obj.extraContext["horizontalHuggingPriority"] = elem.attrib.get("horizontalHuggingPriority")
     __xibparser_set_compression_priority(ctx, obj, elem)
 
     if elem.attrib.get('translatesAutoresizingMaskIntoConstraints', "YES") == "NO":
@@ -749,13 +755,39 @@ def _xibparser_parse_popUpButton(ctx: ArchiveContext, elem: Element, parent: Opt
     obj = make_xib_object(ctx, "NSPopUpButton", elem, parent)
     obj["NSSuperview"] = obj.xib_parent()
     __xibparser_ParseChildren(ctx, elem, obj)
+    obj["IBNSShadowedSymbolConfiguration"] = NibNil()
+    obj["NSAllowsLogicalLayoutDirection"] = False
+    obj["NSControlContinuous"] = False
+    obj["NSControlSendActionMask"] = 4
+    obj["NSControlUsesSingleLineMode"] = False
+    obj["NSControlWritingDirection"] = -1
+    obj["NSEnabled"] = True
+    if not obj.extraContext.get("parsed_autoresizing"):
+        obj.flagsOr("NSvFlags", vFlags.DEFAULT_VFLAGS_AUTOLAYOUT if ctx.useAutolayout else vFlags.DEFAULT_VFLAGS)
+
     return obj
 
 def _xibparser_parse_popUpButtonCell(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> XibObject:
-    obj = make_xib_object(ctx, "NSPopUpButtonCell", elem, parent)
-    obj["NSSuperview"] = obj.xib_parent()
+    assert parent is not None
+    obj = make_xib_object(ctx, "NSPopUpButtonCell", elem, parent, view_attributes=False)
     __xibparser_ParseChildren(ctx, elem, obj)
     __xibparser_cell_flags(elem, obj, parent)
+    obj["NSAlternateContents"] = NibString.intern("")
+    obj["NSAltersState"] = True
+    obj["NSBezelStyle"] = 13
+    obj["NSContents"] = NibString.intern("")
+    obj["NSControlView"] = parent
+    obj["NSKeyEquivalent"] = NibString.intern("")
+    obj["NSPeriodicDelay"] = 400
+    obj["NSPeriodicInterval"] = 75
+    obj["NSPreferredEdge"] = 1
+    obj["NSPullDown"] = True
+    __xibparser_button_flags(elem, obj, parent)
+    obj.flagsOr("NSButtonFlags", ButtonFlags.IMAGE_ABOVE)
+
+    obj["NSMenuItemRespectAlignment"] = True
+
+    parent["NSCell"] = obj
     return obj
 
 def __parse_size(size: str) -> tuple[int, int]:
@@ -1450,7 +1482,7 @@ def __xibparser_cell_flags(elem: Element, obj: NibObject, parent: NibObject) -> 
         "truncatingTail": LineBreakMode.BY_TRUNCATING_TAIL,
         "truncatingMiddle": LineBreakMode.BY_TRUNCATING_MIDDLE,
     }[lineBreakMode].value
-    if obj.originalclassname() in ['NSButtonCell', 'NSTextFieldCell', 'NSImageCell', 'NSSearchFieldCell']:
+    if obj.originalclassname() in ['NSButtonCell', 'NSTextFieldCell', 'NSImageCell', 'NSSearchFieldCell', 'NSPopUpButtonCell']:
         textAlignmentValue = {None: 4, "left": 0, "center": 1, "right": 2}[textAlignment]
         parent["NSControlTextAlignment"] = textAlignmentValue
 
@@ -1516,22 +1548,25 @@ def _xibparser_parse_progressIndicator(ctx: ArchiveContext, elem: Element, paren
     return obj
 
 
-def _xibparser_parse_buttonCell(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
-    obj = XibObject("NSButtonCell", parent, elem.attrib["id"])
-    ctx.extraNibObjects.append(obj)
-
+def __xibparser_button_flags(elem: Element, obj: XibObject, parent: NibObject) -> None:
     inset = int(elem.attrib.get("inset", "0"))
     inset = min(max(inset, 0), 3)
     inset = {0: 0, 1: ButtonFlags.INSET_1, 2: ButtonFlags.INSET_2, 3: (ButtonFlags.INSET_1|ButtonFlags.INSET_2)}[inset]
     buttonType = elem.attrib.get("type", "push")
     buttonTypeMask = {"push": 0, "radio": ButtonFlags.TYPE_RADIO, "recessed": ButtonFlags.TYPE_RECESSED}[buttonType]
     buttonTypeMask2 = {"push": 0, "radio": 0, "recessed": ButtonFlags2.TYPE_RECESSED}[buttonType]
-    bezelStyleName = elem.attrib.get("bezelStyle")
-    bezelStyle = {None: 0, "rounded": 1, "circular": 7, "helpButton": 9, "smallSquare": 10, "recessed": 13}.get(bezelStyleName, 0)
     borderStyle = elem.attrib.get("borderStyle")
-    borderStyleMask = {None: 0, "border": ButtonFlags.BORDERED}[borderStyle]
+    borderStyleMask = {None: 0, "border": ButtonFlags.BORDERED, "borderAndBezel": ButtonFlags.BORDERED | ButtonFlags.BEZEL}[borderStyle]
     imageScaling = elem.attrib.get("imageScaling")
     imageScalingMask = {None: 0, "proportionallyDown": ButtonFlags2.IMAGE_SCALING_PROPORTIONALLY_DOWN}[imageScaling]
+
+    obj.flagsOr("NSButtonFlags", inset | buttonTypeMask | borderStyleMask | 0xffffffff00000000)
+    obj.flagsOr("NSButtonFlags2", 0x1 | imageScalingMask | buttonTypeMask2)
+
+
+def _xibparser_parse_buttonCell(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
+    obj = XibObject("NSButtonCell", parent, elem.attrib["id"])
+    ctx.extraNibObjects.append(obj)
 
     __xibparser_ParseChildren(ctx, elem, obj)
     __xibparser_cell_flags(elem, obj, parent)
@@ -1542,23 +1577,26 @@ def _xibparser_parse_buttonCell(ctx: ArchiveContext, elem: Element, parent: NibO
         "NSfFlags": 1044,
     }))
     obj["NSControlView"] = parent
-    obj.flagsOr("NSButtonFlags", inset | buttonTypeMask | borderStyleMask | 0xffffffff00000000)
-    obj.flagsOr("NSButtonFlags2", 0x1 | imageScalingMask | buttonTypeMask2)
-    if buttonType == "radio":
+    __xibparser_button_flags(elem, obj, parent)
+
+    if elem.attrib.get("type", "push") == "radio":
         obj["NSAlternateContents"] = NibObject("NSButtonImageSource", None, {
             "NSImageName": "NSRadioButton"
             })
-    obj["NSBezelStyle"] = bezelStyle
+    obj["NSBezelStyle"] = {
+        None: 0,
+        "rounded": 1,
+        "circular": 7,
+        "helpButton": 9,
+        "smallSquare": 10,
+        "recessed": 13
+    }.get(elem.attrib.get("bezelStyle"))
     obj["NSAlternateContents"] = NibString.intern('')
     obj.setIfEmpty("NSKeyEquivalent", NibString.intern(''))
     obj["NSPeriodicDelay"] = 400
     obj["NSPeriodicInterval"] = 75
     obj.setIfEmpty("NSAuxButtonType", 7)
     parent["NSCell"] = obj
-
-    if borderStyle == "border":
-        v, h = parent.extraContext.get("verticalHuggingPriority", 250), parent.extraContext.get("horizontalHuggingPriority", 250)
-        #parent["NSHuggingPriority"] = "{" + str(h) + ", " + str(v) + "}"
 
     return obj
 
@@ -1585,8 +1623,8 @@ def _xibparser_parse_font(ctx: ArchiveContext, elem: Element, parent: NibObject)
         item["NSfFlags"] = 3357
     elif meta_font == 'miniSystem':
         item["NSName"] = NibString.intern(".AppleSystemUIFont")
-        item["NSSize"] = 10.0
-        item["NSfFlags"] = 3100
+        item["NSSize"] = 9.0
+        item["NSfFlags"] = 3614
     else:
         raise Exception(f"missing font {meta_font}")
     parent["NSSupport"] = item
@@ -1716,6 +1754,32 @@ def _xibparser_parse_box(ctx: ArchiveContext, elem: Element, parent: NibObject) 
     obj = make_xib_object(ctx, "NSBox", elem, parent)
     obj["NSSuperview"] = obj.xib_parent()
     __xibparser_ParseChildren(ctx, elem, obj)
+    obj["NSBorderType"] = {
+        "separator": 3,
+    }[elem.attrib.get("boxType")]
+    obj["NSBoxType"] = 2
+    obj["NSSubviews"] = NibMutableList([])
+    obj["NSTitleCell"] = NibObject("NSTextFieldCell", None, {
+        "NSBackgroundColor": makeSystemColor("textBackgroundColor"),
+        "NSCellFlags": CellFlags.UNKNOWN_TEXT_FIELD,
+        "NSCellFlags2": CellFlags2.TEXT_ALIGN_CENTER,
+        "NSContents": NibString.intern("Title"),
+        "NSControlSize2": 0,
+        "NSSupport": NibObject("NSFont", None, {
+            "NSName": NibString.intern(".AppleSystemUIFont"),
+            "NSSize": 11.0,
+            "NSfFlags": 3100,
+        }),
+        "NSTextColor": makeSystemColor("labelColor"),
+    })
+    obj["NSTitlePosition"] = 2
+    obj["NSTransparent"] = False
+    if "verticalHuggingPriority" in obj.extraContext or "horizontalHuggingPriority" in obj.extraContext:
+        v, h = obj.extraContext.get("verticalHuggingPriority", 250), obj.extraContext.get("horizontalHuggingPriority", 250)
+        obj["NSHuggingPriority"] = f"{{{h}, {v}}}"
+    obj["NSOffsets"] = NibString.intern("{5, 5}")
+    if not obj.extraContext.get("parsed_autoresizing"):
+        obj.flagsOr("NSvFlags", vFlags.DEFAULT_VFLAGS_AUTOLAYOUT if ctx.useAutolayout else vFlags.DEFAULT_VFLAGS)
 
     return obj
 
@@ -1733,7 +1797,6 @@ def _xibparser_parse_searchField(ctx: ArchiveContext, elem: Element, parent: Nib
 
     __xibparser_ParseChildren(ctx, elem, obj)
     obj["NSAllowsLogicalLayoutDirection"] = False
-    obj["NSAntiCompressionPriority"] = NibString.intern("foo")
     obj["NSControlContinuous"] = False
     obj["NSEnabled"] = True
     obj["NSControlSendActionMask"] = 4
@@ -1764,7 +1827,14 @@ def _xibparser_parse_searchFieldCell(ctx: ArchiveContext, elem: Element, parent:
     __xibparser_cell_flags(elem, obj, parent)
     obj["NSAutomaticTextCompletionStored"] = True
     obj["NSCancelButtonCell"] = NibObject("NSButtonCell", None, {
-        "NSAccessibilityOverriddenAttributes": NibMutableList([NibObject("NSMutableDictionary", None, {})]),
+        "NSAccessibilityOverriddenAttributes": NibMutableList([
+            NibMutableDictionary([
+                NibString.intern("AXDescription"),
+                NibString.intern("cancel"),
+                NibString.intern("NSAccessibilityEncodedAttributesValueType"),
+                NibNSNumber(1),
+            ])
+        ]),
         "NSAction": NibString.intern("_searchFieldCancel:"),
         "NSAuxButtonType": 5,
         "NSBezelStyle": 0,
@@ -1842,6 +1912,14 @@ def _xibparser_parse_menu(ctx: ArchiveContext, elem: Element, parent: NibObject)
     if parent and parent.originalclassname() == "NSMenuItem":
         parent["NSTarget"] = obj
         parent["NSSubmenu"] = obj
+    elif parent and parent.originalclassname() == "NSPopUpButtonCell":
+        parent["NSMenu"] = obj
+        parent["NSMenuItem"] = obj["NSMenuItems"]._items[0]
+        parent["NSUsesItemFromMenu"] = True
+        for item in obj["NSMenuItems"]._items:
+            item["NSAction"] = NibString.intern("_popUpItemAction:")
+            item["NSTarget"] = parent
+            item["NSKeyEquivModMask"] = 0x100000
     system_menu = elem.attrib.get("systemMenu")
     if system_menu == "apple":
         obj["NSName"] = NibString.intern("_NSAppleMenu")
@@ -1892,6 +1970,10 @@ def _xibparser_parse_menuItem(ctx: ArchiveContext, elem: Element, parent: NibObj
     if elem.attrib.get("isSeparatorItem") == "YES":
         obj["NSIsSeparator"] = True
         obj["NSIsDisabled"] = True
+    if tag := elem.attrib.get("tag"):
+        obj["NSTag"] = int(tag)
+    if elem.attrib.get("hidden"):
+        obj["NSIsHidden"] = True
     return obj
 
 def _xibparser_parse_items(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
