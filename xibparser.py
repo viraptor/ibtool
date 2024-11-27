@@ -727,6 +727,7 @@ def _xibparser_parse_button(ctx: ArchiveContext, elem: Element, parent: Optional
         obj["NSClassName"] = custom_class
     obj["NSSuperview"] = obj.xib_parent()
     __xibparser_ParseChildren(ctx, elem, obj)
+    obj["NSNextResponder"] = obj.xib_parent()
     obj.setIfEmpty("NSFrame", NibNil())
     obj["NSEnabled"] = True
     obj.setIfEmpty("NSCell", NibNil())
