@@ -537,7 +537,8 @@ class XibObject(NibObject):
         else:
             self.xibid = None
         self.extraContext: dict[str,Any] = {"original_class": classname}
-
+        if elem is not None and (key := elem.attrib.get("key")):
+            self.extraContext["key"] = key
         if isinstance(self, XibObject) and elem is not None:
             _xibparser_handle_custom_class(ctx, elem, self)
 
@@ -692,10 +693,12 @@ def _xibparser_common_view_attributes(ctx: ArchiveContext, elem: Element, parent
         obj.flagsOr("NSvFlags", vFlags.HIDDEN)
     obj.flagsOr("NSvFlags", vFlags.AUTORESIZES_SUBVIEWS)
     obj["NSViewWantsBestResolutionOpenGLSurface"] = True
-    if not topLevelView:
-        obj.setIfEmpty("NSNextResponder", parent.get("NSNextResponder") or parent)
-    else:
+    if parent is None:
         obj.setIfEmpty("NSNextResponder", NibNil())
+    elif parent.extraContext.get("key") == "contentView":
+        obj.setIfEmpty("NSNextResponder", parent)
+    else:
+        obj.setIfEmpty("NSNextResponder", parent.get("NSNextResponder") or NibNil())
     obj["NSNibTouchBar"] = NibNil()
     if elem.attrib.get("verticalHuggingPriority") is not None:
         obj.extraContext["verticalHuggingPriority"] = elem.attrib.get("verticalHuggingPriority")
@@ -713,7 +716,7 @@ def make_xib_object(ctx: ArchiveContext, classname: str, elem: Element, parent: 
         ctx.addObject(obj.xibid, obj)
     ctx.extraNibObjects.append(obj)
     if view_attributes:
-        _xibparser_common_view_attributes(ctx, elem, parent, obj)
+        _xibparser_common_view_attributes(ctx, elem, parent, obj, topLevelView=(elem.get("key") == "contentView"))
     return obj
 
 def _xibparser_parse_button(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> XibObject:
