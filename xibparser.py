@@ -77,6 +77,12 @@ class cvFlags(IntEnum):
 class sFlagsScroller(IntEnum):
     HORIZONTAL = 0x01
 
+    CONTROL_SIZE_SMALL = 0x100
+    CONTROL_SIZE_MINI = 0x200
+    CONTROL_SIZE_REGULAR = 0
+    CONTROL_SIZE_LARGE = 0x300
+    CONTROL_SIZE_EXTRA_LARGE = 0
+
 class sFlagsScrollView(IntEnum):
     BORDER_NONE = 0x0
     BORDER_LINE = 0x1
@@ -2114,9 +2120,17 @@ def _xibparser_parse_scroller(ctx: ArchiveContext, elem: Element, parent: NibObj
     obj["NSControlRefusesFirstResponder"] = elem.attrib.get("refusesFirstResponder", "NO") == "YES"
     if (cur_value := elem.attrib.get("doubleValue")) is not None:
         obj["NSCurValue"] = float(cur_value)
+    obj.flagsOr("NSsFlags", {
+        None: sFlagsScroller.CONTROL_SIZE_REGULAR,
+        "small": sFlagsScroller.CONTROL_SIZE_SMALL,
+        "mini": sFlagsScroller.CONTROL_SIZE_MINI,
+        "regular": sFlagsScroller.CONTROL_SIZE_REGULAR,
+        "large": sFlagsScroller.CONTROL_SIZE_LARGE,
+        "extraLarge": sFlagsScroller.CONTROL_SIZE_EXTRA_LARGE,
+    }.get(elem.attrib.get("controlSize"), 0))
     if elem.attrib["horizontal"] == "YES":
         parent["NSHScroller"] = obj
-        obj["NSsFlags"] = sFlagsScroller.HORIZONTAL
+        obj.flagsOr("NSsFlags", sFlagsScroller.HORIZONTAL)
     else:
         parent["NSVScroller"] = obj
     return obj
