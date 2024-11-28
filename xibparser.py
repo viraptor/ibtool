@@ -1574,7 +1574,7 @@ def __xibparser_cell_flags(elem: Element, obj: NibObject, _parent: NibObject) ->
     disabled = 0 if elem.attrib.get("enabled", "YES") == "YES" else CellFlags.DISABLED
     editable = CellFlags.EDITABLE if elem.attrib.get("editable") == "YES" else 0
     bezeled = CellFlags.BEZELED if elem.attrib.get("borderStyle") == "bezel" else 0
-    #border = CellFlags.BORDERED if elem.attrib.get("borderStyle") == "border" else 0
+    border = CellFlags.BORDERED if obj.originalclassname() == "NSTableHeaderCell" else 0 # TODO: hack
     size_flag = {
         None: 0,
         "regular": 0,
@@ -1583,7 +1583,7 @@ def __xibparser_cell_flags(elem: Element, obj: NibObject, _parent: NibObject) ->
     }[elem.attrib.get("controlSize")]
     allows_mixed_state = CellFlags2.ALLOWS_MIXED_STATE if elem.attrib.get("allowsMixedState") == "YES" else 0
 
-    obj.flagsOr("NSCellFlags", lineBreakModeMask | text_field_flag | selectable | state_on | scrollable | disabled | editable | bezeled)# | border)
+    obj.flagsOr("NSCellFlags", lineBreakModeMask | text_field_flag | selectable | state_on | scrollable | disabled | editable | bezeled | border)
     obj.flagsOr("NSCellFlags2", textAlignmentMask | sendsActionMask | lineBreakModeMask2 | refuses_first_responder_mask | size_flag | allows_mixed_state)
 
 CONTROL_SIZE_MAP = {
