@@ -162,7 +162,6 @@ class CellFlags2(IntEnum):
     TEXT_ALIGN_CENTER = 0x8000000
     TEXT_ALIGN_RIGHT = 0x4000000
 
-    LAYOUT_DIRECTION_RTL = 0x01000000
     REFUSES_FIRST_RESPONDER = 0x02000000
     ALLOWS_MIXED_STATE = 0x01000000
     IN_MIXED_STATE = 0x00800000
@@ -1582,8 +1581,10 @@ def __xibparser_cell_flags(elem: Element, obj: NibObject, _parent: NibObject) ->
         "mini": CellFlags2.CONTROL_SIZE_MINI,
         "small": CellFlags2.CONTROL_SIZE_SMALL,
     }[elem.attrib.get("controlSize")]
+    allows_mixed_state = CellFlags2.ALLOWS_MIXED_STATE if elem.attrib.get("allowsMixedState") == "YES" else 0
+
     obj.flagsOr("NSCellFlags", lineBreakModeMask | text_field_flag | selectable | state_on | scrollable | disabled | editable | bezeled | border)
-    obj.flagsOr("NSCellFlags2", textAlignmentMask | sendsActionMask | lineBreakModeMask2 | refuses_first_responder_mask | size_flag)
+    obj.flagsOr("NSCellFlags2", textAlignmentMask | sendsActionMask | lineBreakModeMask2 | refuses_first_responder_mask | size_flag | allows_mixed_state)
 
 CONTROL_SIZE_MAP = {
     None: 0,
@@ -1690,8 +1691,10 @@ def __xibparser_button_flags(elem: Element, obj: XibObject, parent: NibObject) -
     borderStyleMask = {None: 0, "border": ButtonFlags.BORDERED, "borderAndBezel": ButtonFlags.BORDERED | ButtonFlags.BEZEL}[borderStyle]
     imageScaling = elem.attrib.get("imageScaling")
     imageScalingMask = {None: 0, "proportionallyDown": ButtonFlags2.IMAGE_SCALING_PROPORTIONALLY_DOWN}[imageScaling]
+    imagePosition = elem.attrib.get("imagePosition")
+    imagePositionMask = {None: 0, "left": ButtonFlags.IMAGE_LEFT, "right": ButtonFlags.IMAGE_RIGHT, "above": ButtonFlags.IMAGE_ABOVE, "below": ButtonFlags.IMAGE_BELOW}[imagePosition]
 
-    obj.flagsOr("NSButtonFlags", inset | buttonTypeMask | borderStyleMask)
+    obj.flagsOr("NSButtonFlags", inset | buttonTypeMask | borderStyleMask | imagePositionMask)
     obj.flagsOr("NSButtonFlags2", imageScalingMask | buttonTypeMask2)
 
 
