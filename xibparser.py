@@ -1574,7 +1574,7 @@ def __xibparser_cell_flags(elem: Element, obj: NibObject, _parent: NibObject) ->
     disabled = 0 if elem.attrib.get("enabled", "YES") == "YES" else CellFlags.DISABLED
     editable = CellFlags.EDITABLE if elem.attrib.get("editable") == "YES" else 0
     bezeled = CellFlags.BEZELED if elem.attrib.get("borderStyle") == "bezel" else 0
-    border = CellFlags.BORDERED if elem.attrib.get("borderStyle") == "border" else 0
+    #border = CellFlags.BORDERED if elem.attrib.get("borderStyle") == "border" else 0
     size_flag = {
         None: 0,
         "regular": 0,
@@ -1583,7 +1583,7 @@ def __xibparser_cell_flags(elem: Element, obj: NibObject, _parent: NibObject) ->
     }[elem.attrib.get("controlSize")]
     allows_mixed_state = CellFlags2.ALLOWS_MIXED_STATE if elem.attrib.get("allowsMixedState") == "YES" else 0
 
-    obj.flagsOr("NSCellFlags", lineBreakModeMask | text_field_flag | selectable | state_on | scrollable | disabled | editable | bezeled | border)
+    obj.flagsOr("NSCellFlags", lineBreakModeMask | text_field_flag | selectable | state_on | scrollable | disabled | editable | bezeled)# | border)
     obj.flagsOr("NSCellFlags2", textAlignmentMask | sendsActionMask | lineBreakModeMask2 | refuses_first_responder_mask | size_flag | allows_mixed_state)
 
 CONTROL_SIZE_MAP = {
@@ -1685,13 +1685,27 @@ def __xibparser_button_flags(elem: Element, obj: XibObject, parent: NibObject) -
     inset = min(max(inset, 0), 3)
     inset = {0: 0, 1: ButtonFlags.INSET_1, 2: ButtonFlags.INSET_2, 3: (ButtonFlags.INSET_1|ButtonFlags.INSET_2)}[inset]
     buttonType = elem.attrib.get("type", "push")
-    buttonTypeMask = {"push": 0, "radio": ButtonFlags.TYPE_RADIO, "recessed": ButtonFlags.TYPE_RECESSED, "check": ButtonFlags.TYPE_CHECK, "roundRect": ButtonFlags.TYPE_ROUND_RECT}[buttonType]
+    buttonTypeMask = {
+        "push": 0,
+        "radio": ButtonFlags.TYPE_RADIO,
+        "recessed": ButtonFlags.TYPE_RECESSED,
+        "check": ButtonFlags.TYPE_CHECK,
+        "roundRect": ButtonFlags.TYPE_ROUND_RECT,
+        "square": 0,
+        "disclosureTriangle": 0,
+        "help": 0,
+        "smallSquare": 0,
+        "roundTextured": 0,
+        "disclosure": 0,
+        "inline": 0,
+        "bevel": 0,
+    }[buttonType]
     borderStyle = elem.attrib.get("borderStyle")
     borderStyleMask = {None: 0, "border": ButtonFlags.BORDERED, "borderAndBezel": ButtonFlags.BORDERED | ButtonFlags.BEZEL}[borderStyle]
     imageScaling = elem.attrib.get("imageScaling")
     imageScalingMask = {None: 0, "proportionallyDown": ButtonFlags2.IMAGE_SCALING_PROPORTIONALLY_DOWN}[imageScaling]
     imagePosition = elem.attrib.get("imagePosition")
-    imagePositionMask = {None: 0, "left": ButtonFlags.IMAGE_LEFT, "right": ButtonFlags.IMAGE_RIGHT, "above": ButtonFlags.IMAGE_ABOVE, "below": ButtonFlags.IMAGE_BELOW}[imagePosition]
+    imagePositionMask = {None: 0, "left": ButtonFlags.IMAGE_LEFT, "right": ButtonFlags.IMAGE_RIGHT, "above": ButtonFlags.IMAGE_ABOVE, "below": ButtonFlags.IMAGE_BELOW, "only": ButtonFlags.IMAGE_ONLY}[imagePosition]
     bezel_style = elem.attrib.get("bezelStyle")
     bezel_style_mask = BEZEL_STYLE_MAP[bezel_style]
 
@@ -1703,12 +1717,18 @@ BEZEL_STYLE_MAP = {
     None: 0,
     "rounded": 1,
     "regularSquare": 2,
+    "disclosure": 5,
+    "shadowlessSquare": 6,
     "circular": 7,
     "helpButton": 9,
     "smallSquare": 10,
+    "texturedRounded": 11,
     "roundedRect": 12,
     "recessed": 13,
+    "roundedDisclosure": 14,
+    "inline": 15,
 }
+
 
 def _xibparser_parse_buttonCell(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
     obj = XibObject(ctx, "NSButtonCell", elem, parent)
@@ -1721,17 +1741,30 @@ def _xibparser_parse_buttonCell(ctx: ArchiveContext, elem: Element, parent: NibO
         obj["NSContents"] = NibString.intern('')
     button_type = elem.attrib.get("type", "push")
     if button_type == "radio":
-        obj["NSAlternateContents"] = NibObject("NSButtonImageSource", None, {
-            "NSImageName": "NSRadioButton"
-        })
+        obj["NSAlternateImage"] = NibObject("NSButtonImageSource", None, {"NSImageName": "NSRadioButton"})
     elif button_type == "check":
-        obj["NSAlternateContents"] = NibString.intern('')
-        obj["NSAlternateImage"] = NibObject("NSButtonImageSource", None, {
-            "NSImageName": "NSSwitch"
+        obj["NSAlternateImage"] = NibObject("NSButtonImageSource", None, {"NSImageName": "NSSwitch"})
+    elif button_type == "inline" and obj.get("NSSupport"):
+        obj["NSSupport"]["NSHasWidth"] = False
+        obj["NSSupport"]["NSTextStyleDescriptor"] = NibObject("NSFontDescriptor", None, {
+            "NSFontDescriptorOptions": 0x80008404,
+            "NSFontDescriptorAttributes": NibDictionary([
+                NibString.intern("NSCTFontSizeCategoryAttribute"),
+                NibNSNumber(3),
+                NibString.intern("NSCTFontUIUsageAttribute"),
+                NibString.intern("UICTFontTextStyleEmphasizedSubhead"),
+                NibString.intern("NSFontSizeAttribute"),
+                NibNSNumber(11.0),
+            ]),
         })
+        obj["NSSupport"]["NSfFlags"] = 0x10
     else:
         obj["NSAlternateContents"] = NibString.intern('')
+
+    if elem.attrib.get("image"):
+        obj["NSNormalImage"] = NibNil() # TODO requires parsing embedded bplist
     obj.setIfEmpty("NSKeyEquivalent", NibString.intern(''))
+    obj.setIfEmpty("NSAlternateContents", NibString.intern(''))
     obj["NSPeriodicDelay"] = 400
     obj["NSPeriodicInterval"] = 75
     obj["NSBezelStyle"] = BEZEL_STYLE_MAP.get(elem.attrib.get("bezelStyle"))
@@ -1764,7 +1797,7 @@ def _xibparser_parse_font(ctx: ArchiveContext, elem: Element, parent: NibObject)
 
     if meta_font == 'system':
         item["NSName"] = NibString.intern(".AppleSystemUIFont")
-        item["NSSize"] = 13.0
+        item["NSSize"] = float(elem.attrib.get("size", 13.0))
         item["NSfFlags"] = 1044
     elif meta_font == 'systemBold':
         item["NSName"] = NibString.intern(".AppleSystemUIFontBold")
@@ -1772,19 +1805,19 @@ def _xibparser_parse_font(ctx: ArchiveContext, elem: Element, parent: NibObject)
         item["NSfFlags"] = 2072
     elif meta_font == 'smallSystem':
         item["NSName"] = NibString.intern(".AppleSystemUIFont")
-        item["NSSize"] = 11.0
+        item["NSSize"] = float(elem.attrib.get("size", 11.0))
         item["NSfFlags"] = 3100
     elif meta_font == 'smallSystemBold':
-        item["NSName"] = NibString.intern(".AppleSystemUIFontBold")
-        item["NSSize"] = 11.0
+        item["NSName"] = NibString.intern(".AppleSystemUIFontDemi")
+        item["NSSize"] = float(elem.attrib.get("size", 11.0))
         item["NSfFlags"] = 3357
     elif meta_font == 'miniSystem':
         item["NSName"] = NibString.intern(".AppleSystemUIFont")
-        item["NSSize"] = 9.0
+        item["NSSize"] = float(elem.attrib.get("size", 9.0))
         item["NSfFlags"] = 3614
     elif meta_font == 'cellTitle':
         item["NSName"] = NibString.intern(".AppleSystemUIFont")
-        item["NSSize"] = 12.0
+        item["NSSize"] = float(elem.attrib.get("size", 12.0))
         item["NSfFlags"] = 4883
     else:
         raise Exception(f"missing font {meta_font}")
