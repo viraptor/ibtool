@@ -548,7 +548,7 @@ class XibObject(NibObject):
     
     def xib_parent(self) -> Optional["XibObject"]:
         parent = self.parent()
-        while parent is not None and not isinstance(parent, XibObject):
+        while parent is not None and (not isinstance(parent, XibObject) or parent.originalclassname() == "NSTableColumn"):
             parent = parent.parent()
         if isinstance(parent, XibObject):
             return parent
@@ -1159,15 +1159,50 @@ def _xibparser_parse_tableColumn(ctx: ArchiveContext, elem: Element, parent: Opt
     obj = make_xib_object(ctx, "NSTableColumn", elem, parent, view_attributes=False)
 
     __xibparser_ParseChildren(ctx, elem, obj)
- 
+
+    obj["NSIdentifier"] = NibString.intern(elem.attrib.get("identifier", ""))
+    if max_width := elem.attrib.get("maxWidth"):
+        obj["NSMaxWidth"] = float(max_width)
+    if min_width := elem.attrib.get("minWidth"):
+        obj["NSMinWidth"] = float(min_width)
+    obj["NSTableView"] = parent
+    if width := elem.attrib.get("width"):
+        obj["NSWidth"] = float(width)
+                                 
     return obj
 
 def _xibparser_parse_tableHeaderCell(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> NibObject:
+    assert parent is not None
+    assert parent.originalclassname() == "NSTableColumn"
+
     obj = NibObject("NSTableHeaderCell", parent)
 
     __xibparser_ParseChildren(ctx, elem, obj)
- 
+    __xibparser_cell_flags(elem, obj, parent)
+    if title := elem.attrib.get("title"):
+        obj["NSContents"] = NibString.intern(title)
+    obj["NSControlSize2"] = CONTROL_SIZE_MAP2[elem.attrib.get("controlSize", "regular")]
+    obj.setIfEmpty("NSSupport", NibObject("NSFont", obj, {
+        "NSName": ".AppleSystemUIFont",
+        "NSSize": 11.0,
+        "NSfFlags": 16,
+        "NSHasWidth": False,
+        "NSTextStyleDescriptor": NibObject("NSFontDescriptor", None, {
+            "NSFontDescriptorAttributes": NibDictionary([
+                NibString.intern("NSCTFontSizeCategoryAttribute"),
+                NibNSNumber(3),
+                NibString.intern("NSCTFontUIUsageAttribute"),
+                NibString.intern("UICTFontTextStyleSubhead"),
+                NibString.intern("NSFontSizeAttribute"),
+                NibNSNumber(11.0),
+            ]),
+            "NSFontDescriptorOptions": 0x80008404,
+        }),
+    }))
+    parent["NSHeaderCell"] = obj
+
     return obj
+
 
 def _xibparser_parse_tableFieldCell(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> XibObject:
     obj = make_xib_object(ctx, "NSTableFieldCell", elem, parent)
@@ -1334,7 +1369,13 @@ def _xibparser_parse_autoresizingMask(_ctx: ArchiveContext, elem: Element, paren
 
 
 def _xibparser_parse_tableColumnResizingMask(_ctx: ArchiveContext, elem: Element, parent: XibObject) -> None:
-    pass
+    assert parent.originalclassname() == "NSTableColumn"
+    assert elem.attrib.get("key") == "resizingMask"
+
+    resize_with_table = elem.attrib.get("resizeWithTable", "NO") == "YES"
+    if resize_with_table:
+        parent["NSResizingMask"] = 1
+        parent["NSIsResizeable"] = True
 
 
 def _xibparser_parse_point(_ctx: ArchiveContext, elem: Element, _parent: NibObject) -> None:
@@ -1527,20 +1568,21 @@ def __xibparser_cell_flags(elem: Element, obj: NibObject, _parent: NibObject) ->
     textAlignmentMask = {None: CellFlags2.TEXT_ALIGN_NONE, "left": CellFlags2.TEXT_ALIGN_LEFT, "center": CellFlags2.TEXT_ALIGN_CENTER, "right": CellFlags2.TEXT_ALIGN_RIGHT}[textAlignment]
     selectable = (CellFlags.SELECTABLE + 1) if elem.attrib.get("selectable") == "YES" else 0
     state_on = CellFlags.STATE_ON if (elem.attrib.get("state") == "on") else 0
-    text_field_flag = CellFlags.UNKNOWN_TEXT_FIELD if obj.originalclassname() in ["NSTextFieldCell", "NSButtonCell", "NSSearchFieldCell", "NSPopUpButtonCell"] else 0
+    text_field_flag = CellFlags.UNKNOWN_TEXT_FIELD if obj.originalclassname() in ["NSTextFieldCell", "NSButtonCell", "NSSearchFieldCell", "NSPopUpButtonCell", "NSTableHeaderCell"] else 0
     refuses_first_responder = elem.attrib.get("refusesFirstResponder", "NO") == "YES"
     refuses_first_responder_mask = CellFlags2.REFUSES_FIRST_RESPONDER if refuses_first_responder else 0
     scrollable = CellFlags.SCROLLABLE if elem.attrib.get("scrollable", "NO") == "YES" else 0
     disabled = 0 if elem.attrib.get("enabled", "YES") == "YES" else CellFlags.DISABLED
     editable = CellFlags.EDITABLE if elem.attrib.get("editable") == "YES" else 0
     bezeled = CellFlags.BEZELED if elem.attrib.get("borderStyle") == "bezel" else 0
+    border = CellFlags.BORDERED if elem.attrib.get("borderStyle") == "border" else 0
     size_flag = {
         None: 0,
         "regular": 0,
         "mini": CellFlags2.CONTROL_SIZE_MINI,
         "small": CellFlags2.CONTROL_SIZE_SMALL,
     }[elem.attrib.get("controlSize")]
-    obj.flagsOr("NSCellFlags", lineBreakModeMask | text_field_flag | selectable | state_on | scrollable | disabled | editable | bezeled)
+    obj.flagsOr("NSCellFlags", lineBreakModeMask | text_field_flag | selectable | state_on | scrollable | disabled | editable | bezeled | border)
     obj.flagsOr("NSCellFlags2", textAlignmentMask | sendsActionMask | lineBreakModeMask2 | refuses_first_responder_mask | size_flag)
 
 CONTROL_SIZE_MAP = {
@@ -1600,11 +1642,14 @@ def _xibparser_parse_textFieldCell(ctx: ArchiveContext, elem: Element, parent: N
 
     elif key == "dataCell":
         __xibparser_ParseChildren(ctx, elem, obj)
-        parent["NSDataCell"] = obj
         __xibparser_cell_flags(elem, obj, parent)
         obj["NSContents"] = NibString.intern(elem.attrib.get("title", ""))
         obj["NSControlSize2"] = CONTROL_SIZE_MAP2[elem.attrib.get("controlSize")]
-        obj["NSControlView"] = parent
+        obj["NSControlView"] = obj.xib_parent()
+        parent["NSDataCell"] = obj
+
+    else:
+        raise Exception(f"unknown key {key}")
 
     return obj
 
@@ -1646,7 +1691,7 @@ def __xibparser_button_flags(elem: Element, obj: XibObject, parent: NibObject) -
     imageScaling = elem.attrib.get("imageScaling")
     imageScalingMask = {None: 0, "proportionallyDown": ButtonFlags2.IMAGE_SCALING_PROPORTIONALLY_DOWN}[imageScaling]
 
-    obj.flagsOr("NSButtonFlags", inset | buttonTypeMask | borderStyleMask | 0xffffffff00000000)
+    obj.flagsOr("NSButtonFlags", inset | buttonTypeMask | borderStyleMask)
     obj.flagsOr("NSButtonFlags2", imageScalingMask | buttonTypeMask2)
 
 
@@ -1655,21 +1700,25 @@ def _xibparser_parse_buttonCell(ctx: ArchiveContext, elem: Element, parent: NibO
     ctx.extraNibObjects.append(obj)
 
     __xibparser_ParseChildren(ctx, elem, obj)
-    __xibparser_cell_options(elem, obj, parent)
     if title := elem.attrib.get("title"):
         obj["NSContents"] = title
-    obj.setIfEmpty("NSSupport", NibObject("NSFont", obj, {
-        "NSName": ".AppleSystemUIFont",
-        "NSSize": 13.0,
-        "NSfFlags": 1044,
-    }))
-    obj["NSControlView"] = parent
-    __xibparser_button_flags(elem, obj, parent)
-
-    if elem.attrib.get("type", "push") == "radio":
+    else:
+        obj["NSContents"] = NibString.intern('')
+    button_type = elem.attrib.get("type", "push")
+    if button_type == "radio":
         obj["NSAlternateContents"] = NibObject("NSButtonImageSource", None, {
             "NSImageName": "NSRadioButton"
-            })
+        })
+    elif button_type == "check":
+        obj["NSAlternateContents"] = NibString.intern('')
+        obj["NSAlternateImage"] = NibObject("NSButtonImageSource", None, {
+            "NSImageName": "NSSwitch"
+        })
+    else:
+        obj["NSAlternateContents"] = NibString.intern('')
+    obj.setIfEmpty("NSKeyEquivalent", NibString.intern(''))
+    obj["NSPeriodicDelay"] = 400
+    obj["NSPeriodicInterval"] = 75
     obj["NSBezelStyle"] = {
         None: 0,
         "rounded": 1,
@@ -1680,12 +1729,26 @@ def _xibparser_parse_buttonCell(ctx: ArchiveContext, elem: Element, parent: NibO
         "roundedRect": 12,
         "recessed": 13
     }.get(elem.attrib.get("bezelStyle"))
-    obj["NSAlternateContents"] = NibString.intern('')
-    obj.setIfEmpty("NSKeyEquivalent", NibString.intern(''))
-    obj["NSPeriodicDelay"] = 400
-    obj["NSPeriodicInterval"] = 75
-    obj.setIfEmpty("NSAuxButtonType", 7)
-    parent["NSCell"] = obj
+    __xibparser_button_flags(elem, obj, parent)
+    obj["NSControlView"] = obj.xib_parent()
+
+    key = elem.attrib.get("key")
+    if key == "cell":
+        __xibparser_cell_options(elem, obj, parent)
+        obj.setIfEmpty("NSSupport", NibObject("NSFont", obj, {
+            "NSName": ".AppleSystemUIFont",
+            "NSSize": 13.0,
+            "NSfFlags": 1044,
+        }))
+
+        obj.setIfEmpty("NSAuxButtonType", 7)
+        parent["NSCell"] = obj
+    elif key == "dataCell":
+        __xibparser_cell_flags(elem, obj, parent)
+        obj["NSControlSize2"] = CONTROL_SIZE_MAP2[elem.attrib.get("controlSize", "regular")]
+        parent["NSDataCell"] = obj
+    else:
+        raise Exception(f"unexpected key {key}")
 
     return obj
 
@@ -1715,8 +1778,8 @@ def _xibparser_parse_font(ctx: ArchiveContext, elem: Element, parent: NibObject)
         item["NSfFlags"] = 3614
     elif meta_font == 'cellTitle':
         item["NSName"] = NibString.intern(".AppleSystemUIFont")
-        item["NSSize"] = 9.0
-        item["NSfFlags"] = 3614
+        item["NSSize"] = 12.0
+        item["NSfFlags"] = 4883
     else:
         raise Exception(f"missing font {meta_font}")
     parent["NSSupport"] = item
@@ -1725,18 +1788,23 @@ def _xibparser_parse_font(ctx: ArchiveContext, elem: Element, parent: NibObject)
 def _xibparser_parse_behavior(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
     assert parent.originalclassname() in ("NSButtonCell", "NSPopUpButtonCell"), parent.originalclassname()
     maskmap = {
-        "pushIn": 1<<31,
+        "doesNotDimImage": 1<<12,
+        "lightByGray": 1<<25,
+        "lightByBackground": 1<<26,
+        "lightByContents": 1<<27,
         "changeGray": 1<<28,
         "changeBackground": 1<<29,
-        "lightByBackground": 1<<26,
-        "lightByGray": 1<<25,
+        "changeContents": 1<<30,
+        "pushIn": 0xffffffff00000000 + (1<<31),
     }
     value = sum((elem.attrib.get(attr) == "YES") * val for attr, val in maskmap.items())
-    if value == 0xb6000000:
+    if value == 0x0:
+        parent["NSAuxButtonType"] = 3
+    elif value == 0xb6000000:
         parent["NSAuxButtonType"] = 1
     elif value == 0x36000000:
         parent["NSAuxButtonType"] = 6
-    elif value == 0x86000000:
+    elif value == 0xffffffff86000000:
         parent["NSAuxButtonType"] = 7
     elif value == sum(maskmap.values()):
         parent["NSAuxButtonType"] = 7
@@ -1963,6 +2031,8 @@ def _xibparser_parse_searchFieldCell(ctx: ArchiveContext, elem: Element, parent:
     obj["NSMaximumRecents"] = 255
     obj["NSTextBezelStyle"] = 1
     obj["NSSearchFieldFlags"] = NibInlineString(b"\x16\x00\x00\x00")
+    if placeholder_string := elem.attrib.get("placeholderString"):
+        obj["NSPlaceholderString"] = placeholder_string
 
     parent["NSCell"] = obj
     return obj
@@ -2160,9 +2230,9 @@ def makeSystemColor(name):
     elif name == 'gridColor':
         return systemGrayColorTemplate(name, b'0.5 1', b'0.4246723652\x00')
     elif name == 'headerTextColor':
-        return systemGrayColorTemplate(name, b'0.6666666667 1', b'0.602715373\x00')
+        return systemGrayColorTemplate(name, b'0 1', b'0\x00')
     elif name == 'headerColor':
-        return systemGrayColorTemplate(name, b'0.6666666667 1', b'0.602715373\x00')
+        return systemGrayColorTemplate(name, b'1 1', b'1\x00')
     else:
         raise Exception(f"unknown name {name}")
 
