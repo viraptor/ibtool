@@ -693,9 +693,9 @@ def _xibparser_common_view_attributes(ctx: ArchiveContext, elem: Element, parent
         obj.flagsOr("NSvFlags", vFlags.HIDDEN)
     obj.flagsOr("NSvFlags", vFlags.AUTORESIZES_SUBVIEWS)
     obj["NSViewWantsBestResolutionOpenGLSurface"] = True
-    if parent is None:
+    if parent is None or obj.extraContext.get("key") == "contentView":
         obj.setIfEmpty("NSNextResponder", NibNil())
-    elif parent.extraContext.get("key") == "contentView":
+    elif parent.extraContext.get("key") == "contentView" or parent.xib_parent() is None:
         obj.setIfEmpty("NSNextResponder", parent)
     else:
         obj.setIfEmpty("NSNextResponder", parent.get("NSNextResponder") or NibNil())
