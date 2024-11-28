@@ -1798,7 +1798,7 @@ def _xibparser_parse_behavior(ctx: ArchiveContext, elem: Element, parent: NibObj
         "pushIn": 0xffffffff00000000 + (1<<31),
     }
     value = sum((elem.attrib.get(attr) == "YES") * val for attr, val in maskmap.items())
-    if value == 0x0:
+    if value == 0x0 or value == 0x48001000:
         parent["NSAuxButtonType"] = 3
     elif value == 0xb6000000:
         parent["NSAuxButtonType"] = 1
