@@ -1686,17 +1686,29 @@ def __xibparser_button_flags(elem: Element, obj: XibObject, parent: NibObject) -
     inset = {0: 0, 1: ButtonFlags.INSET_1, 2: ButtonFlags.INSET_2, 3: (ButtonFlags.INSET_1|ButtonFlags.INSET_2)}[inset]
     buttonType = elem.attrib.get("type", "push")
     buttonTypeMask = {"push": 0, "radio": ButtonFlags.TYPE_RADIO, "recessed": ButtonFlags.TYPE_RECESSED, "check": ButtonFlags.TYPE_CHECK, "roundRect": ButtonFlags.TYPE_ROUND_RECT}[buttonType]
-    buttonTypeMask2 = {"push": ButtonFlags2.TYPE_PUSH, "radio": ButtonFlags2.TYPE_RADIO, "recessed": ButtonFlags2.TYPE_RECESSED, "check": ButtonFlags2.TYPE_CHECK, "roundRect": ButtonFlags2.TYPE_ROUND_RECT}[buttonType]
     borderStyle = elem.attrib.get("borderStyle")
     borderStyleMask = {None: 0, "border": ButtonFlags.BORDERED, "borderAndBezel": ButtonFlags.BORDERED | ButtonFlags.BEZEL}[borderStyle]
     imageScaling = elem.attrib.get("imageScaling")
     imageScalingMask = {None: 0, "proportionallyDown": ButtonFlags2.IMAGE_SCALING_PROPORTIONALLY_DOWN}[imageScaling]
     imagePosition = elem.attrib.get("imagePosition")
     imagePositionMask = {None: 0, "left": ButtonFlags.IMAGE_LEFT, "right": ButtonFlags.IMAGE_RIGHT, "above": ButtonFlags.IMAGE_ABOVE, "below": ButtonFlags.IMAGE_BELOW}[imagePosition]
+    bezel_style = elem.attrib.get("bezelStyle")
+    bezel_style_mask = BEZEL_STYLE_MAP[bezel_style]
 
     obj.flagsOr("NSButtonFlags", inset | buttonTypeMask | borderStyleMask | imagePositionMask)
-    obj.flagsOr("NSButtonFlags2", imageScalingMask | buttonTypeMask2)
+    obj.flagsOr("NSButtonFlags2", imageScalingMask | bezel_style_mask)
 
+
+BEZEL_STYLE_MAP = {
+    None: 0,
+    "rounded": 1,
+    "regularSquare": 2,
+    "circular": 7,
+    "helpButton": 9,
+    "smallSquare": 10,
+    "roundedRect": 12,
+    "recessed": 13,
+}
 
 def _xibparser_parse_buttonCell(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
     obj = XibObject(ctx, "NSButtonCell", elem, parent)
@@ -1722,16 +1734,7 @@ def _xibparser_parse_buttonCell(ctx: ArchiveContext, elem: Element, parent: NibO
     obj.setIfEmpty("NSKeyEquivalent", NibString.intern(''))
     obj["NSPeriodicDelay"] = 400
     obj["NSPeriodicInterval"] = 75
-    obj["NSBezelStyle"] = {
-        None: 0,
-        "rounded": 1,
-        "regularSquare": 2,
-        "circular": 7,
-        "helpButton": 9,
-        "smallSquare": 10,
-        "roundedRect": 12,
-        "recessed": 13
-    }.get(elem.attrib.get("bezelStyle"))
+    obj["NSBezelStyle"] = BEZEL_STYLE_MAP.get(elem.attrib.get("bezelStyle"))
     __xibparser_button_flags(elem, obj, parent)
     obj["NSControlView"] = obj.xib_parent()
 
