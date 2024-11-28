@@ -96,6 +96,11 @@ def pythonObjects(nib: NibStructure) -> tuple[NibObject, list[Any]]:
         else:
             raise Exception(f"bad value type {type(obj_values)}")
 
+    for obj in res.values():
+        if isinstance(obj, NibObject):
+            for k,v in obj.entries.items():
+                if k == 'NSClassName':
+                    obj.classname += f"/{v.entries['NS.bytes'].value}"
     #for k in res:
     #    print('---', k, res[k])
     #    if isinstance(res[k], NibObject):
