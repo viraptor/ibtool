@@ -1254,7 +1254,7 @@ def _xibparser_parse_clipView(ctx: ArchiveContext, elem: Element, parent: Option
     obj["NSAutomaticallyAdjustsContentInsets"] = True
     if not is_main_view:
         obj["NSvFlags"] = vFlags.AUTORESIZES_SUBVIEWS # clearing the values from elem - they don't seem to matter
-    if elem.attrib.get("drawsBackground", "YES" if ctx.toolsVersion >= 23504 else "NO") == "YES":
+    if elem.attrib.get("drawsBackground", "YES" if ctx.toolsVersion >= 20037 else "NO") == "YES":
         obj.flagsOr("NScvFlags", cvFlags.DRAW_BACKGROUND)
     cursor = NibObject("NSCursor", obj)
     cursor["NSCursorType"] = 0
@@ -2120,19 +2120,21 @@ def _xibparser_parse_scroller(ctx: ArchiveContext, elem: Element, parent: NibObj
     obj["NSControlRefusesFirstResponder"] = elem.attrib.get("refusesFirstResponder", "NO") == "YES"
     if (cur_value := elem.attrib.get("doubleValue")) is not None:
         obj["NSCurValue"] = float(cur_value)
-    obj.flagsOr("NSsFlags", {
+    s_flags = 0
+    s_flags |= {
         None: sFlagsScroller.CONTROL_SIZE_REGULAR,
         "small": sFlagsScroller.CONTROL_SIZE_SMALL,
         "mini": sFlagsScroller.CONTROL_SIZE_MINI,
         "regular": sFlagsScroller.CONTROL_SIZE_REGULAR,
         "large": sFlagsScroller.CONTROL_SIZE_LARGE,
         "extraLarge": sFlagsScroller.CONTROL_SIZE_EXTRA_LARGE,
-    }.get(elem.attrib.get("controlSize"), 0))
+    }.get(elem.attrib.get("controlSize"), 0)
     if elem.attrib["horizontal"] == "YES":
         parent["NSHScroller"] = obj
-        obj.flagsOr("NSsFlags", sFlagsScroller.HORIZONTAL)
+        s_flags |= sFlagsScroller.HORIZONTAL
     else:
         parent["NSVScroller"] = obj
+    obj.setIfNotDefault("NSsFlags", s_flags, 0)
     return obj
 
 def _xibparser_parse_menu(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
