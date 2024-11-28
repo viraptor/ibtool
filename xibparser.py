@@ -1700,17 +1700,45 @@ def __xibparser_button_flags(elem: Element, obj: XibObject, parent: NibObject) -
         "inline": 0,
         "bevel": 0,
     }[buttonType]
+    button_type_id = {
+        "push": 0x1,
+        "check": 0x2,
+        "radio": 0x2,
+        "square": 0x2|0x4,
+        "disclosureTriangle": 0x1|0x4,
+        "help": 0x1|0x20,
+        "smallSquare": 0x2|0x20,
+        "roundTextured": 0x1|0x2|0x20,
+        "disclosure": 0x2|0x4|0x20,
+        "roundRect": 0x4|0x20,
+        "recessed": 0x1|0x4|0x8|0x20,
+        "inline": 0x1|0x2|0x4|0x20,
+        "bevel": 0x2,
+    }[buttonType]
     borderStyle = elem.attrib.get("borderStyle")
     borderStyleMask = {None: 0, "border": ButtonFlags.BORDERED, "borderAndBezel": ButtonFlags.BORDERED | ButtonFlags.BEZEL}[borderStyle]
     imageScaling = elem.attrib.get("imageScaling")
     imageScalingMask = {None: 0, "proportionallyDown": ButtonFlags2.IMAGE_SCALING_PROPORTIONALLY_DOWN}[imageScaling]
     imagePosition = elem.attrib.get("imagePosition")
     imagePositionMask = {None: 0, "left": ButtonFlags.IMAGE_LEFT, "right": ButtonFlags.IMAGE_RIGHT, "above": ButtonFlags.IMAGE_ABOVE, "below": ButtonFlags.IMAGE_BELOW, "only": ButtonFlags.IMAGE_ONLY}[imagePosition]
-    bezel_style = elem.attrib.get("bezelStyle")
-    bezel_style_mask = BEZEL_STYLE_MAP[bezel_style]
 
     obj.flagsOr("NSButtonFlags", inset | buttonTypeMask | borderStyleMask | imagePositionMask)
-    obj.flagsOr("NSButtonFlags2", imageScalingMask | bezel_style_mask)
+    obj.flagsOr("NSButtonFlags2", imageScalingMask | button_type_id)
+    obj["NSAuxButtonType"] = {
+        "push": 7,
+        "radio": 4,
+        "recessed": 1,
+        "check": 3,
+        "roundRect": 7,
+        "square": 7,
+        "disclosureTriangle": 2,
+        "help": 7,
+        "smallSquare": 7,
+        "roundTextured": 7,
+        "disclosure": 6,
+        "inline": 7,
+        "bevel": 7,
+    }[buttonType]
 
 
 BEZEL_STYLE_MAP = {
@@ -1837,18 +1865,6 @@ def _xibparser_parse_behavior(ctx: ArchiveContext, elem: Element, parent: NibObj
         "pushIn": 0xffffffff00000000 + (1<<31),
     }
     value = sum((elem.attrib.get(attr) == "YES") * val for attr, val in maskmap.items())
-    if value == 0x0 or value == 0x48001000:
-        parent["NSAuxButtonType"] = 3
-    elif value == 0xb6000000:
-        parent["NSAuxButtonType"] = 1
-    elif value == 0x36000000:
-        parent["NSAuxButtonType"] = 6
-    elif value == 0xffffffff86000000:
-        parent["NSAuxButtonType"] = 7
-    elif value == sum(maskmap.values()):
-        parent["NSAuxButtonType"] = 7
-    else:
-        parent["NSAuxButtonType"] = 0
     parent.flagsOr("NSButtonFlags", value)
 
 def _xibparser_parse_string(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
