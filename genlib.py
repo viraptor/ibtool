@@ -427,11 +427,11 @@ class CompilationContext:
                         out_values.append(
                             (idx_of_key(k), nibencoding.NIB_TYPE_LONG_LONG, v)
                         )
-                    elif v < 0x7f:
+                    elif v <= 0x7f:
                         out_values.append((idx_of_key(k), nibencoding.NIB_TYPE_BYTE, v))
-                    elif v < 0x7fff:
+                    elif v <= 0x7fff:
                         out_values.append((idx_of_key(k), nibencoding.NIB_TYPE_SHORT, v))
-                    elif v < 0x7ffffffff:
+                    elif v <= 0x7fffffff:
                         out_values.append((idx_of_key(k), nibencoding.NIB_TYPE_LONG, v))
                     else:
                         out_values.append((idx_of_key(k), nibencoding.NIB_TYPE_LONG_LONG, v))
