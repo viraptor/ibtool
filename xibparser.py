@@ -1325,7 +1325,11 @@ def _xibparser_parse_action(ctx: ArchiveContext, elem: Element, parent: NibObjec
     obj["NSLabel"] = elem.attrib["selector"]
     obj["NSSource"] = parent
     obj["NSDestination"] = XibId(elem.attrib.get("target"))
-    obj["NSEventMask"] = mask # TODO
+    if trigger := elem.attrib.get("trigger"):
+        obj["NSTrigger"] = NibString.intern(trigger)
+        obj.setclassname("NSNibAuxiliaryActionConnector")
+    else:
+        obj["NSEventMask"] = mask # TODO
 
     ctx.connections.append(obj)
 

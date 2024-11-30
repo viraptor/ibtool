@@ -376,8 +376,14 @@ class CompilationContext:
         def idx_of_class(cls: str) -> int:
             if cls in out_classes:
                 return out_classes.index(cls)
-            out_classes.append(cls)
-            return len(out_classes) - 1
+            if cls == "NSNibAuxiliaryActionConnector":
+                current_class_len = len(out_classes)
+                out_classes.append((cls, current_class_len + 1))
+                out_classes.append("NSNibConnector")
+                return current_class_len
+            else:
+                out_classes.append(cls)
+                return len(out_classes) - 1
 
         def idx_of_key(key: str) -> int:
             if key in out_keys:

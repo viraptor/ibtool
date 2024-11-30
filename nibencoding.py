@@ -90,8 +90,17 @@ def _nibWriteKeysSection(keys):
 def _nibWriteClassesSection(classes):
     b = bytearray()
     for cls in classes:
+        if isinstance(cls, tuple):
+            cls, aux_id = cls
+            aux = True
+        else:
+            aux = False
         _nibWriteFlexNumber(b, len(cls) + 1)
-        b.append(0x80)
+        if aux:
+            b.append(0x81)
+            b.extend(struct.pack("<I", aux_id))
+        else:
+            b.append(0x80)
         b.extend(cls.encode("utf-8"))
         b.append(0x00)
     return b
