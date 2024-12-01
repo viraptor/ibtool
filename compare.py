@@ -149,7 +149,7 @@ def diff(lhs: Union[NibValue,NibCollection,NibObject], rhs: Union[NibValue,NibCo
     assert isinstance(lhs, NibObject) or isinstance(lhs, NibCollection), type(lhs)
     assert isinstance(rhs, NibObject) or isinstance(rhs, NibCollection), type(rhs)
 
-    if lhs.classname in ("NSNibOutletConnector", "NSNibControlConnector") and rhs.classname in ("NSNibOutletConnector", "NSNibControlConnector"):
+    if lhs.classname in ("NSNibOutletConnector", "NSNibControlConnector", "NSNibAuxiliaryActionConnector") and rhs.classname in ("NSNibOutletConnector", "NSNibControlConnector", "NSNibAuxiliaryActionConnector"):
         # Connections are unordered
         return
     if lhs.classname != rhs.classname:
