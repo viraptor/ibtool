@@ -112,12 +112,15 @@ def readClasses(b: bytes, classSection: tuple[int, int]) -> list[str]:
         if tp == 0x81:
             unknown = rword(b[ptr : ptr + 4])
             ptr += 4
-            print("readClasses: Mystery value:", unknown, "(", end=" ")
+            # This is an "auxiliary" class somehow connected to another (usually the next) entry.
+            # In practice that seems to occur for NSNibAuxiliaryActionConnector which is followed by NSNibConnector.
+            # The value is the index of the connected class and normally it's the next class in the list.
+            #print("readClasses: Mystery value:", unknown, "(", end=" ")
 
         classes.append(b[ptr : ptr + length - 1].decode('utf-8'))
 
-        if unknown:
-            print(classes[-1], ")")
+        #if unknown:
+        #    print(classes[-1], ")")
 
         ptr += length
 
