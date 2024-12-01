@@ -139,7 +139,10 @@ def diff(lhs: Union[NibValue,NibCollection,NibObject], rhs: Union[NibValue,NibCo
 
         if type(lhs.value) in [int, str, float, bytes, type(None)]:
             if lhs.value != rhs.value:
-                yield f"{path} (in {parent_class}): difference {lhs.value} != {rhs.value}"
+                if (path.endswith("Flags") or path.endswith("Flags2")) and isinstance(lhs.value, int) and isinstance(rhs.value, int):
+                    yield f"{path} (in {parent_class}): difference {hex(lhs.value)} != {hex(rhs.value)}"
+                else:
+                    yield f"{path} (in {parent_class}): difference {lhs.value} != {rhs.value}"
             return
         return
 
