@@ -4,9 +4,9 @@ import getopt
 import sys
 import xml.etree.ElementTree as ET
 
-import genlib
-import ibdump
-import xibparser
+from . import genlib
+from . import ibdump
+from . import xibparser
 
 
 class IBCommands:

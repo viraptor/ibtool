@@ -1,4 +1,4 @@
-from ibdump import getNibSections, NibStructure
+from .ibdump import getNibSections, NibStructure
 import sys
 from typing import Any, Union, cast, Iterable, Optional
 
@@ -201,10 +201,9 @@ def diff(lhs: Union[NibValue,NibCollection,NibObject], rhs: Union[NibValue,NibCo
     else:
         raise Exception(f"Unknown type {type(lhs)}")
 
-
-if __name__ == "__main__":
-    orig_nib = getNibSections(sys.argv[1])
-    test_nib = getNibSections(sys.argv[2])
+def main(orig_path, test_path):
+    orig_nib = getNibSections(orig_path)
+    test_nib = getNibSections(test_path)
 
     orig_root, orig_rest = pythonObjects(orig_nib)
     test_root, test_rest = pythonObjects(test_nib)
@@ -219,3 +218,6 @@ if __name__ == "__main__":
         found_issues = True
         print(issue)
     sys.exit(int(found_issues))
+
+if __name__ == "__main__":
+    main(sys.argv[1], sys.argv[2])

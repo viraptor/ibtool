@@ -30,9 +30,9 @@ fi
 for xib in $xibs_to_test ; do
 	echo "Testing $xib"
 
-	python ibtool.py --compile "$test_out" "$xib"
+	python -m ibtool --compile "$test_out" "$xib"
 
-	python compare.py "${xib/xib/nib}" "$test_out"
+	python -m ibtool --compare "${xib/xib/nib}" "$test_out"
 	if [[ $? == 0 ]] ; then
 		echo "ok"
 	else
