@@ -140,7 +140,9 @@ def diff(lhs: Union[NibValue,NibCollection,NibObject], rhs: Union[NibValue,NibCo
         if type(lhs.value) in [int, str, float, bytes, type(None)]:
             if lhs.value != rhs.value:
                 if (path.endswith("Flags") or path.endswith("Flags2")) and isinstance(lhs.value, int) and isinstance(rhs.value, int):
-                    yield f"{path} (in {parent_class}): difference {hex(lhs.value)} != {hex(rhs.value)}"
+                    lval = lhs.value if lhs.value >= 0 else lhs.value + 0x10000000000000000
+                    rval = rhs.value if rhs.value >= 0 else rhs.value + 0x10000000000000000
+                    yield f"{path} (in {parent_class}): difference {hex(lval)} != {hex(rval)}"
                 else:
                     yield f"{path} (in {parent_class}): difference {lhs.value} != {rhs.value}"
             return
@@ -149,7 +151,7 @@ def diff(lhs: Union[NibValue,NibCollection,NibObject], rhs: Union[NibValue,NibCo
     assert isinstance(lhs, NibObject) or isinstance(lhs, NibCollection), type(lhs)
     assert isinstance(rhs, NibObject) or isinstance(rhs, NibCollection), type(rhs)
 
-    if lhs.classname in ("NSNibOutletConnector", "NSNibControlConnector", "NSNibAuxiliaryActionConnector") and rhs.classname in ("NSNibOutletConnector", "NSNibControlConnector", "NSNibAuxiliaryActionConnector"):
+    if lhs.classname in ("NSNibConnector", "NSNibOutletConnector", "NSNibControlConnector", "NSNibAuxiliaryActionConnector") and rhs.classname in ("NSNibConnector", "NSNibOutletConnector", "NSNibControlConnector", "NSNibAuxiliaryActionConnector"):
         # Connections are unordered
         return
     if lhs.classname != rhs.classname:
@@ -192,10 +194,20 @@ def diff(lhs: Union[NibValue,NibCollection,NibObject], rhs: Union[NibValue,NibCo
         for key in sorted(all_keys):
             #print(f"{key}, {lhs.entries.get(key)}, {rhs.entries.get(key)}")
             if key not in lhs.entries:
-                yield f"{path} LHS ({lhs.classname}) missing key {key}, RHS {rhs.entries.get(key)}"
+                rval = rhs.entries.get(key)
+                if (key.endswith("Flags") or key.endswith("Flags2")) and isinstance(rval.value, int):
+                    rval = rval.value
+                    rval = hex(rval if rval >= 0 else rval + 0x10000000000000000)
+
+                yield f"{path} LHS ({lhs.classname}) missing key {key}, RHS {rval}"
                 continue
             if key not in rhs.entries:
-                yield f"{path} RHS ({rhs.classname}) missing key {key}, LHS {lhs.entries.get(key)}"
+                lval = lhs.entries.get(key)
+                if (key.endswith("Flags") or key.endswith("Flags2")) and isinstance(lval.value, int):
+                    lval = lval.value
+                    lval = hex(lval if lval >= 0 else lval + 0x10000000000000000)
+
+                yield f"{path} RHS ({rhs.classname}) missing key {key}, LHS {lval}"
                 continue
             yield from diff(lhs.entries[key], rhs.entries[key], current_path + [key], lhs_path, rhs_path, lhs.classname)
     else:
