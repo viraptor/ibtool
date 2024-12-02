@@ -1,6 +1,7 @@
 from typing import Optional, Union, Iterable, TypeAlias, Sequence, Any, cast
 from xml.etree.ElementTree import Element
 import struct
+import random
 
 PropValue: TypeAlias = Union["NibObject",int,str,bytes,"NibNil","NibByte",bool,float,Iterable["PropValue"]]
 PropPair: TypeAlias = tuple[str,PropValue]
@@ -471,12 +472,25 @@ class ArchiveContext:
                 con["NSDestination"] = self.objects[dst]
                 result.append(con)
                 continue
-            phid = makePlaceholderIdentifier()
+            phid = self.makePlaceholderIdentifier()
             con["NSDestination"] = NibProxyObject(phid)
             self.upstreamPlaceholders[phid] = dst
             result.append(con)
 
         self.connections = result
+
+    def makexibid(self) -> str:
+        chars = random.sample(
+            "0123456789qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM", 10
+        )
+        chars[3] = "-"
+        chars[6] = "-"
+        return "".join(chars)
+
+
+    def makePlaceholderIdentifier(self) -> str:
+        return "UpstreamPlaceholder-" + self.makexibid()
+
 
 class XibObject(NibObject):
     def __init__(self, ctx: ArchiveContext, classname: str, elem: Optional[Element], parent: Optional["NibObject"], ) -> None:
@@ -583,7 +597,7 @@ def _xibparser_handle_custom_class(ctx: ArchiveContext, elem: Element, obj: "Xib
                 obj["NSClassName"] = NibString.intern(f"_TtC{len(custom_module)}{custom_module}{len(custom_class)}{custom_class}")
             else:
                 obj["NSClassName"] = NibString.intern(custom_class)
-            if obj.classname() not in ("NSView", "NSCustomView", "NSButton", "NSOutlineView"):
+            if obj.classname() not in ("NSView", "NSCustomView", "NSButton", "NSOutlineView", "NSScrollView"):
                 obj["NSInitializeWithInit"] = True
             final_original_class = {
                 "NSCustomObject": "NSObject",

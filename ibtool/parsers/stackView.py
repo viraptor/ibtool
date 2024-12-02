@@ -37,8 +37,8 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     obj["NSStackViewEdgeInsets.right"] = NibFloat(0.0)
     obj["NSStackViewEdgeInsets.top"] = NibFloat(0.0)
     obj["NSStackViewHasFlatViewHierarchy"] = True
-    obj["NSStackViewHorizontalClippingResistance"] = NibFloat(float(elem.attrib.get("horizontalClippingResistancePriority")))
-    obj["NSStackViewHorizontalHugging"] = NibFloat(float(elem.attrib.get("horizontalStackHuggingPriority")))
+    obj["NSStackViewHorizontalClippingResistance"] = NibFloat(float(elem.attrib.get("horizontalClippingResistancePriority", 0)))
+    obj["NSStackViewHorizontalHugging"] = NibFloat(float(elem.attrib.get("horizontalStackHuggingPriority", 0)))
     obj["NSStackViewVerticalClippingResistance"] = NibFloat(float(elem.attrib.get("verticalClippingResistancePriority", "1000")))
     obj["NSStackViewVerticalHugging"] = NibFloat(float(elem.attrib.get("verticalStackHuggingPriority")))
     obj["NSStackViewOrientation"] = 0
@@ -46,6 +46,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     obj["NSStackViewSpacing"] = NibFloat(1.0)
     obj["NSStackViewdistribution"] = {
         "fillProportionally": 2,
+        "fill": 9999,
     }[elem.attrib.get("distribution")]
 
     return obj

@@ -15,6 +15,8 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
         obj["NSContents"] = elem.attrib.get("title", NibString.intern(''))
         obj["NSSupport"] = NibNil() # TODO
         obj["NSControlView"] = obj.xib_parent()
+        if placeholder := elem.attrib.get("placeholderString"):
+            obj["NSPlaceholderString"] = NibString.intern(placeholder)
         if ctx.toolsVersion < 23504:
             obj["NSCharacterPickerEnabled"] = True
         if elem.attrib.get("drawsBackground") == "YES":

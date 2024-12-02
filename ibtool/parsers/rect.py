@@ -3,8 +3,8 @@ from xml.etree.ElementTree import Element
 
 def parse(ctx: ArchiveContext, elem: Element, parent: XibObject) -> None:
     key = elem.attrib.get("key")
-    w = int(elem.attrib["width"])
-    h = int(elem.attrib["height"])
+    w = 0 if elem.attrib["width"] == "0.0" else int(elem.attrib["width"])
+    h = 0 if elem.attrib["height"] == "0.0" else int(elem.attrib["height"]) 
     if key == "contentRect":
         assert parent.originalclassname() == "NSWindowTemplate"
         x = int(elem.attrib["x"])

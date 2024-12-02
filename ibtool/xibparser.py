@@ -84,17 +84,3 @@ def createTopLevel(toplevelObjects: list["XibObject"], context) -> NibObject:
         "IB.systemFontUpdateVersion": 1,
     })
 
-
-def makexibid() -> str:
-    import random
-
-    chars = random.sample(
-        "0123456789qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM", 10
-    )
-    chars[3] = "-"
-    chars[6] = "-"
-    return "".join(chars)
-
-
-def makePlaceholderIdentifier() -> str:
-    return "UpstreamPlaceholder-" + makexibid()
