@@ -6,6 +6,7 @@ from ..parsers_base import parse_children
 
 def containing_clip_view(ctx: ArchiveContext, parent: Optional[NibObject]) -> XibObject:
     obj = make_xib_object(ctx, "NSClipView", None, parent)
+    obj["NSNextResponder"] = parent
     obj["NSSuperview"] = parent
     obj["NSAutomaticallyAdjustsContentInsets"] = True
     obj["NSSubviews"] = NibMutableList([])
@@ -30,7 +31,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
         assert table_view.originalclassname() == "NSTableView"
         table_view["NSHeaderView"] = obj
 
-        obj["NSNextResponder"] = NibNil()
+        obj["NSNextResponder"] = clip_view
         obj["NSSuperview"] = clip_view
         obj["NSTableView"] = table_view
         obj["NSViewIsLayerTreeHost"] = True

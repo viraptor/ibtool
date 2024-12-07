@@ -52,6 +52,8 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     obj["NSSubviews"].addItem(obj["NSHScroller"])
     obj["NSSubviews"].addItem(obj["NSVScroller"])
 
+    obj["NSNextKeyView"] = obj["NSContentView"]
+
     horizontal_line_scroll = int(elem.attrib.get("horizontalLineScroll", "10"))
     vertical_line_scroll = int(elem.attrib.get("verticalLineScroll", "10"))
     horizontal_page_scroll = 0 if elem.attrib.get("horizontalPageScroll") == "0.0" else int(elem.attrib.get("horizontalPageScroll", "10"))
