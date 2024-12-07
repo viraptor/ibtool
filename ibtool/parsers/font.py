@@ -9,6 +9,8 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> NibObject:
         item["NSName"] = NibString.intern(".AppleSystemUIFont")
         item["NSSize"] = float(elem.attrib.get("size", 13.0))
         item["NSfFlags"] = 0x414
+        if elem.attrib.get("usesAppearanceFont") == "YES":
+            item["NSFontUsesAppearanceFontSize"] = True # does it apply to all?
     elif meta_font == 'system':
         item["NSName"] = NibString.intern(".AppleSystemUIFont")
         item["NSSize"] = float(elem.attrib.get("size", 13.0))
