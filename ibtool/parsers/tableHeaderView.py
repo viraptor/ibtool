@@ -37,6 +37,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
         clip_view["NSNextKeyView"] = obj
         clip_view["NSDocView"] = obj
         clip_view["NSSubviews"].addItem(obj)
+        parent["NSHeaderClipView"] = clip_view
 
     else:
         raise ValueError(f"Unknown table header view key: {key}")

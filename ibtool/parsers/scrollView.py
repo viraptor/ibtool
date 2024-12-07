@@ -45,11 +45,12 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     obj["NSMagnification"] = 1.0
     obj["NSMaxMagnification"] = 4.0
     obj["NSMinMagnification"] = 0.25
-    obj["NSSubviews"] = NibMutableList([
-        obj["NSContentView"],
-        obj["NSHScroller"],
-        obj["NSVScroller"],
-        ])
+    obj["NSSubviews"] = NibMutableList([])
+    obj["NSSubviews"].addItem(obj["NSContentView"])
+    if obj.get("NSHeaderClipView"):
+        obj["NSSubviews"].addItem(obj["NSHeaderClipView"])
+    obj["NSSubviews"].addItem(obj["NSHScroller"])
+    obj["NSSubviews"].addItem(obj["NSVScroller"])
 
     horizontal_line_scroll = int(elem.attrib.get("horizontalLineScroll", "10"))
     vertical_line_scroll = int(elem.attrib.get("verticalLineScroll", "10"))
