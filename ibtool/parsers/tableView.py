@@ -47,8 +47,6 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     obj["NSDraggingSourceMaskForLocal"] = -1
     obj["NSDraggingSourceMaskForNonLocal"] = 0
     obj["NSEnabled"] = True
-    obj["NSIntercellSpacingHeight"] = 0.0
-    obj["NSIntercellSpacingWidth"] = 17.0
     obj["NSRowHeight"] = 24.0
     obj["NSTableViewDraggingDestinationStyle"] = 0
     obj["NSTableViewGroupRowStyle"] = 1
