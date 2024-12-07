@@ -13,8 +13,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Ni
 
     parse_children(ctx, elem, obj)
     __xibparser_cell_flags(elem, obj, parent)
-    if title := elem.attrib.get("title"):
-        obj["NSContents"] = NibString.intern(title)
+    obj["NSContents"] = NibString.intern(elem.attrib.get("title", ''))
     obj["NSControlSize2"] = CONTROL_SIZE_MAP2[elem.attrib.get("controlSize", "regular")]
     obj.setIfEmpty("NSSupport", NibObject("NSFont", obj, {
         "NSName": ".AppleSystemUIFont",

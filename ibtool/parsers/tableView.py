@@ -1,4 +1,4 @@
-from ..models import ArchiveContext, NibObject, NibMutableList, NibMutableDictionary, XibObject, NibNil
+from ..models import ArchiveContext, NibObject, NibMutableList, NibMutableDictionary, XibObject, NibNil, NibString
 from xml.etree.ElementTree import Element
 from typing import Optional
 from .helpers import make_xib_object, __xibparser_cell_flags, __handle_view_chain
@@ -10,9 +10,13 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     obj = make_xib_object(ctx, "NSTableView", elem, parent)
 
     obj["NSSuperview"] = parent
+    obj["NSTableViewArchivedReusableViewsKey"] = NibMutableDictionary([])
 
     with __handle_view_chain(ctx, obj):
         parse_children(ctx, elem, obj)
+    
+    if obj.get("NSNextKeyView") is not None:
+        del obj["NSNextKeyView"]
 
     obj["NSSubviews"] = NibMutableList([])
     obj["NSAllowsLogicalLayoutDirection"] = False
@@ -29,6 +33,14 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     obj["NSControlUsesSingleLineMode"] = False
     obj["NSControlWritingDirection"] = 0
     obj["NSCornerView"] = NibObject("_NSCornerView", obj, {
+        "IBNSClipsToBounds": 0,
+        "IBNSLayoutMarginsGuide": NibNil(),
+        "IBNSSafeAreaLayoutGuide": NibNil(),
+        "NSFrameSize": NibString.intern("{15, 28}"),
+        "NSNextResponder": NibNil(),
+        "NSNibTouchBar": NibNil(),
+        "NSViewWantsBestResolutionOpenGLSurface": True,
+        "NSvFlags": 0x100,
     })
     obj["NSDataSource"] = NibNil()
     obj["NSDelegate"] = NibNil()
@@ -38,7 +50,6 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     obj["NSIntercellSpacingHeight"] = 0.0
     obj["NSIntercellSpacingWidth"] = 17.0
     obj["NSRowHeight"] = 24.0
-    obj["NSTableViewArchivedReusableViewsKey"] = NibMutableDictionary([])
     obj["NSTableViewDraggingDestinationStyle"] = 0
     obj["NSTableViewGroupRowStyle"] = 1
     obj["NSTvFlags"] = 0xffffffffd2600000

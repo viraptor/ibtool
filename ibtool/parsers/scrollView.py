@@ -58,4 +58,9 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     if (horizontal_line_scroll, vertical_line_scroll, horizontal_page_scroll, vertical_page_scroll) != (10, 10, 10, 10):
         obj["NSScrollAmts"] = NibInlineString(NibFloatToWord(vertical_page_scroll) + NibFloatToWord(horizontal_page_scroll) + NibFloatToWord(vertical_line_scroll) + NibFloatToWord(horizontal_line_scroll))
 
+    if (content_view := obj.get("NSContentView")) is not None:
+        if (doc_view := content_view.get("NSDocView")) is not None:
+            if doc_view.originalclassname() == "NSTableView":
+                obj["NSHScroller"]["NSEnabled"] = True
+
     return obj

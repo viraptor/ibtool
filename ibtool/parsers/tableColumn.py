@@ -1,4 +1,4 @@
-from ..models import ArchiveContext, NibObject, XibObject, NibString
+from ..models import ArchiveContext, NibObject, XibObject, NibString, NibNil
 from xml.etree.ElementTree import Element
 from typing import Optional
 from .helpers import make_xib_object
@@ -17,5 +17,16 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     obj["NSTableView"] = parent
     if width := elem.attrib.get("width"):
         obj["NSWidth"] = float(width)
-                                 
+
+    if parent.originalclassname() == "NSTableView":
+        parent["NSTableViewArchivedReusableViewsKey"].addItem(NibString.intern(elem.attrib.get("identifier", "")))
+        parent["NSTableViewArchivedReusableViewsKey"].addItem(NibObject("NSNib", None, {
+            "NSNibFileData": NibNil(), # NibObject("NSData", None, {}),
+            "NSNibFileImages": NibNil(),
+            "NSNibFileIsKeyed": True,
+            "NSNibFileSounds": NibNil(),
+            "NSNibFileUseParentBundle": True,
+        }))
+        obj["NSResizingMask"] = 3 # reason unknown
+
     return obj

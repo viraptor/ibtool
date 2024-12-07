@@ -21,14 +21,14 @@ def make_xib_object(ctx: ArchiveContext, classname: str, elem: Element, parent: 
         ctx.addObject(obj.xibid, obj)
     ctx.extraNibObjects.append(obj)
     if view_attributes:
-        _xibparser_common_view_attributes(ctx, elem, parent, obj, topLevelView=(elem.get("key") == "contentView"))
+        _xibparser_common_view_attributes(ctx, elem, parent, obj, topLevelView=(elem is not None and elem.get("key") == "contentView"))
     return obj
 
 def _xibparser_common_view_attributes(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject], obj: XibObject, topLevelView: bool = False) -> None:
     obj["IBNSSafeAreaLayoutGuide"] = NibNil()
     obj["IBNSLayoutMarginsGuide"] = NibNil()
-    obj["IBNSClipsToBounds"] = int(elem.attrib.get("clipsToBounds") == "YES")
-    if elem.attrib.get("hidden", "NO") == "YES":
+    obj["IBNSClipsToBounds"] = int(0 if elem is None else elem.attrib.get("clipsToBounds") == "YES")
+    if elem is not None and elem.attrib.get("hidden", "NO") == "YES":
         obj.flagsOr("NSvFlags", vFlags.HIDDEN)
     obj.flagsOr("NSvFlags", vFlags.AUTORESIZES_SUBVIEWS)
     obj["NSViewWantsBestResolutionOpenGLSurface"] = True
@@ -39,16 +39,16 @@ def _xibparser_common_view_attributes(ctx: ArchiveContext, elem: Element, parent
     else:
         obj.setIfEmpty("NSNextResponder", parent.get("NSNextResponder") or NibNil())
     obj["NSNibTouchBar"] = NibNil()
-    if elem.attrib.get("verticalHuggingPriority") is not None:
+    if elem is not None and elem.attrib.get("verticalHuggingPriority") is not None:
         obj.extraContext["verticalHuggingPriority"] = elem.attrib.get("verticalHuggingPriority")
-    if elem.attrib.get("horizontalHuggingPriority") is not None:
+    if elem is not None and elem.attrib.get("horizontalHuggingPriority") is not None:
         obj.extraContext["horizontalHuggingPriority"] = elem.attrib.get("horizontalHuggingPriority")
     __xibparser_set_compression_priority(ctx, obj, elem)
 
-    if elem.attrib.get('translatesAutoresizingMaskIntoConstraints', "YES") == "NO":
+    if elem is not None and elem.attrib.get('translatesAutoresizingMaskIntoConstraints', "YES") == "NO":
         obj.extraContext["NSDoNotTranslateAutoresizingMask"] = True
 
-def __xibparser_cell_flags(elem: Element, obj: NibObject, _parent: NibObject) -> None:
+def __xibparser_cell_flags(elem: Element, obj: NibObject, parent: NibObject) -> None:
     sendsAction = elem.attrib.get("sendsActionOnEndEditing", "NO") == "YES"
     sendsActionMask = CellFlags2.SENDS_ACTION_ON_END_EDITING if sendsAction else 0
     lineBreakMode = elem.attrib.get("lineBreakMode")
@@ -92,6 +92,9 @@ def __xibparser_cell_flags(elem: Element, obj: NibObject, _parent: NibObject) ->
 
     obj.flagsOr("NSCellFlags", lineBreakModeMask | text_field_flag | selectable | state_on | scrollable | disabled | editable | bezeled | border)
     obj.flagsOr("NSCellFlags2", textAlignmentMask | sendsActionMask | lineBreakModeMask2 | refuses_first_responder_mask | size_flag | allows_mixed_state)
+
+    if parent.originalclassname() == "NSTableColumn" and editable:
+        parent["NSIsEditable"] = True
 
 def __xibparser_cell_options(elem: Element, obj: NibObject, parent: NibObject) -> None:
     __xibparser_cell_flags(elem, obj, parent)
@@ -177,8 +180,8 @@ def __xibparser_button_flags(elem: Element, obj: XibObject, parent: NibObject) -
     }[buttonType]
 
 def __xibparser_set_compression_priority(_ctx: ArchiveContext, obj: XibObject, elem: Element) -> None:
-    horizontal_compression_prio = elem.attrib.get('horizontalCompressionResistancePriority')
-    vertical_compression_prio = elem.attrib.get('verticalCompressionResistancePriority')
+    horizontal_compression_prio = None if elem is None else elem.attrib.get('horizontalCompressionResistancePriority')
+    vertical_compression_prio = None if elem is None else elem.attrib.get('verticalCompressionResistancePriority')
     if horizontal_compression_prio is not None or vertical_compression_prio is not None:
         if horizontal_compression_prio is None:
             horizontal_compression_prio = "750"
