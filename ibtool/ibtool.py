@@ -2,6 +2,7 @@
 
 import getopt
 import sys
+import os
 import xml.etree.ElementTree as ET
 
 from . import genlib
@@ -82,10 +83,15 @@ def ib_compile(inpath, outpath):
 def ib_compile_xib(inpath, outpath):
     tree = ET.parse(inpath)
     root = tree.getroot()
-    nibroot = xibparser.ParseXIBObjects(root)
+    context, nibroot = xibparser.ParseXIBObjects(root)
     outbytes = genlib.CompileNibObjects([nibroot])
 
-    with open(outpath, "wb") as fl:
+    if context.deployment:
+        os.makedirs(os.path.dirname(outpath), exist_ok=True)
+        nibpath = os.path.join(outpath, "keyedobjects-101300.nib")
+    else:
+        nibpath = outpath
+    with open(nibpath, "wb") as fl:
         fl.write(outbytes)
 
 

@@ -355,6 +355,8 @@ class ArchiveContext:
         self.toolsVersion = toolsVersion
         self.connections: list[NibObject] = []
 
+        self.deployment = False
+
         # We need the list of constraints to be able to set the NSDoNotTranslateAutoresizingMask prop correctly
         self.constraints: list[XibObject] = []
 

@@ -19,7 +19,7 @@ from .parsers_base import __xibparser_ParseXIBObject
 # element: The element containing the objects to be included in the nib.
 #          For standalone XIBs, this is typically document->objects
 #          For storyboards, this is typically document->scenes->scene->objects
-def ParseXIBObjects(root: Element, context: Optional[ArchiveContext]=None, resolveConnections: bool=True, parent: Optional[NibObject]=None) -> NibObject:
+def ParseXIBObjects(root: Element, context: Optional[ArchiveContext]=None, resolveConnections: bool=True, parent: Optional[NibObject]=None) -> tuple[ArchiveContext, NibObject]:
     objects = next(root.iter("objects"))
     toplevel: list[XibObject] = []
 
@@ -28,6 +28,12 @@ def ParseXIBObjects(root: Element, context: Optional[ArchiveContext]=None, resol
         customObjectInstantitationMethod=root.attrib.get("customObjectInstantitationMethod"),
         toolsVersion=int(root.attrib.get("toolsVersion", "0")),
         )
+    
+    dependencies = [x for x in root.iter("dependencies")]
+    if not dependencies:
+        deployment = [x for x in dependencies[0].iter("deployment")]
+        if deployment:
+            context.deployment = True
 
     for nib_object_element in objects:
         obj = __xibparser_ParseXIBObject(context, nib_object_element, parent)
@@ -39,7 +45,7 @@ def ParseXIBObjects(root: Element, context: Optional[ArchiveContext]=None, resol
 
     context.processConstraints()
 
-    return createTopLevel(toplevel, context)
+    return context, createTopLevel(toplevel, context)
 
 
 def createTopLevel(toplevelObjects: list["XibObject"], context) -> NibObject:
