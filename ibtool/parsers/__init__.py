@@ -8,6 +8,7 @@ from . import button
 from . import buttonCell
 from . import clipView
 from . import color
+from . import colorWell
 from . import connections
 from . import constraint
 from . import constraints
@@ -73,6 +74,7 @@ all = {
     "buttonCell": buttonCell, 
     "clipView": clipView, 
     "color": color, 
+    "colorWell": colorWell,
     "connections": connections, 
     "constraint": constraint, 
     "constraints": constraints, 

@@ -6,7 +6,7 @@ from ..constant_objects import GENERIC_GREY_COLOR_SPACE
 
 def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
     assert isinstance(parent, XibObject) or isinstance(parent, NibObject), type(parent)
-    assert elem.attrib["colorSpace"] in ["catalog", "calibratedWhite"], elem.attrib["colorSpace"]
+    assert elem.attrib["colorSpace"] in ["catalog", "calibratedWhite", "calibratedRGB"], elem.attrib["colorSpace"]
 
     key = elem.attrib["key"]
 
@@ -27,6 +27,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
             "backgroundColor": ["NSBackgroundColor"],
             "insertionPointColor": ["NSInsertionPointColor"],
             "gridColor": ["NSGridColor"],
+            "color": ["NSColor"],
         }
     }
 
@@ -79,6 +80,16 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
                 "NSColorSpace": 3,
                 "NSWhite": NibInlineString(white),
             })
+        target_obj[target_attribute] = color
+    elif elem.attrib["colorSpace"] == "calibratedRGB":
+        red = "1" if elem.attrib["red"] == "1" else f'{float(elem.attrib["red"]):.12}'
+        green = "1" if elem.attrib["green"] == "1" else f'{float(elem.attrib["green"]):.12}'
+        blue = "1" if elem.attrib["blue"] == "1" else f'{float(elem.attrib["blue"]):.12}'
+        alpha = "1" if elem.attrib["alpha"] == "1" else f'{float(elem.attrib["alpha"]):.12}'
+        color = NibObject("NSColor", None, {
+            "NSColorSpace": 1,
+            "NSRGB": NibInlineString(f"{red} {green} {blue}\x00") if alpha == "1" else f"{red} {green} {blue} {alpha}\x00",
+        })
         target_obj[target_attribute] = color
     else:
         raise Exception(f"unknown colorSpace {elem.attrib['colorSpace']}")

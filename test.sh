@@ -24,6 +24,7 @@ else
 		samples/test13_clip_flags.xib
 		samples/test14_custom_classes.xib
 		samples/test15_custom_classes.xib
+		samples/test18_autoresize.xib
 		"
 fi
 
