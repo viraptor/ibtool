@@ -210,4 +210,5 @@ ATTRIBUTE_MAP = {
     "centerX": 9,
     "centerY": 10,
     "baseline": 11,
+    "firstBaseline": 9999,
 }

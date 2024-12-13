@@ -2,6 +2,7 @@ from . import accessibility
 from . import action
 from . import autoresizingMask
 from . import behavior
+from . import binding
 from . import box
 from . import button
 from . import buttonCell
@@ -10,6 +11,7 @@ from . import color
 from . import connections
 from . import constraint
 from . import constraints
+from . import customFormatter
 from . import customObject
 from . import customSpacing
 from . import customView
@@ -18,6 +20,7 @@ from . import font
 from . import imageCell
 from . import imageView
 from . import items
+from . import levelIndicator
 from . import levelIndicatorCell
 from . import menu
 from . import menuItem
@@ -64,6 +67,7 @@ all = {
     "action": action, 
     "autoresizingMask": autoresizingMask, 
     "behavior": behavior, 
+    "binding": binding,
     "box": box, 
     "button": button, 
     "buttonCell": buttonCell, 
@@ -72,6 +76,7 @@ all = {
     "connections": connections, 
     "constraint": constraint, 
     "constraints": constraints, 
+    "customFormatter": customFormatter,
     "customObject": customObject, 
     "customSpacing": customSpacing, 
     "customView": customView, 
@@ -80,6 +85,7 @@ all = {
     "imageCell": imageCell, 
     "imageView": imageView, 
     "items": items, 
+    "levelIndicator": levelIndicator,
     "levelIndicatorCell": levelIndicatorCell,
     "menu": menu, 
     "menuItem": menuItem, 
