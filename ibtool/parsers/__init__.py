@@ -1,3 +1,4 @@
+from . import accessibility
 from . import action
 from . import autoresizingMask
 from . import behavior
@@ -54,10 +55,12 @@ from . import value
 from . import view
 from . import visibilityPriorities
 from . import window
+from . import windowCollectionBehavior
 from . import windowPositionMask
 from . import windowStyleMask
 
 all = {
+    "accessibility": accessibility,
     "action": action, 
     "autoresizingMask": autoresizingMask, 
     "behavior": behavior, 
@@ -114,6 +117,7 @@ all = {
     "view": view, 
     "visibilityPriorities": visibilityPriorities, 
     "window": window, 
+    "windowCollectionBehavior": windowCollectionBehavior,
     "windowPositionMask": windowPositionMask, 
     "windowStyleMask": windowStyleMask, 
 }
