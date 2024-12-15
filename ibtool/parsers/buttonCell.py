@@ -1,4 +1,4 @@
-from ..models import ArchiveContext, NibObject, XibObject, NibString, NibNil
+from ..models import ArchiveContext, NibObject, XibObject, NibString, NibNil, NibDictionary, NibNSNumber
 from xml.etree.ElementTree import Element
 from ..parsers_base import parse_children
 from .helpers import __xibparser_button_flags, __xibparser_cell_options, __xibparser_cell_flags
