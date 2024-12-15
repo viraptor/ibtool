@@ -7,6 +7,8 @@ from ..constants import vFlags
 
 def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> XibObject:
     obj = make_xib_object(ctx, "NSStackView", elem, parent)
+    distribution = elem.attrib.get("distribution")
+
     obj["NSSuperview"] = obj.xib_parent()
 
     with __handle_view_chain(ctx, obj):
@@ -15,7 +17,6 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     if not obj.extraContext.get("parsed_autoresizing"):
         obj.flagsOr("NSvFlags", vFlags.DEFAULT_VFLAGS_AUTOLAYOUT if ctx.useAutolayout else vFlags.DEFAULT_VFLAGS)
 
-    obj["NSStackViewAlignment"] = 10
     obj["NSStackViewBeginningContainer"] = NibObject("NSStackViewContainer", obj, {
         "IBNSClipsToBounds": 0,
         "IBNSLayoutMarginsGuide": NibNil(),
@@ -24,7 +25,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
         "NSFrameSize": NibString.intern("{0, 0}"),
         "NSNextResponder": NibNil(),
         "NSNibTouchBar": NibNil(),
-        "NSStackViewContainerNonDroppedViews": NibMutableList(obj["NSSubviews"]._items),
+        "NSStackViewContainerNonDroppedViews": NibMutableList([] if distribution is None else obj["NSSubviews"]._items),
         "NSStackViewContainerStackView": obj,
         "NSStackViewContainerVisibilityPriorities": NibNil(),
         "NSStackViewContainerViewToCustomAfterSpaceMap": NibNil(),
@@ -37,16 +38,66 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     obj["NSStackViewEdgeInsets.right"] = NibFloat(0.0)
     obj["NSStackViewEdgeInsets.top"] = NibFloat(0.0)
     obj["NSStackViewHasFlatViewHierarchy"] = True
-    obj["NSStackViewHorizontalClippingResistance"] = NibFloat(float(elem.attrib.get("horizontalClippingResistancePriority", 0)))
+    obj["NSStackViewHorizontalClippingResistance"] = NibFloat(float(elem.attrib.get("horizontalClippingResistancePriority", "1000")))
     obj["NSStackViewHorizontalHugging"] = NibFloat(float(elem.attrib.get("horizontalStackHuggingPriority", 0)))
     obj["NSStackViewVerticalClippingResistance"] = NibFloat(float(elem.attrib.get("verticalClippingResistancePriority", "1000")))
     obj["NSStackViewVerticalHugging"] = NibFloat(float(elem.attrib.get("verticalStackHuggingPriority")))
-    obj["NSStackViewOrientation"] = 0
-    obj["NSStackViewSecondaryAlignment"] = 3
-    obj["NSStackViewSpacing"] = NibFloat(1.0)
-    obj["NSStackViewdistribution"] = {
-        "fillProportionally": 2,
-        "fill": 9999,
-    }[elem.attrib.get("distribution")]
+    obj["NSStackViewSpacing"] = NibFloat(8.0)
+
+    if distribution is not None:
+        obj["NSStackViewdistribution"] = {
+            "fill": 0,
+            "fillEqually": 1,
+            "fillProportionally": 2,
+            "equalSpacing": 3,
+            "equalCentering": 4,
+        }[distribution]
+
+    if distribution is None:
+        obj["NSStackViewHasEqualSpacing"] = False
+        obj["NSStackViewSecondaryAlignment"] = 1
+        obj["NSStackViewAlignment"] = 5
+        obj["NSStackViewOrientation"] = 1
+        obj["NSStackViewMiddleContainer"] = NibObject("NSStackViewContainer", None, {
+            "IBNSClipsToBounds": 0,
+            "IBNSLayoutMarginsGuide": NibNil(),
+            "IBNSSafeAreaLayoutGuide": NibNil(),
+            "NSDoNotTranslateAutoresizingMask": True,
+            "NSFrameSize": NibString.intern("{0, 0}"),
+            "NSNextResponder": NibNil(),
+            "NSNibTouchBar": NibNil(),
+            "NSStackViewContainerNonDroppedViews": NibMutableList([]),
+            "NSStackViewContainerStackView": obj,
+            "NSStackViewContainerViewToCustomAfterSpaceMap": NibNil(),
+            "NSStackViewContainerVisibilityPriorities": NibNil(),
+            "NSViewWantsBestResolutionOpenGLSurface": True,
+            "NSvFlags": vFlags.AUTORESIZES_SUBVIEWS,
+        })
+        obj["NSStackViewEndContainer"] = NibObject("NSStackViewContainer", None, {
+            "IBNSClipsToBounds": 0,
+            "IBNSLayoutMarginsGuide": NibNil(),
+            "IBNSSafeAreaLayoutGuide": NibNil(),
+            "NSDoNotTranslateAutoresizingMask": True,
+            "NSFrameSize": NibString.intern("{0, 0}"),
+            "NSNextResponder": NibNil(),
+            "NSNibTouchBar": NibNil(),
+            "NSStackViewContainerNonDroppedViews": NibMutableList([]),
+            "NSStackViewContainerStackView": obj,
+            "NSStackViewContainerViewToCustomAfterSpaceMap": NibNil(),
+            "NSStackViewContainerVisibilityPriorities": NibNil(),
+            "NSViewWantsBestResolutionOpenGLSurface": True,
+            "NSvFlags": vFlags.AUTORESIZES_SUBVIEWS,
+        })
+        obj["NSSubviews"] = NibMutableList([]) # actually empty in practice
+    elif distribution == "equalSpacing":
+        obj["NSStackViewHasEqualSpacing"] = True
+
+    if distribution is not None:
+        obj["NSStackViewSecondaryAlignment"] = 1
+        obj["NSStackViewAlignment"] = 5
+        obj["NSStackViewOrientation"] = 1
+
+    if obj.extraContext.get("NSDoNotTranslateAutoresizingMask"):
+        obj["NSDoNotTranslateAutoresizingMask"] = True
 
     return obj

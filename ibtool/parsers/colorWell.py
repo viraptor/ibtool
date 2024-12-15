@@ -29,5 +29,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     ])
     if not obj.extraContext.get("parsed_autoresizing"):
         obj.flagsOr("NSvFlags", vFlags.DEFAULT_VFLAGS_AUTOLAYOUT if ctx.useAutolayout else vFlags.DEFAULT_VFLAGS)
+    if obj.extraContext.get("NSDoNotTranslateAutoresizingMask") and parent.extraContext.get("NSDoNotTranslateAutoresizingMask"):
+        obj["NSDoNotTranslateAutoresizingMask"] = True
     return obj
 
