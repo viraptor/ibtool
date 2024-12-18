@@ -19,6 +19,8 @@ def parse(ctx: ArchiveContext, elem: Element, parent: XibObject, **kwargs) -> Xi
                 "Unhandled class '%s' to take NSView with key 'contentView'"
                 % (parent.originalclassname())
             )
+    elif key is None:
+        pass
     else:
         raise Exception(f"view in unknown key {key} (parent {parent.repr()})")
 

@@ -25,7 +25,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
         "NSFrameSize": NibString.intern("{0, 0}"),
         "NSNextResponder": NibNil(),
         "NSNibTouchBar": NibNil(),
-        "NSStackViewContainerNonDroppedViews": NibMutableList([] if distribution is None else obj["NSSubviews"]._items),
+        "NSStackViewContainerNonDroppedViews": NibMutableList([] if (distribution is None or obj.get("NSSubviews") is None) else obj["NSSubviews"]._items),
         "NSStackViewContainerStackView": obj,
         "NSStackViewContainerVisibilityPriorities": NibNil(),
         "NSStackViewContainerViewToCustomAfterSpaceMap": NibNil(),
