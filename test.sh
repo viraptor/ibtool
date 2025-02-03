@@ -15,6 +15,7 @@ else
 		samples/blocklist_big.xib
 		samples/test1.xib
 		samples/test2.xib
+		samples/test3.xib
 		samples/test4.xib
 		samples/test5_connect.xib
 		samples/test8_menu.xib
@@ -25,7 +26,8 @@ else
 		samples/test14_custom_classes.xib
 		samples/test15_custom_classes.xib
 		samples/test18_autoresize.xib
-		samples/test19_layouts.xib
+		samples/test19_2_layouts.xib
+		samples/test21_masktranslate.xib
 		"
 fi
 

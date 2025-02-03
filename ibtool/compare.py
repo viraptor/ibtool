@@ -22,11 +22,11 @@ class NibObject:
         self.entries = entries
 
     def __eq__(self, other):
-        assert isinstance(other, NibObject)
+        assert isinstance(other, NibObject), type(other)
         return self.classname == other.classname and len(self.entries) == len(other.entries)
 
     def __lt__(self, other):
-        assert isinstance(other, NibObject)
+        assert isinstance(other, NibObject), type(other)
         return (self.classname, len(other.entries)) < (other.classname, len(other.entries))
 
     def __repr__(self):
@@ -49,7 +49,7 @@ class NibValue:
         return self.value == other.value and self.type == other.type
 
     def __lt__(self, other):
-        assert isinstance(other, NibValue)
+        assert isinstance(other, NibValue), type(other)
         return self.value < other.value
 
     def __repr__(self):
@@ -213,6 +213,41 @@ def diff(lhs: Union[NibValue,NibCollection,NibObject], rhs: Union[NibValue,NibCo
     else:
         raise Exception(f"Unknown type {type(lhs)}")
 
+def fixup_layout_constrints(orig_root, test_root):
+    # We need to order the layout constraints explicitly for comparison. Apple's tool uses random order.
+    orig_object_keys = orig_root.entries["IB.objectdata"].entries["NSObjectsKeys"].entries
+    test_object_keys = test_root.entries["IB.objectdata"].entries["NSObjectsKeys"].entries
+    orig_keys_oids = orig_root.entries["IB.objectdata"].entries["NSOidsKeys"].entries
+    test_keys_oids = test_root.entries["IB.objectdata"].entries["NSOidsKeys"].entries
+    
+    def find_order(obj, keys):
+        for i, key in enumerate(keys):
+            if key is obj:
+                if key.classname == "NSLayoutConstraint":
+                    first = key.entries.get("NSFirstAttribute").value if key.entries.get("NSFirstAttribute") else -1
+                    firstv2 = key.entries.get("NSFirstAttributeV2").value if key.entries.get("NSFirstAttributeV2") else -1
+                    second = key.entries.get("NSSecondAttribute").value if key.entries.get("NSSecondAttribute") else -1
+                    secondv2 = key.entries.get("NSSecondAttributeV2").value if key.entries.get("NSSecondAttributeV2") else -1
+                    firstitem = keys.index(key.entries.get("NSFirstItem")) if key.entries.get("NSFirstItem") else -1
+                    seconditem = keys.index(key.entries.get("NSSecondItem")) if key.entries.get("NSSecondItem") else -1
+                    priority = key.entries.get("NSPriority").value if key.entries.get("NSPriority") else -1
+                    constant = key.entries.get("NSConstantValue").value if key.entries.get("NSConstantValue") else -1
+                    constantv2 = key.entries.get("NSConstantValueV2").value if key.entries.get("NSConstantValueV2") else -1
+                    symbolic = key.entries.get("NSSymbolicConstant").entries["NS.bytes"].value if key.entries.get("NSSymbolicConstant") else b""
+                    relation = key.entries.get("NSRelation").value if key.entries.get("NSRelation") else -1
+
+                    return (first, firstv2, second, secondv2, firstitem, seconditem, priority, constant, constantv2, symbolic, relation)
+                else:
+                    return (-100000 + i, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1)
+        return (-200000, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1)
+
+    copy_orig = orig_object_keys.copy()
+    copy_test = test_object_keys.copy()
+    orig_object_keys.sort(key=lambda x: find_order(x, copy_orig))
+    test_object_keys.sort(key=lambda x: find_order(x, copy_test))
+    orig_keys_oids.sort(key=lambda x: find_order(x, copy_orig))
+    test_keys_oids.sort(key=lambda x: find_order(x, copy_test))
+
 def main(orig_path, test_path):
     orig_nib = getNibSections(orig_path)
     test_nib = getNibSections(test_path)
@@ -226,6 +261,7 @@ def main(orig_path, test_path):
         print("test has unreferenced items")
 
     found_issues = False
+    fixup_layout_constrints(orig_root, test_root)
     for issue in diff(orig_root, test_root):
         found_issues = True
         print(issue)

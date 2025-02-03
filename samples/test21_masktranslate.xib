@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="23504" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
+    <dependencies>
+        <deployment identifier="macosx"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="23504"/>
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
+    </dependencies>
+    <objects>
+        <customObject id="-2" userLabel="File's Owner" customClass="NSApplication"/>
+        <customObject id="-1" userLabel="First Responder" customClass="FirstResponder"/>
+        <customObject id="-3" userLabel="Application" customClass="NSObject"/>
+        <window title="Window" allowsToolTipsWhenApplicationIsInactive="NO" autorecalculatesKeyViewLoop="NO" releasedWhenClosed="NO" animationBehavior="default" id="F0z-JX-Cv5">
+            <windowStyleMask key="styleMask" titled="YES" closable="YES" miniaturizable="YES" resizable="YES"/>
+            <windowPositionMask key="initialPositionMask" leftStrut="YES" rightStrut="YES" topStrut="YES" bottomStrut="YES"/>
+            <rect key="contentRect" x="196" y="240" width="676" height="663"/>
+            <rect key="screenRect" x="0.0" y="0.0" width="1728" height="1079"/>
+            <view key="contentView" wantsLayer="YES" id="se5-gp-TjO">
+                <rect key="frame" x="0.0" y="0.0" width="676" height="663"/>
+                <autoresizingMask key="autoresizingMask"/>
+                <subviews>
+                    <customView fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="7Di-Jh-UPQ" customClass="InferTop">
+                        <rect key="frame" x="20" y="567" width="128" height="68"/>
+                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                    </customView>
+                    <customView fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="gkf-G5-jeu" customClass="InferBottom">
+                        <rect key="frame" x="20" y="497" width="128" height="62"/>
+                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                    </customView>
+                    <customView id="fMq-GG-pB0" customClass="MaskTop">
+                        <rect key="frame" x="177" y="567" width="144" height="68"/>
+                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                    </customView>
+                    <customView id="7cW-zd-wt2" customClass="MaskBottom">
+                        <rect key="frame" x="177" y="497" width="144" height="62"/>
+                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                    </customView>
+                    <customView translatesAutoresizingMaskIntoConstraints="NO" id="pZX-GP-Tdf" customClass="ConstInferTop">
+                        <rect key="frame" x="357" y="567" width="139" height="68"/>
+                    </customView>
+                    <customView translatesAutoresizingMaskIntoConstraints="NO" id="Kt6-wf-iIo" customClass="ConstInferBottom">
+                        <rect key="frame" x="357" y="497" width="139" height="62"/>
+                    </customView>
+                    <customView id="Umz-D4-ncT" customClass="ConstMaskTop">
+                        <rect key="frame" x="504" y="567" width="139" height="68"/>
+                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                    </customView>
+                    <customView id="cNU-NS-KJq" customClass="ConstMaskBottom">
+                        <rect key="frame" x="504" y="497" width="139" height="62"/>
+                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                    </customView>
+                </subviews>
+                <constraints>
+                    <constraint firstItem="Kt6-wf-iIo" firstAttribute="top" secondItem="pZX-GP-Tdf" secondAttribute="bottom" constant="8" symbolic="YES" id="3lG-tk-XfX"/>
+                    <constraint firstItem="Kt6-wf-iIo" firstAttribute="leading" secondItem="pZX-GP-Tdf" secondAttribute="leading" id="5hD-FW-nzP"/>
+                    <constraint firstItem="Kt6-wf-iIo" firstAttribute="top" secondItem="cNU-NS-KJq" secondAttribute="top" id="6M7-SS-0A9"/>
+                    <constraint firstItem="cNU-NS-KJq" firstAttribute="top" secondItem="Umz-D4-ncT" secondAttribute="top" constant="76" id="9an-Rq-tEd"/>
+                    <constraint firstItem="Kt6-wf-iIo" firstAttribute="top" secondItem="pZX-GP-Tdf" secondAttribute="top" constant="76" id="GND-V4-nnC"/>
+                    <constraint firstItem="Kt6-wf-iIo" firstAttribute="bottom" secondItem="cNU-NS-KJq" secondAttribute="bottom" id="hup-41-3fD"/>
+                    <constraint firstItem="cNU-NS-KJq" firstAttribute="leading" secondItem="Kt6-wf-iIo" secondAttribute="trailing" constant="8" symbolic="YES" id="pjK-JZ-oVq"/>
+                    <constraint firstItem="Kt6-wf-iIo" firstAttribute="leading" secondItem="7cW-zd-wt2" secondAttribute="trailing" constant="36" id="t6D-0U-SlC"/>
+                    <constraint firstItem="Kt6-wf-iIo" firstAttribute="trailing" secondItem="pZX-GP-Tdf" secondAttribute="trailing" id="zIa-hG-MEV"/>
+                </constraints>
+            </view>
+            <point key="canvasLocation" x="155" y="342.5"/>
+        </window>
+    </objects>
+</document>

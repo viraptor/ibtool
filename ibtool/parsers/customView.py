@@ -9,6 +9,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     obj = XibObject(ctx, "NSCustomView", elem, parent)
     ctx.extraNibObjects.append(obj)
     obj.setrepr(elem)
+    obj["NSSuperview"] = obj.xib_parent()
     obj.setIfEmpty("NSClassName", "NSView")
 
     # Parse these props first, in case any of our children point to us.

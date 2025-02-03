@@ -32,7 +32,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
         "NSViewWantsBestResolutionOpenGLSurface": True,
         "NSvFlags": vFlags.AUTORESIZES_SUBVIEWS,
     })
-    obj["NSStackViewDetachesHiddenViews"] = True
+    obj["NSStackViewDetachesHiddenViews"] = elem.attrib.get("detachesHiddenViews", "NO") == "YES"
     obj["NSStackViewEdgeInsets.bottom"] = NibFloat(0.0)
     obj["NSStackViewEdgeInsets.left"] = NibFloat(0.0)
     obj["NSStackViewEdgeInsets.right"] = NibFloat(0.0)
@@ -96,8 +96,5 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
         obj["NSStackViewSecondaryAlignment"] = 1
         obj["NSStackViewAlignment"] = 5
         obj["NSStackViewOrientation"] = 1
-
-    if obj.extraContext.get("NSDoNotTranslateAutoresizingMask"):
-        obj["NSDoNotTranslateAutoresizingMask"] = True
 
     return obj
