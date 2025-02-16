@@ -39,9 +39,9 @@ class NibObject:
             return hash((self.classname, tuple([(k,v.rec_hash(path + [id(self)]) if getattr(v, "rec_hash", None) else v) for k,v in self.entries.items()])))
 
 class NibValue:
-    def __init__(self, value: Any, type: int):
+    def __init__(self, value: Any, vtype: int):
         self.value = value
-        self.type = type
+        self.type = vtype
 
     def __eq__(self, other):
         if not isinstance(other, NibValue):
@@ -221,6 +221,7 @@ def fixup_layout_constrints(orig_root, test_root):
     test_keys_oids = test_root.entries["IB.objectdata"].entries["NSOidsKeys"].entries
     
     def find_order(obj, keys):
+        order_tuple = (-200000, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1)
         for i, key in enumerate(keys):
             if key is obj:
                 if key.classname == "NSLayoutConstraint":
@@ -236,10 +237,10 @@ def fixup_layout_constrints(orig_root, test_root):
                     symbolic = key.entries.get("NSSymbolicConstant").entries["NS.bytes"].value if key.entries.get("NSSymbolicConstant") else b""
                     relation = key.entries.get("NSRelation").value if key.entries.get("NSRelation") else -1
 
-                    return (first, firstv2, second, secondv2, firstitem, seconditem, priority, constant, constantv2, symbolic, relation)
+                    order_tuple = (first, firstv2, second, secondv2, firstitem, seconditem, priority, constant, constantv2, symbolic, relation)
                 else:
-                    return (-100000 + i, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1)
-        return (-200000, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1)
+                    order_tuple = (-100000 + i, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1)
+        return order_tuple
 
     copy_orig = orig_object_keys.copy()
     copy_test = test_object_keys.copy()

@@ -179,7 +179,7 @@ def readValues(b: bytes, valuesSection: tuple[int,int], debugKeys: Optional[list
             #    else:
             #        raise Exception("Well this is weird.")
             #else:
-            value = str(b[ptr : ptr + length])
+            value = b[ptr : ptr + length]
             ptr += length
         elif encoding == 0x09:  # nil?
             value = None
