@@ -33,6 +33,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
         "NSPeriodicDelay": 400,
         "NSPeriodicInterval": 75,
         "NSTarget": obj,
+        "NSControlView": obj.xib_parent(),
     })
     obj["NSSearchButtonCell"] = NibObject("NSButtonCell", None, {
         "NSAction": NibString.intern("_searchFieldSearch:"),
@@ -48,6 +49,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
         "NSPeriodicInterval": 75,
         "NSTarget": obj,
         "NSContents": NibString.intern('search'),
+        "NSControlView": obj.xib_parent(),
     })
     if parent.extraContext.get("allowsCharacterPickerTouchBarItem"):
         obj["NSCharacterPickerEnabled"] = True
