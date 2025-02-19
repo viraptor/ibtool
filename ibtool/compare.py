@@ -120,7 +120,7 @@ def pythonObjects(nib: NibStructure) -> tuple[NibObject, list[Any]]:
 
 already_seen = set()
 
-def diff(lhs: Union[NibValue,NibCollection,NibObject], rhs: Union[NibValue,NibCollection,NibObject], current_path: list[str]=[], lhs_path: list[int]=[], rhs_path: list[int]=[], parent_class: Optional[str] = None) -> Iterable[str]:
+def diff(lhs: Union[NibValue,NibCollection,NibObject], rhs: Union[NibValue,NibCollection,NibObject], lhs_root: list[Union[NibValue,NibCollection,NibObject]], rhs_root: list[Union[NibValue,NibCollection,NibObject]], current_path: list[str]=[], lhs_path: list[int]=[], rhs_path: list[int]=[], parent_class: Optional[str] = None) -> Iterable[str]:
     if (id(lhs), id(rhs)) in already_seen:
         return
     already_seen.add((id(lhs), id(rhs)))
@@ -175,20 +175,20 @@ def diff(lhs: Union[NibValue,NibCollection,NibObject], rhs: Union[NibValue,NibCo
         # They're hopefully unordered. TODO match the apple's order later
         if len(lhs.entries) != len(rhs.entries):
             yield f"{path} Mismatched length: {len(lhs.entries)} != {len(rhs.entries)}"
-        lhs_entries = sorted(lhs.entries, key=lambda x: (x.entries.get("NSFirstAttribute").value, x.entries.get("NSSecondAttribute"), x.entries.get("NSPriority", NibValue(1, 0)), x.entries.get("NSFirstItem"), x.entries.get("NSSecondItem")))
-        rhs_entries = sorted(rhs.entries, key=lambda x: (x.entries.get("NSFirstAttribute").value, x.entries.get("NSSecondAttribute"), x.entries.get("NSPriority", NibValue(1, 0)), x.entries.get("NSFirstItem"), x.entries.get("NSSecondItem")))
-        for i, (left, right) in enumerate(zip(lhs_entries, rhs_entries)):
-            yield from diff(left, right, current_path + [str(i)], lhs_path, rhs_path, lhs.classname)
+        fixup_layout_constrints(lhs.entries, lhs_root)
+        fixup_layout_constrints(rhs.entries, rhs_root)
+        for i, (left, right) in enumerate(zip(lhs.entries, rhs.entries)):
+            yield from diff(left, right, lhs_root, rhs_root, current_path + [str(i)], lhs_path, rhs_path, lhs.classname)
     elif path.endswith("NSConnections"):
         lhs_entries = sorted(lhs.entries, key=lambda x: x.rec_hash([]))
         rhs_entries = sorted(rhs.entries, key=lambda x: x.rec_hash([]))
         for i, (left, right) in enumerate(zip(lhs_entries, rhs_entries)):
-            yield from diff(left, right, current_path + [str(i)], lhs_path, rhs_path, lhs.classname)
+            yield from diff(left, right, lhs_root, rhs_root, current_path + [str(i)], lhs_path, rhs_path, lhs.classname)
     elif isinstance(lhs, NibCollection) and isinstance(rhs, NibCollection):
         if len(lhs.entries) != len(rhs.entries):
             yield f"{path} Mismatched length: {len(lhs.entries)} != {len(rhs.entries)}"
         for i, (left, right) in enumerate(zip(lhs.entries, rhs.entries)):
-            yield from diff(left, right, current_path + [str(i)], lhs_path, rhs_path, lhs.classname)
+            yield from diff(left, right, lhs_root, rhs_root, current_path + [str(i)], lhs_path, rhs_path, lhs.classname)
     elif isinstance(lhs, NibObject) and isinstance(rhs, NibObject):
         all_keys = set(list(lhs.entries.keys()) + list(rhs.entries.keys()))
         for key in sorted(all_keys):
@@ -209,17 +209,12 @@ def diff(lhs: Union[NibValue,NibCollection,NibObject], rhs: Union[NibValue,NibCo
 
                 yield f"{path} RHS ({rhs.classname}) missing key {key}, LHS {lval}"
                 continue
-            yield from diff(lhs.entries[key], rhs.entries[key], current_path + [key], lhs_path, rhs_path, lhs.classname)
+            yield from diff(lhs.entries[key], rhs.entries[key], lhs_root, rhs_root, current_path + [key], lhs_path, rhs_path, lhs.classname)
     else:
         raise Exception(f"Unknown type {type(lhs)}")
 
-def fixup_layout_constrints(orig_root, test_root):
+def fixup_layout_constrints(collection, all_objects):
     # We need to order the layout constraints explicitly for comparison. Apple's tool uses random order.
-    orig_object_keys = orig_root.entries["IB.objectdata"].entries["NSObjectsKeys"].entries
-    test_object_keys = test_root.entries["IB.objectdata"].entries["NSObjectsKeys"].entries
-    orig_keys_oids = orig_root.entries["IB.objectdata"].entries["NSOidsKeys"].entries
-    test_keys_oids = test_root.entries["IB.objectdata"].entries["NSOidsKeys"].entries
-    
     def find_order(obj, keys):
         order_tuple = (-200000, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1)
         for i, key in enumerate(keys):
@@ -242,12 +237,8 @@ def fixup_layout_constrints(orig_root, test_root):
                     order_tuple = (-100000 + i, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1)
         return order_tuple
 
-    copy_orig = orig_object_keys.copy()
-    copy_test = test_object_keys.copy()
-    orig_object_keys.sort(key=lambda x: find_order(x, copy_orig))
-    test_object_keys.sort(key=lambda x: find_order(x, copy_test))
-    orig_keys_oids.sort(key=lambda x: find_order(x, copy_orig))
-    test_keys_oids.sort(key=lambda x: find_order(x, copy_test))
+    all_objects = all_objects.copy()
+    collection.sort(key=lambda x: find_order(x, all_objects))
 
 def main(orig_path, test_path):
     orig_nib = getNibSections(orig_path)
@@ -262,8 +253,13 @@ def main(orig_path, test_path):
         print("test has unreferenced items")
 
     found_issues = False
-    fixup_layout_constrints(orig_root, test_root)
-    for issue in diff(orig_root, test_root):
+    orig_objects = orig_root.entries["IB.objectdata"].entries["NSObjectsKeys"].entries
+    test_objects = test_root.entries["IB.objectdata"].entries["NSObjectsKeys"].entries
+    fixup_layout_constrints(orig_root.entries["IB.objectdata"].entries["NSObjectsKeys"].entries, orig_objects)
+    fixup_layout_constrints(test_root.entries["IB.objectdata"].entries["NSObjectsKeys"].entries, test_objects)
+    fixup_layout_constrints(orig_root.entries["IB.objectdata"].entries["NSOidsKeys"].entries, orig_objects)
+    fixup_layout_constrints(test_root.entries["IB.objectdata"].entries["NSOidsKeys"].entries, test_objects)
+    for issue in diff(orig_root, test_root, lhs_root=orig_objects, rhs_root=test_objects):
         found_issues = True
         print(issue)
     sys.exit(int(found_issues))
