@@ -43,6 +43,11 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     obj["NSStackViewVerticalClippingResistance"] = NibFloat(float(elem.attrib.get("verticalClippingResistancePriority", "1000")))
     obj["NSStackViewVerticalHugging"] = NibFloat(float(elem.attrib.get("verticalStackHuggingPriority")))
     obj["NSStackViewSpacing"] = NibFloat(8.0)
+        
+    if alignment := elem.attrib.get("alignment"):
+        obj["NSStackViewAlignment"] = {
+            "centerY": 10
+        }[alignment]
 
     if distribution is not None:
         obj["NSStackViewdistribution"] = {
@@ -56,7 +61,6 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     if distribution is None:
         obj["NSStackViewHasEqualSpacing"] = False
         obj["NSStackViewSecondaryAlignment"] = 1
-        obj["NSStackViewAlignment"] = 5
         obj["NSStackViewOrientation"] = 1
         obj["NSStackViewMiddleContainer"] = NibObject("NSStackViewContainer", None, {
             "IBNSClipsToBounds": 0,
@@ -94,7 +98,6 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
 
     if distribution is not None:
         obj["NSStackViewSecondaryAlignment"] = 1
-        obj["NSStackViewAlignment"] = 5
         obj["NSStackViewOrientation"] = 1
 
     return obj
