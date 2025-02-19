@@ -46,7 +46,8 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
         
     if alignment := elem.attrib.get("alignment"):
         obj["NSStackViewAlignment"] = {
-            "centerY": 10
+            "centerY": 10,
+            "centerX": 9,
         }[alignment]
 
     if distribution is not None:
