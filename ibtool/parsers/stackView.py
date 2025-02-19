@@ -46,8 +46,10 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
         
     if alignment := elem.attrib.get("alignment"):
         obj["NSStackViewAlignment"] = {
-            "centerY": 10,
+            "top": 3,
+            "leading": 5,
             "centerX": 9,
+            "centerY": 10,
         }[alignment]
 
     if distribution is not None:
@@ -59,10 +61,14 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
             "equalCentering": 4,
         }[distribution]
 
+    obj["NSStackViewOrientation"] = {
+        "horizontal": 0,
+        "vertical": 1,
+    }[elem.attrib.get("orientation", "horizontal")]
+
     if distribution is None:
         obj["NSStackViewHasEqualSpacing"] = False
         obj["NSStackViewSecondaryAlignment"] = 1
-        obj["NSStackViewOrientation"] = 1
         obj["NSStackViewMiddleContainer"] = NibObject("NSStackViewContainer", None, {
             "IBNSClipsToBounds": 0,
             "IBNSLayoutMarginsGuide": NibNil(),
@@ -99,6 +105,5 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
 
     if distribution is not None:
         obj["NSStackViewSecondaryAlignment"] = 1
-        obj["NSStackViewOrientation"] = 1
 
     return obj
