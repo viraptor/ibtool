@@ -17,21 +17,22 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     if not obj.extraContext.get("parsed_autoresizing"):
         obj.flagsOr("NSvFlags", vFlags.DEFAULT_VFLAGS_AUTOLAYOUT if ctx.useAutolayout else vFlags.DEFAULT_VFLAGS)
 
-    obj["NSStackViewBeginningContainer"] = NibObject("NSStackViewContainer", obj, {
-        "IBNSClipsToBounds": 0,
-        "IBNSLayoutMarginsGuide": NibNil(),
-        "IBNSSafeAreaLayoutGuide": NibNil(),
-        "NSDoNotTranslateAutoresizingMask": True,
-        "NSFrameSize": NibString.intern("{0, 0}"),
-        "NSNextResponder": NibNil(),
-        "NSNibTouchBar": NibNil(),
-        "NSStackViewContainerNonDroppedViews": NibMutableList([] if (distribution is None or obj.get("NSSubviews") is None) else obj["NSSubviews"]._items),
-        "NSStackViewContainerStackView": obj,
-        "NSStackViewContainerVisibilityPriorities": NibNil(),
-        "NSStackViewContainerViewToCustomAfterSpaceMap": NibNil(),
-        "NSViewWantsBestResolutionOpenGLSurface": True,
-        "NSvFlags": vFlags.AUTORESIZES_SUBVIEWS,
-    })
+    if obj.get("NSSubviews") is not None:
+        obj["NSStackViewBeginningContainer"] = NibObject("NSStackViewContainer", obj, {
+            "IBNSClipsToBounds": 0,
+            "IBNSLayoutMarginsGuide": NibNil(),
+            "IBNSSafeAreaLayoutGuide": NibNil(),
+            "NSDoNotTranslateAutoresizingMask": True,
+            "NSFrameSize": NibString.intern("{0, 0}"),
+            "NSNextResponder": NibNil(),
+            "NSNibTouchBar": NibNil(),
+            "NSStackViewContainerNonDroppedViews": NibMutableList([] if (distribution is None or obj.get("NSSubviews") is None) else obj["NSSubviews"]._items),
+            "NSStackViewContainerStackView": obj,
+            "NSStackViewContainerVisibilityPriorities": NibNil(),
+            "NSStackViewContainerViewToCustomAfterSpaceMap": NibNil(),
+            "NSViewWantsBestResolutionOpenGLSurface": True,
+            "NSvFlags": vFlags.AUTORESIZES_SUBVIEWS,
+        })
     obj["NSStackViewDetachesHiddenViews"] = elem.attrib.get("detachesHiddenViews", "NO") == "YES"
     obj["NSStackViewEdgeInsets.bottom"] = NibFloat(0.0)
     obj["NSStackViewEdgeInsets.left"] = NibFloat(0.0)
