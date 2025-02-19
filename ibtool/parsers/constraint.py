@@ -25,9 +25,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> No
     if (second_item := elem.attrib.get("secondItem")) is not None:
         obj["NSSecondItem"] = XibId(second_item)
     if (relation := elem.attrib.get("relation")) is not None:
-        obj["NSRelation"] = {"greaterThanOrEqual": 1, "lessThanOrEqual": 2}[relation]
-    if placeholder:
-        obj["NSRelation"] = -1
+        obj["NSRelation"] = {"greaterThanOrEqual": 1, "lessThanOrEqual": -1}[relation]
     if (priority := elem.attrib.get("priority")) is not None:
         obj["NSPriority"] = int(priority)
 
