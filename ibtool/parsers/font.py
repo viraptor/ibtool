@@ -14,27 +14,27 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> NibObject:
     elif meta_font == 'system':
         item["NSName"] = NibString.intern(".AppleSystemUIFont")
         item["NSSize"] = float(elem.attrib.get("size", 13.0))
-        item["NSfFlags"] = 1044
+        item["NSfFlags"] = 0x414
     elif meta_font == 'systemBold':
         item["NSName"] = NibString.intern(".AppleSystemUIFontBold")
         item["NSSize"] = float(elem.attrib.get("size", 24.0))
-        item["NSfFlags"] = 2072
+        item["NSfFlags"] = 0x818
     elif meta_font == 'smallSystem':
         item["NSName"] = NibString.intern(".AppleSystemUIFont")
         item["NSSize"] = float(elem.attrib.get("size", 11.0))
-        item["NSfFlags"] = 3100
+        item["NSfFlags"] = 0xc1c
     elif meta_font == 'smallSystemBold':
         item["NSName"] = NibString.intern(".AppleSystemUIFontBold")
         item["NSSize"] = float(elem.attrib.get("size", 11.0))
-        item["NSfFlags"] = 3357
+        item["NSfFlags"] = 0xd1d
     elif meta_font == 'miniSystem':
         item["NSName"] = NibString.intern(".AppleSystemUIFont")
         item["NSSize"] = float(elem.attrib.get("size", 9.0))
-        item["NSfFlags"] = 3614
+        item["NSfFlags"] = 0xe1e
     elif meta_font == 'cellTitle':
         item["NSName"] = NibString.intern(".AppleSystemUIFont")
         item["NSSize"] = float(elem.attrib.get("size", 12.0))
-        item["NSfFlags"] = 4883
+        item["NSfFlags"] = 0x1313
     elif meta_font == 'menu':
         item["NSName"] = NibString.intern(".AppleSystemUIFont")
         item["NSSize"] = float(elem.attrib.get("size", 13.0))
