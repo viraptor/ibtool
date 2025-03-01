@@ -45,8 +45,11 @@ def _xibparser_common_view_attributes(ctx: ArchiveContext, elem: Element, parent
         obj.extraContext["horizontalHuggingPriority"] = elem.attrib.get("horizontalHuggingPriority")
     __xibparser_set_compression_priority(ctx, obj, elem)
 
+def _xibparser_common_translate_autoresizing(ctx: ArchiveContext, elem: Element, _parent: Optional[NibObject], obj: XibObject) -> None:
     if elem is not None and elem.attrib.get('translatesAutoresizingMaskIntoConstraints', "YES") == "NO":
         obj.extraContext["NSDoNotTranslateAutoresizingMask"] = True
+        if ctx.useAutolayout and not obj.extraContext.get("parsed_autoresizing"):
+            obj["NSDoNotTranslateAutoresizingMask"] = True
 
 def __xibparser_cell_flags(elem: Element, obj: NibObject, parent: NibObject) -> None:
     sendsAction = elem.attrib.get("sendsActionOnEndEditing", "NO") == "YES"

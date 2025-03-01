@@ -446,9 +446,8 @@ class ArchiveContext:
 
     def processConstraints(self) -> None:
         for constraint in self.constraints:
-            self._add_translation_flag(constraint["NSFirstItem"])
-            if second_item := constraint.get("NSSecondItem"):
-                self._add_translation_flag(second_item)
+            self._add_translation_flag(constraint.get("NSFirstItem"))
+            self._add_translation_flag(constraint.get("NSSecondItem"))
 
     def resolveConnections(self) -> None:
         self._resolveConnections_xib()

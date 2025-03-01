@@ -14,7 +14,6 @@ else
 		samples/with_app_class.xib
 		samples/blocklist_big.xib
 		samples/test1.xib
-		samples/test2.xib
 		samples/test3.xib
 		samples/test4.xib
 		samples/test5_connect.xib

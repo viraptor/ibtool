@@ -2,7 +2,7 @@ from ..models import ArchiveContext, NibObject, XibObject
 from xml.etree.ElementTree import Element
 from typing import Optional
 from ..constants import vFlags
-from .helpers import parse_interfacebuilder_properties, __handle_view_chain, _xibparser_common_view_attributes
+from .helpers import parse_interfacebuilder_properties, __handle_view_chain, _xibparser_common_view_attributes, _xibparser_common_translate_autoresizing
 from ..parsers_base import parse_children
 
 def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> XibObject:
@@ -18,6 +18,8 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
         parse_children(ctx, elem, obj)
 
     _xibparser_common_view_attributes(ctx, elem, parent, obj, topLevelView=(parent is None))
+    _xibparser_common_translate_autoresizing(ctx, elem, parent, obj)
+
     obj.setIfNotDefault("NSViewIsLayerTreeHost", elem.attrib.get("wantsLayer") == "YES", False)
 
     if obj.get("NSNextKeyView"):
