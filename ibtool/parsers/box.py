@@ -1,6 +1,6 @@
 from ..models import ArchiveContext, NibObject, NibMutableList, NibString
 from xml.etree.ElementTree import Element
-from .helpers import make_xib_object, makeSystemColor
+from .helpers import make_xib_object, makeSystemColor, _xibparser_common_translate_autoresizing
 from ..parsers_base import parse_children
 from ..constants import vFlags, CellFlags, CellFlags2
 
@@ -8,6 +8,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
     obj = make_xib_object(ctx, "NSBox", elem, parent)
     obj["NSSuperview"] = obj.xib_parent()
     parse_children(ctx, elem, obj)
+    _xibparser_common_translate_autoresizing(ctx, elem, parent, obj)
     obj["NSBorderType"] = {
         "separator": 3,
     }[elem.attrib.get("boxType")]

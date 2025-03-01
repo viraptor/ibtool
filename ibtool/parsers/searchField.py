@@ -1,6 +1,6 @@
 from ..models import ArchiveContext, NibObject, XibObject
 from xml.etree.ElementTree import Element
-from .helpers import make_xib_object
+from .helpers import make_xib_object, _xibparser_common_translate_autoresizing
 from ..parsers_base import parse_children
 from ..constants import vFlags
 
@@ -11,6 +11,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
         obj.extraContext["allowsCharacterPickerTouchBarItem"] = True
 
     parse_children(ctx, elem, obj)
+    _xibparser_common_translate_autoresizing(ctx, elem, parent, obj)
     obj["NSAllowsLogicalLayoutDirection"] = False
     obj["NSControlContinuous"] = False
     obj["NSEnabled"] = True
