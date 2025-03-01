@@ -16,15 +16,15 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
         obj["NSKeyEquiv"] = NibString.intern(key_equiv)
     else:
         obj["NSKeyEquiv"] = NibString.intern('')
-    if elem.attrib.get("keyEquivalentModifierMask") is not None or key_equiv:
-        obj["NSKeyEquivModMask"] = 0x100000
     obj["NSMixedImage"] = MENU_MIXED_IMAGE
     obj["NSMnemonicLoc"] = 0x7fffffff
     obj["NSOnImage"] = MENU_ON_IMAGE
     obj["NSTitle"] = NibString.intern(elem.attrib.get("title", ""))
-    if elem.attrib.get("isSeparatorItem") == "YES":
+    if (is_separator := elem.attrib.get("isSeparatorItem") == "YES"):
         obj["NSIsSeparator"] = True
         obj["NSIsDisabled"] = True
+    if not is_separator and (key_equiv or not obj.extraContext.get('keyEquivalentModifierMask')):
+        obj["NSKeyEquivModMask"] = 0x100000
     if tag := elem.attrib.get("tag"):
         obj["NSTag"] = int(tag)
     if elem.attrib.get("hidden"):
