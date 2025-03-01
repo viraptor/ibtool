@@ -17,14 +17,38 @@
             <rect key="screenRect" x="0.0" y="0.0" width="1728" height="1079"/>
             <view key="contentView" wantsLayer="YES" id="se5-gp-TjO">
                 <rect key="frame" x="0.0" y="0.0" width="480" height="270"/>
-                <autoresizingMask key="autoresizingMask"/>
+                <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                 <subviews>
                     <stackView distribution="fill" orientation="vertical" alignment="leading" horizontalStackHuggingPriority="249.99998474121094" verticalStackHuggingPriority="249.99998474121094" fixedFrame="YES" detachesHiddenViews="YES" translatesAutoresizingMaskIntoConstraints="NO" id="iLb-1K-zKc">
-                        <rect key="frame" x="20" y="50" width="110" height="200"/>
+                        <rect key="frame" x="20" y="161" width="123" height="89"/>
+                        <autoresizingMask key="autoresizingMask"/>
+                    </stackView>
+                    <stackView distribution="fill" orientation="vertical" alignment="centerX" horizontalStackHuggingPriority="249.99998474121094" verticalStackHuggingPriority="249.99998474121094" fixedFrame="YES" detachesHiddenViews="YES" translatesAutoresizingMaskIntoConstraints="NO" id="2Rt-nR-aJK">
+                        <rect key="frame" x="30" y="151" width="123" height="89"/>
+                        <autoresizingMask key="autoresizingMask"/>
+                    </stackView>
+                    <stackView distribution="fill" orientation="vertical" alignment="trailing" horizontalStackHuggingPriority="249.99998474121094" verticalStackHuggingPriority="249.99998474121094" fixedFrame="YES" detachesHiddenViews="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Ges-75-9N4">
+                        <rect key="frame" x="40" y="141" width="123" height="89"/>
                         <autoresizingMask key="autoresizingMask"/>
                     </stackView>
                     <stackView distribution="fill" orientation="horizontal" alignment="top" horizontalStackHuggingPriority="249.99998474121094" verticalStackHuggingPriority="249.99998474121094" fixedFrame="YES" detachesHiddenViews="YES" translatesAutoresizingMaskIntoConstraints="NO" id="01D-DF-XzT">
-                        <rect key="frame" x="211" y="102" width="200" height="110"/>
+                        <rect key="frame" x="193" y="169" width="114" height="88"/>
+                        <autoresizingMask key="autoresizingMask"/>
+                    </stackView>
+                    <stackView distribution="fill" orientation="horizontal" alignment="centerY" horizontalStackHuggingPriority="249.99998474121094" verticalStackHuggingPriority="249.99998474121094" fixedFrame="YES" detachesHiddenViews="YES" translatesAutoresizingMaskIntoConstraints="NO" id="73r-UD-dMq">
+                        <rect key="frame" x="203" y="159" width="114" height="88"/>
+                        <autoresizingMask key="autoresizingMask"/>
+                    </stackView>
+                    <stackView distribution="fill" orientation="horizontal" alignment="bottom" horizontalStackHuggingPriority="249.99998474121094" verticalStackHuggingPriority="249.99998474121094" fixedFrame="YES" detachesHiddenViews="YES" translatesAutoresizingMaskIntoConstraints="NO" id="EVf-ae-E9k">
+                        <rect key="frame" x="213" y="149" width="114" height="88"/>
+                        <autoresizingMask key="autoresizingMask"/>
+                    </stackView>
+                    <stackView distribution="fill" orientation="horizontal" alignment="firstBaseline" horizontalStackHuggingPriority="249.99998474121094" verticalStackHuggingPriority="249.99998474121094" fixedFrame="YES" detachesHiddenViews="YES" translatesAutoresizingMaskIntoConstraints="NO" id="uao-ed-Cv2">
+                        <rect key="frame" x="223" y="139" width="114" height="88"/>
+                        <autoresizingMask key="autoresizingMask"/>
+                    </stackView>
+                    <stackView distribution="fill" orientation="horizontal" alignment="baseline" horizontalStackHuggingPriority="249.99998474121094" verticalStackHuggingPriority="249.99998474121094" fixedFrame="YES" detachesHiddenViews="YES" translatesAutoresizingMaskIntoConstraints="NO" id="HJO-py-4kw">
+                        <rect key="frame" x="233" y="129" width="114" height="88"/>
                         <autoresizingMask key="autoresizingMask"/>
                     </stackView>
                 </subviews>

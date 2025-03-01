@@ -577,7 +577,8 @@ class XibObject(NibObject):
                     result[3] -= insets[1]
                 return result
             else:
-                return None
+                # TODO: is this even right?
+                return [0, 0, 0, 0]
 
 def _xibparser_handle_custom_class(ctx: ArchiveContext, elem: Element, obj: "XibObject") -> None:
     custom_module = elem.attrib.get("customModule")

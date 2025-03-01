@@ -48,9 +48,24 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     if alignment := elem.attrib.get("alignment"):
         obj["NSStackViewAlignment"] = {
             "top": 3,
+            "bottom": 4,
             "leading": 5,
             "centerX": 9,
             "centerY": 10,
+            "firstBaseline": 12,
+            "baseline": 11,
+            "trailing": 6,
+        }[alignment]
+
+        obj["NSStackViewSecondaryAlignment"] = {
+            "top": 1,
+            "bottom": 4,
+            "leading": 1,
+            "centerX": 3,
+            "centerY": 3,
+            "firstBaseline": 2,
+            "baseline": 5,
+            "trailing": 4,
         }[alignment]
 
     if distribution is not None:
@@ -69,7 +84,6 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
 
     if distribution is None:
         obj["NSStackViewHasEqualSpacing"] = False
-        obj["NSStackViewSecondaryAlignment"] = 1
         obj["NSStackViewMiddleContainer"] = NibObject("NSStackViewContainer", None, {
             "IBNSClipsToBounds": 0,
             "IBNSLayoutMarginsGuide": NibNil(),
@@ -103,8 +117,5 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
         obj["NSSubviews"] = NibMutableList([]) # actually empty in practice
     elif distribution == "equalSpacing":
         obj["NSStackViewHasEqualSpacing"] = True
-
-    if distribution is not None:
-        obj["NSStackViewSecondaryAlignment"] = 1
 
     return obj
