@@ -77,14 +77,14 @@ def __xibparser_cell_flags(elem: Element, obj: NibObject, parent: NibObject) -> 
     textAlignmentMask = {None: CellFlags2.TEXT_ALIGN_NONE, "left": CellFlags2.TEXT_ALIGN_LEFT, "center": CellFlags2.TEXT_ALIGN_CENTER, "right": CellFlags2.TEXT_ALIGN_RIGHT}[textAlignment]
     selectable = (CellFlags.SELECTABLE + 1) if elem.attrib.get("selectable") == "YES" else 0
     state_on = CellFlags.STATE_ON if (elem.attrib.get("state") == "on") else 0
-    text_field_flag = CellFlags.UNKNOWN_TEXT_FIELD if obj.originalclassname() in ["NSTextFieldCell", "NSButtonCell", "NSSearchFieldCell", "NSPopUpButtonCell", "NSTableHeaderCell"] else 0
+    text_field_flag = CellFlags.UNKNOWN_TEXT_FIELD if obj.originalclassname() in ["NSTextFieldCell", "NSButtonCell", "NSSearchFieldCell", "NSPopUpButtonCell", "NSTableHeaderCell", "NSSegmentedCell"] else 0
     refuses_first_responder = elem.attrib.get("refusesFirstResponder", "NO") == "YES"
     refuses_first_responder_mask = CellFlags2.REFUSES_FIRST_RESPONDER if refuses_first_responder else 0
     scrollable = CellFlags.SCROLLABLE if elem.attrib.get("scrollable", "NO") == "YES" else 0
     disabled = 0 if elem.attrib.get("enabled", "YES") == "YES" else CellFlags.DISABLED
     editable = CellFlags.EDITABLE if elem.attrib.get("editable") == "YES" else 0
     bezeled = CellFlags.BEZELED if elem.attrib.get("borderStyle") == "bezel" else 0
-    border = CellFlags.BORDERED if obj.originalclassname() == "NSTableHeaderCell" else 0 # TODO: hack
+    border = CellFlags.BORDERED if obj.originalclassname() in ("NSTableHeaderCell", "NSSegmentedCell") else 0 # TODO: hack
     size_flag = {
         None: 0,
         "regular": 0,
@@ -111,9 +111,12 @@ def __xibparser_cell_options(elem: Element, obj: NibObject, parent: NibObject) -
         "truncatingTail": LineBreakMode.BY_TRUNCATING_TAIL,
         "truncatingMiddle": LineBreakMode.BY_TRUNCATING_MIDDLE,
     }[elem.attrib.get("lineBreakMode")].value
-    if obj.originalclassname() in ['NSButtonCell', 'NSTextFieldCell', 'NSImageCell', 'NSSearchFieldCell', 'NSPopUpButtonCell']:
+    if obj.originalclassname() in ['NSButtonCell', 'NSTextFieldCell', 'NSImageCell', 'NSSearchFieldCell', 'NSPopUpButtonCell', 'NSSegmentedCell', 'NSColorWellCell']:
         textAlignmentValue = {None: 4, "left": 0, "center": 1, "right": 2}[elem.attrib.get("alignment")]
         parent["NSControlTextAlignment"] = textAlignmentValue
+        direction = {'natural': -1, "leftToRight": 0, "rightToLeft": 1}[elem.attrib.get("baseWritingDirection=", "natural")]
+        parent["NSControlWritingDirection"] = direction
+        parent["NSControlContinuous"] = elem.attrib.get("continuous", "NO") == "YES"
 
     control_size = elem.attrib.get("controlSize")
     parent["NSControlSize"] = CONTROL_SIZE_MAP[control_size]
@@ -306,3 +309,11 @@ def makeSystemColor(name):
         return systemRGBColorTemplate(name, b'1 0 0 1', b'0.9859541655 0 0.02694000863\x00')
     else:
         raise Exception(f"unknown name {name}")
+
+def design_size_for_image(name):
+    if name == "NSAddTemplate":
+        return "{18, 16}"
+    elif name == "NSRemoveTemplate":
+        return "{18, 4}"
+    else:
+        raise Exception(f"unknown image resource '{name}'")

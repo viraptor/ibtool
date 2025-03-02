@@ -15,7 +15,6 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     obj["NSAllowsLogicalLayoutDirection"] = False
     obj["NSControlContinuous"] = False
     obj["NSControlUsesSingleLineMode"] = False
-    obj["NSControlWritingDirection"] = -1
     obj["NSDragTypes"] = default_drag_types()
     obj["NSEditable"] = True
     obj["NSEnabled"] = True

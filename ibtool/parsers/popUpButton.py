@@ -12,10 +12,8 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     _xibparser_common_translate_autoresizing(ctx, elem, parent, obj)
     obj["IBNSShadowedSymbolConfiguration"] = NibNil()
     obj["NSAllowsLogicalLayoutDirection"] = False
-    obj["NSControlContinuous"] = False
     obj["NSControlSendActionMask"] = 4
     obj["NSControlUsesSingleLineMode"] = False
-    obj["NSControlWritingDirection"] = -1
     obj["NSEnabled"] = True
     if not obj.extraContext.get("parsed_autoresizing"):
         obj.flagsOr("NSvFlags", vFlags.DEFAULT_VFLAGS_AUTOLAYOUT if ctx.useAutolayout else vFlags.DEFAULT_VFLAGS)

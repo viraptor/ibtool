@@ -13,11 +13,9 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
     parse_children(ctx, elem, obj)
     _xibparser_common_translate_autoresizing(ctx, elem, parent, obj)
     obj["NSAllowsLogicalLayoutDirection"] = False
-    obj["NSControlContinuous"] = False
     obj["NSEnabled"] = True
     obj["NSControlSendActionMask"] = 4
     obj["NSControlUsesSingleLineMode"] = False
-    obj["NSControlWritingDirection"] = -1
     obj["NSTextFieldAlignmentRectInsetsVersion"] = 2
     obj["NSAllowsWritingTools"] = False
     obj["NSvFlags"] = vFlags.DEFAULT_VFLAGS_AUTOLAYOUT

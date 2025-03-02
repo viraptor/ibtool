@@ -35,6 +35,10 @@ from . import popUpButtonCell
 from . import progressIndicator
 from . import prototypeCellViews
 from . import rect
+from . import segment
+from . import segmentedCell
+from . import segmentedControl
+from . import segments
 from . import scrollView
 from . import scroller
 from . import searchField
@@ -103,6 +107,10 @@ all = {
     "rect": rect, 
     "scrollView": scrollView, 
     "scroller": scroller, 
+    "segment": segment, 
+    "segmentedCell": segmentedCell, 
+    "segmentedControl": segmentedControl, 
+    "segments": segments, 
     "searchField": searchField, 
     "searchFieldCell": searchFieldCell, 
     "size": size, 
