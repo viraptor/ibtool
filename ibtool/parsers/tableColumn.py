@@ -27,6 +27,5 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
             "NSNibFileSounds": NibNil(),
             "NSNibFileUseParentBundle": True,
         }))
-        obj["NSResizingMask"] = 3 # reason unknown
 
     return obj

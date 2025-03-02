@@ -522,7 +522,7 @@ class XibObject(NibObject):
     
     def xib_parent(self) -> Optional["XibObject"]:
         parent = self.parent()
-        while parent is not None and (not isinstance(parent, XibObject) or parent.originalclassname() == "NSTableColumn"):
+        while parent is not None and (not isinstance(parent, XibObject)):
             parent = parent.parent()
         if isinstance(parent, XibObject):
             return parent

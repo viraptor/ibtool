@@ -5,7 +5,10 @@ def parse(_ctx: ArchiveContext, elem: Element, parent: XibObject) -> None:
     assert parent.originalclassname() == "NSTableColumn"
     assert elem.attrib.get("key") == "resizingMask"
 
-    resize_with_table = elem.attrib.get("resizeWithTable", "NO") == "YES"
-    if resize_with_table:
-        parent["NSResizingMask"] = 1
+    resizing_mask = 0
+    if elem.attrib.get("resizeWithTable", "NO") == "YES":
+        resizing_mask |= 1
         parent["NSIsResizeable"] = True
+    if elem.attrib.get("userResizable", "NO") == "YES":
+        resizing_mask |= 2
+    parent.setIfNotDefault("NSResizingMask", resizing_mask, 0)
