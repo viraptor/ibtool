@@ -1,4 +1,4 @@
-from .ibdump import getNibSections, NibStructure
+from .ibdump import getNibSections, getNibSectionsFile, NibStructure
 import sys
 from typing import Any, Union, cast, Iterable, Optional
 
@@ -136,8 +136,19 @@ def diff(lhs: Union[NibValue,NibCollection,NibObject], rhs: Union[NibValue,NibCo
     if isinstance(lhs, NibValue) and isinstance(rhs, NibValue):
         if lhs.type != rhs.type:
             yield f"{path} (in {parent_class}): Object types don't match {lhs.type} != {rhs.type}"
+        
+        if type(lhs.value) is bytes and lhs.value.startswith(b"NIBArchive") and not rhs.value.startswith(b"NIBArchive"):
+            yield f"{path} (in {parent_class}): LHS is a NIB, but RHS isn't"
+        elif type(rhs.value) is bytes and rhs.value.startswith(b"NIBArchive") and not lhs.value.startswith(b"NIBArchive"):
+            yield f"{path} (in {parent_class}): RHS is a NIB, but LHS isn't"
+        elif type(lhs.value) is bytes and lhs.value.startswith(b"NIBArchive"):
+            nib_left = getNibSections(lhs.value, "(inlined)")
+            nib_left_root, _ = pythonObjects(nib_left)
+            nib_right = getNibSections(rhs.value, "(inlined)")
+            nib_right_root, _ = pythonObjects(nib_right)
+            yield from diff(nib_left_root, nib_right_root, nib_left_root.entries["IB.objectdata"].entries["NSObjectsKeys"].entries, nib_right_root.entries["IB.objectdata"].entries["NSObjectsKeys"].entries, current_path + ["nib"], [], [])
 
-        if type(lhs.value) in [int, str, float, bytes, type(None)]:
+        elif type(lhs.value) in [int, str, float, bytes, type(None)]:
             if lhs.value != rhs.value:
                 if (path.endswith("Flags") or path.endswith("Flags2")) and isinstance(lhs.value, int) and isinstance(rhs.value, int):
                     lval = lhs.value if lhs.value >= 0 else lhs.value + 0x10000000000000000
@@ -243,8 +254,8 @@ def fixup_layout_constrints(collection, all_objects):
     collection.sort(key=lambda x: find_order(x, all_objects))
 
 def main(orig_path, test_path):
-    orig_nib = getNibSections(orig_path)
-    test_nib = getNibSections(test_path)
+    orig_nib = getNibSectionsFile(orig_path)
+    test_nib = getNibSectionsFile(test_path)
 
     orig_root, orig_rest = pythonObjects(orig_nib)
     test_root, test_rest = pythonObjects(test_nib)

@@ -319,10 +319,14 @@ def readNibSectionsFromBytes(b: bytes) -> NibStructure:
     return (objects, keys, values, classes)
 
 
-def getNibSections(filename: str) -> NibStructure:
+def getNibSectionsFile(filename: str) -> NibStructure:
     with open(filename, "rb") as file:
         filebytes = file.read()
 
+    return getNibSections(filebytes, filename)
+
+
+def getNibSections(filebytes: bytes, filename: str) -> NibStructure:
     pfx = filebytes[0:10]
     assert pfx == b"NIBArchive", f'"{filename}" is not a NIBArchive file.'
 
@@ -336,7 +340,7 @@ def getNibSections(filename: str) -> NibStructure:
 
 
 def ibdump(filename: str, showencoding: bool=False, showTree: bool=False, sortKeys: bool=False) -> None:
-    nib = getNibSections(filename)
+    nib = getNibSectionsFile(filename)
     if showTree:
         treePrintObjects(nib, showencoding=showencoding, sortKeys=sortKeys)
     else:
