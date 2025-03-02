@@ -315,5 +315,7 @@ def design_size_for_image(name):
         return "{18, 16}"
     elif name == "NSRemoveTemplate":
         return "{18, 4}"
+    elif name == "NSAdvanced":
+        return "{32, 32}"
     else:
         raise Exception(f"unknown image resource '{name}'")

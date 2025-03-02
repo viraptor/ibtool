@@ -20,7 +20,18 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
         __xibparser_cell_options(elem, obj, parent)
 
         obj["NSControlView"] = parent
-        obj["NSSegmentStyle"] = 3
+        segment_style = elem.attrib.get("style")
+        obj["NSSegmentStyle"] = {
+            "rounded": 1,
+            "texturedRounded": 2,
+            "roundRect": 3,
+            "texturedSquare": 4,
+            "capsule": 5,
+            "smallSquare": 6,
+            "separated": 9,
+        }[segment_style]
+        if segment_style == "separated":
+            obj["NSSegmentStyleSeparated"] = 1
 
         tracking_mode = {
             "selectOne": 0,
@@ -30,8 +41,11 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
         }[elem.attrib.get("trackingMode")]
         obj.setIfNotDefault("NSTrackingMode", tracking_mode, 0)
         
-        if tracking_mode in ("momentary", "momentaryAccelerator"):
-            obj["NSSelectedSegment"] = -1
+        if tracking_mode in (0, 1):
+            for i, seg in enumerate(obj["NSSegmentImages"].items()):
+                if seg.get("NSSegmentItemSelected"):
+                    obj["NSSelectedSegment"] = i
+        obj.setIfEmpty("NSSelectedSegment", -1)
 
         distribution = {
             "fit": 0,

@@ -257,6 +257,9 @@ class ArrayLike(NibObject):
     def addItem(self, item: PropValue) -> None:
         self._items.append(item)
 
+    def items(self):
+        return self._items
+
     def getKeyValuePairs(self) -> list[PropPair]:
         return [("NSInlinedValue", True)] + [
             ("UINibEncoderEmptyKey", item) for item in self._items
