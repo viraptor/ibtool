@@ -1,7 +1,7 @@
 from ..models import ArchiveContext, NibObject, XibObject, NibString, NibMutableList, NibList, NibInlineString, NibFloatToWord
 from xml.etree.ElementTree import Element
 from typing import Optional
-from .helpers import make_xib_object, __handle_view_chain
+from .helpers import make_xib_object, __handle_view_chain, _xibparser_common_translate_autoresizing
 from ..parsers_base import parse_children
 from ..constants import sFlagsScrollView, vFlags
 
@@ -38,6 +38,8 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
 
     with __handle_view_chain(ctx, obj):
         parse_children(ctx, elem, obj)
+
+    _xibparser_common_translate_autoresizing(ctx, elem, parent, obj)
 
     if not obj.extraContext.get("parsed_autoresizing"):
         obj.flagsOr("NSvFlags", vFlags.DEFAULT_VFLAGS_AUTOLAYOUT if ctx.useAutolayout else vFlags.DEFAULT_VFLAGS)
