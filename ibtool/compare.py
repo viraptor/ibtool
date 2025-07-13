@@ -150,7 +150,7 @@ def diff(lhs: Union[NibValue,NibCollection,NibObject], rhs: Union[NibValue,NibCo
 
         elif type(lhs.value) in [int, str, float, bytes, type(None)]:
             if lhs.value != rhs.value:
-                if (path.endswith("Flags") or path.endswith("Flags2")) and isinstance(lhs.value, int) and isinstance(rhs.value, int):
+                if (path.endswith("Flags") or path.endswith("Flags2") or path.endswith("Mask")) and isinstance(lhs.value, int) and isinstance(rhs.value, int):
                     lval = lhs.value if lhs.value >= 0 else lhs.value + 0x10000000000000000
                     rval = rhs.value if rhs.value >= 0 else rhs.value + 0x10000000000000000
                     yield f"{path} (in {parent_class}): difference {hex(lval)} != {hex(rval)}"
