@@ -11,8 +11,24 @@ from .models import (
 )
 from xml.etree.ElementTree import Element
 from typing import Optional
+import base64
 from .parsers_base import __xibparser_ParseXIBObject
 
+def replace_string_attribures(elem: Element):
+    string_elements = [child for child in elem if child.tag == "string" and child.get("key")]
+
+    for string_elem in string_elements:
+        key = string_elem.attrib["key"]
+        if string_elem.attrib.get("base64-UTF8") == "YES":
+            text = (string_elem.text or '').strip()
+            value = base64.b64decode(text + ((4 - (len(text) % 4)) * '=')).decode('utf-8')
+        else:
+            value = (string_elem.text or '')
+        elem.set(key, value)
+        elem.remove(string_elem)
+
+    for child in elem:
+        replace_string_attribures(child)
 
 # Parses xml Xib data and returns a NibObject that can be used as the root
 # object in a compiled NIB archive.
@@ -20,6 +36,8 @@ from .parsers_base import __xibparser_ParseXIBObject
 #          For standalone XIBs, this is typically document->objects
 #          For storyboards, this is typically document->scenes->scene->objects
 def ParseXIBObjects(root: Element, context: Optional[ArchiveContext]=None, resolveConnections: bool=True, parent: Optional[NibObject]=None) -> tuple[ArchiveContext, NibObject]:
+    replace_string_attribures(root)
+
     objects = next(root.iter("objects"))
     toplevel: list[XibObject] = []
 
