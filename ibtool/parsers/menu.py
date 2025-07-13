@@ -1,4 +1,4 @@
-from ..models import ArchiveContext, NibObject, XibObject, NibNil, NibString
+from ..models import ArchiveContext, NibObject, XibObject, NibNil, NibString, NibMutableList
 from xml.etree.ElementTree import Element
 from .helpers import make_xib_object
 from ..parsers_base import parse_children
@@ -9,6 +9,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
     obj["NSTitle"] = elem.attrib.get("title", NibNil())
     if elem.attrib.get("key") == "submenu":
         parent["NSAction"] = NibString.intern("submenuAction:")
+        obj.setIfEmpty("NSMenuItems", NibMutableList())
     if parent and parent.originalclassname() == "NSMenuItem":
         parent["NSTarget"] = obj
         parent["NSSubmenu"] = obj
