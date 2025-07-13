@@ -46,7 +46,6 @@ from . import searchFieldCell
 from . import size
 from . import sortDescriptor
 from . import stackView
-from . import string
 from . import subviews
 from . import tableCellView
 from . import tableColumn
@@ -116,7 +115,6 @@ all = {
     "size": size, 
     "sortDescriptor": sortDescriptor, 
     "stackView": stackView, 
-    "string": string, 
     "subviews": subviews, 
     "tableCellView": tableCellView,
     "tableColumn": tableColumn, 
