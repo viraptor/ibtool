@@ -22,11 +22,12 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
     obj["NSTitle"] = NibString.intern(elem.attrib.get("title", ""))
     if (is_separator := elem.attrib.get("isSeparatorItem") == "YES"):
         obj["NSIsSeparator"] = True
-        obj["NSIsDisabled"] = True
-    if not is_separator and (key_equiv or not obj.extraContext.get('keyEquivalentModifierMask')):
-        obj["NSKeyEquivModMask"] = 0x100000
+    if not is_separator and (key_equiv or obj.extraContext.get('keyEquivalentModifierMaskValue')):
+        obj["NSKeyEquivModMask"] = obj.extraContext.get('keyEquivalentModifierMaskValue', 0x100000)
     if tag := elem.attrib.get("tag"):
         obj["NSTag"] = int(tag)
     if elem.attrib.get("hidden"):
         obj["NSIsHidden"] = True
+    if elem.attrib.get("enabled") == "NO" or is_separator:
+        obj["NSIsDisabled"] = True
     return obj
