@@ -3,6 +3,16 @@ from xml.etree.ElementTree import Element
 from .helpers import make_xib_object
 from ..parsers_base import parse_children
 
+SYSTEM_MENUS = {
+    "apple": "_NSAppleMenu",
+    "main": "_NSMainMenu",
+    "font": "_NSFontMenu",
+    "services": "_NSServicesMenu",
+    "recentDocuments": "_NSRecentDocumentsMenu",
+    "window": "_NSWindowsMenu",
+    "help": "_NSHelpMenu",
+}
+
 def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
     obj = make_xib_object(ctx, "NSMenu", elem, parent, view_attributes=False)
     parse_children(ctx, elem, obj)
@@ -21,9 +31,8 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
             item["NSAction"] = NibString.intern("_popUpItemAction:")
             item["NSTarget"] = parent
             item["NSKeyEquivModMask"] = 0x100000
-    system_menu = elem.attrib.get("systemMenu")
-    if system_menu == "apple":
-        obj["NSName"] = NibString.intern("_NSAppleMenu")
-    elif system_menu == "main":
-        obj["NSName"] = NibString.intern("_NSMainMenu")
+    if system_menu := elem.attrib.get("systemMenu"):
+        if system_menu not in SYSTEM_MENUS:
+            raise Exception(f"Unknown system menu: {system_menu}")
+        obj["NSName"] = NibString.intern(SYSTEM_MENUS[system_menu])
     return obj
