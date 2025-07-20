@@ -308,9 +308,7 @@ class NibNSNumber(NibObject):
         val = self._value
         if isinstance(val, float):
             return [("NS.dblval", val)]
-        if val >= 0 and val < 256:
-            return [("NS.intval", NibByte(val))]
-        return ("NS.intval", val)
+        return [("NS.intval", val)]
 
 
 # TODO: Have more stuff use this.
