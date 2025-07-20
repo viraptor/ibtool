@@ -22,6 +22,9 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
             "insertionPointColor": ["NSSharedData", "NSInsertionColor"],
             "textColor": ["NSTextViewTextColor"],
         },
+        "NSMatrix": {
+            "backgroundColor": ["NSBackgroundColor"],
+        },
         None: {
             "textColor": ["NSTextColor"],
             "backgroundColor": ["NSBackgroundColor"],

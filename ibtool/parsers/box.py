@@ -11,6 +11,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
     _xibparser_common_translate_autoresizing(ctx, elem, parent, obj)
     obj["NSBorderType"] = {
         "separator": 3,
+        None: 3,
     }[elem.attrib.get("boxType")]
     obj["NSBoxType"] = 2
     obj["NSSubviews"] = NibMutableList([])
@@ -18,7 +19,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
         "NSBackgroundColor": makeSystemColor("textBackgroundColor"),
         "NSCellFlags": CellFlags.UNKNOWN_TEXT_FIELD,
         "NSCellFlags2": CellFlags2.TEXT_ALIGN_CENTER,
-        "NSContents": NibString.intern("Title"),
+        "NSContents": NibString.intern(elem.attrib.get("title", "Title")),
         "NSControlSize2": 0,
         "NSSupport": NibObject("NSFont", None, {
             "NSName": NibString.intern(".AppleSystemUIFont"),

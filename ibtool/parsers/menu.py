@@ -31,6 +31,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
             item["NSAction"] = NibString.intern("_popUpItemAction:")
             item["NSTarget"] = parent
             item["NSKeyEquivModMask"] = 0x100000
+    obj.setIfNotDefault("NSNoAutoenable", elem.attrib.get("autoenablesItems", "YES") == "NO", False)
     if system_menu := elem.attrib.get("systemMenu"):
         if system_menu not in SYSTEM_MENUS:
             raise Exception(f"Unknown system menu: {system_menu}")

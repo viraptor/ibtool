@@ -60,6 +60,11 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
         __xibparser_cell_flags(elem, obj, parent)
         obj["NSControlSize2"] = CONTROL_SIZE_MAP2[elem.attrib.get("controlSize", "regular")]
         parent["NSDataCell"] = obj
+    elif key == "prototype":
+        __xibparser_cell_flags(elem, obj, parent)
+        parent["NSProtoCell"] = obj
+    elif key is None:
+        __xibparser_cell_flags(elem, obj, parent)
     else:
         raise Exception(f"unexpected key {key}")
 

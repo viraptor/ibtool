@@ -14,6 +14,9 @@ def parse(ctx: ArchiveContext, elem: Element, parent: XibObject, **kwargs) -> Xi
         if parent.originalclassname() == "NSWindowTemplate":
             parent["NSWindowView"] = obj
             obj["NSFrameSize"] = NibString.intern("{0, 0}")
+        elif parent.originalclassname() == "NSBox":
+            parent["NSContentView"] = obj
+            obj["NSSuperview"] = parent
         else:
             raise Exception(
                 "Unhandled class '%s' to take NSView with key 'contentView'"

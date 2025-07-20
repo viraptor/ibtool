@@ -6,9 +6,11 @@ from . import binding
 from . import box
 from . import button
 from . import buttonCell
+from . import cells
 from . import clipView
 from . import color
 from . import colorWell
+from . import column
 from . import connections
 from . import constraint
 from . import constraints
@@ -23,6 +25,7 @@ from . import imageView
 from . import items
 from . import levelIndicator
 from . import levelIndicatorCell
+from . import matrix
 from . import menu
 from . import menuItem
 from . import modifierMask
@@ -75,9 +78,11 @@ all = {
     "box": box, 
     "button": button, 
     "buttonCell": buttonCell, 
+    "cells": cells,
     "clipView": clipView, 
     "color": color, 
     "colorWell": colorWell,
+    "column": column, 
     "connections": connections, 
     "constraint": constraint, 
     "constraints": constraints, 
@@ -92,6 +97,7 @@ all = {
     "items": items, 
     "levelIndicator": levelIndicator,
     "levelIndicatorCell": levelIndicatorCell,
+    "matrix": matrix, 
     "menu": menu, 
     "menuItem": menuItem, 
     "modifierMask": modifierMask, 

@@ -4,6 +4,11 @@ from .helpers import make_xib_object
 from ..parsers_base import parse_children
 from ..constant_objects import MENU_MIXED_IMAGE, MENU_ON_IMAGE
 
+STATES = {
+    "on": 1,
+    None: None,
+}
+
 def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
     obj = make_xib_object(ctx, "NSMenuItem", elem, parent, view_attributes=False)
     parse_children(ctx, elem, obj)
@@ -30,4 +35,5 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
         obj["NSIsHidden"] = True
     if elem.attrib.get("enabled") == "NO" or is_separator:
         obj["NSIsDisabled"] = True
+    obj.setIfNotDefault("NSState", STATES[elem.attrib.get("state")], None)
     return obj
