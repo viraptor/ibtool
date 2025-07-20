@@ -28,6 +28,7 @@ else
 		samples/test19_2_layouts.xib
 		samples/test21_masktranslate.xib
 		samples/test22_stackview_orient.xib
+		samples/test26_strings.xib
 		"
 fi
 
