@@ -507,6 +507,9 @@ class XibObject(NibObject):
             self.extraContext["key"] = key
         if isinstance(self, XibObject) and elem is not None:
             _xibparser_handle_custom_class(ctx, elem, self)
+        if elem is not None and (tag := elem.attrib.get("tag")) is not None:
+            self["NSTag"] = int(tag)
+
 
     def originalclassname(self) -> Optional[str]:
         name = self.extraContext.get("original_class")
