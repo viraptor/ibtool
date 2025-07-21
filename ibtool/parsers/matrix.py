@@ -2,6 +2,7 @@ from ..models import ArchiveContext, NibObject, XibObject, NibString
 from xml.etree.ElementTree import Element
 from .helpers import make_xib_object, _xibparser_common_view_attributes, makeSystemColor, __xibparser_cell_options
 from ..parsers_base import parse_children
+from ..constants import CellFlags, CellFlags2, CONTROL_SIZE_MAP2
 
 def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
     obj = make_xib_object(ctx, "NSMatrix", elem, parent, view_attributes=False)
@@ -25,4 +26,9 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
     obj["NSSelectedCol"] = -1
     obj["NSSelectedRow"] = -1
     obj["NSSuperview"] = parent
+    obj["NSCell"] = NibObject("NSActionCell", None, {
+        "NSCellFlags": CellFlags.DONT_ACT_ON_MOUSE_UP,
+        "NSCellFlags2": CellFlags2.UNKNOWN_MATRIX_CELL,
+        "NSControlSize2": CONTROL_SIZE_MAP2[None],
+    })
     return obj

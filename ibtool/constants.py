@@ -159,6 +159,8 @@ class CellFlags2(IntEnum):
     CONTROL_SIZE_SMALL = 0x20000
     CONTROL_SIZE_MINI = 0x40000
 
+    UNKNOWN_MATRIX_CELL = 0x2000
+
 class LineBreakMode(Enum):
     BY_WORD_WRAPPING = 0
     BY_CHAR_WRAPPING = 1
