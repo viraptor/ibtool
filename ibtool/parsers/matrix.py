@@ -18,7 +18,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
     obj["NSControlSize"] = 0
     obj["NSControlSize2"] = 0
     obj["NSControlTextAlignment"] = 0
-    obj["NSWritingDirection"] = 0
+    obj["NSControlWritingDirection"] = 0
     obj["NSEnabled"] = True
     obj["NSMatrixFlags"] = 0x44000000 # todo
     obj["NSControlSendActionMask"] = 0
