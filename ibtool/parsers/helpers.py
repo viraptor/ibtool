@@ -146,9 +146,9 @@ def __xibparser_button_flags(elem: Element, obj: XibObject, parent: NibObject) -
         "bevel": 0,
     }[buttonType]
     button_type_id = {
+        "radio": 0x0,
         "push": 0x1,
         "check": 0x2,
-        "radio": 0x2,
         "square": 0x2|0x4,
         "disclosureTriangle": 0x1|0x4,
         "help": 0x1|0x20,
