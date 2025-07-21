@@ -43,7 +43,6 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
     obj["NSPeriodicInterval"] = 75
     obj["NSBezelStyle"] = BEZEL_STYLE_MAP.get(elem.attrib.get("bezelStyle"))
     __xibparser_button_flags(elem, obj, parent)
-    obj["NSControlView"] = obj.xib_parent()
 
     key = elem.attrib.get("key")
     if key == "cell":
@@ -55,15 +54,20 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
         }))
 
         obj.setIfEmpty("NSAuxButtonType", 7)
+        obj["NSControlView"] = obj.xib_parent()
         parent["NSCell"] = obj
     elif key == "dataCell":
         __xibparser_cell_flags(elem, obj, parent)
         obj["NSControlSize2"] = CONTROL_SIZE_MAP2[elem.attrib.get("controlSize", "regular")]
+        obj["NSControlView"] = obj.xib_parent()
         parent["NSDataCell"] = obj
     elif key == "prototype":
         __xibparser_cell_flags(elem, obj, parent)
+        obj["NSControlSize2"] = CONTROL_SIZE_MAP2[elem.attrib.get("controlSize", "regular")]
         parent["NSProtoCell"] = obj
     elif key is None:
+        obj["NSControlView"] = obj.xib_parent()
+        obj["NSControlSize2"] = CONTROL_SIZE_MAP2[elem.attrib.get("controlSize", "regular")]
         __xibparser_cell_flags(elem, obj, parent)
     else:
         raise Exception(f"unexpected key {key}")
