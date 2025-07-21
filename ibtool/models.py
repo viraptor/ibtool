@@ -509,6 +509,12 @@ class XibObject(NibObject):
             _xibparser_handle_custom_class(ctx, elem, self)
         if elem is not None and (tag := elem.attrib.get("tag")) is not None:
             self["NSTag"] = int(tag)
+        if elem is not None and (tooltip := elem.attrib.get("toolTip")) is not None:
+            ctx.connections.append(NibObject("NSIBHelpConnector", None, {
+                "NSDestination": self.xibid,
+                "NSFile": NibString.intern("NSToolTipHelpKey"),
+                "NSMarker": NibString.intern(tooltip),
+            }))
 
 
     def originalclassname(self) -> Optional[str]:
