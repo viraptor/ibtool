@@ -3,7 +3,7 @@ from xml.etree.ElementTree import Element
 from typing import Optional
 from ..parsers_base import parse_children
 
-def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> None:
+def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> NibObject:
     assert parent is not None
     views = parse_children(ctx, elem, parent)
-    parent["NSCells"] = NibMutableList(views)
+    return views
