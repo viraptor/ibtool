@@ -4,6 +4,11 @@ from .helpers import make_xib_object, makeSystemColor, _xibparser_common_transla
 from ..parsers_base import parse_children
 from ..constants import vFlags, CellFlags, CellFlags2
 
+BOX_TITLE_POSITION_MAP = {
+    "noTitle": 0,
+    None: 2,
+}
+
 def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
     obj = make_xib_object(ctx, "NSBox", elem, parent)
     obj["NSSuperview"] = obj.xib_parent()
@@ -15,7 +20,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
         None: 3,
     }[elem.attrib.get("boxType")]
     obj["NSBoxType"] = 0
-    obj["NSSubviews"] = NibMutableList([])
+    obj.setIfEmpty("NSSubviews", NibMutableList([]))
     obj["NSTitleCell"] = NibObject("NSTextFieldCell", None, {
         "NSBackgroundColor": makeSystemColor("textBackgroundColor"),
         "NSCellFlags": CellFlags.UNKNOWN_TEXT_FIELD,
@@ -29,7 +34,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
         }),
         "NSTextColor": makeSystemColor("labelColor"),
     })
-    obj["NSTitlePosition"] = 2
+    obj["NSTitlePosition"] = BOX_TITLE_POSITION_MAP[elem.attrib.get("titlePosition")]
     obj["NSTransparent"] = False
     if "verticalHuggingPriority" in obj.extraContext or "horizontalHuggingPriority" in obj.extraContext:
         v, h = obj.extraContext.get("verticalHuggingPriority", 250), obj.extraContext.get("horizontalHuggingPriority", 250)

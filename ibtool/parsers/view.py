@@ -1,6 +1,6 @@
 from .helpers import parse_interfacebuilder_properties, _xibparser_common_view_attributes, _xibparser_common_translate_autoresizing
 from ..parsers_base import parse_children
-from ..models import ArchiveContext, XibObject, NibString
+from ..models import ArchiveContext, XibObject, NibString, NibMutableList
 from xml.etree.ElementTree import Element
 from ..constants import vFlags
 
@@ -16,6 +16,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: XibObject, **kwargs) -> Xi
             obj["NSFrameSize"] = NibString.intern("{0, 0}")
         elif parent.originalclassname() == "NSBox":
             parent["NSContentView"] = obj
+            parent["NSSubviews"] = NibMutableList([obj])
             obj["NSSuperview"] = parent
         else:
             raise Exception(
