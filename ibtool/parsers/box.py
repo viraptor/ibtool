@@ -27,11 +27,11 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
         "NSCellFlags2": CellFlags2.TEXT_ALIGN_CENTER,
         "NSContents": NibString.intern(elem.attrib.get("title", "Title")),
         "NSControlSize2": 0,
-        "NSSupport": NibObject("NSFont", None, {
+        "NSSupport": parent.extraContext.get("titleFont", NibObject("NSFont", None, {
             "NSName": NibString.intern(".AppleSystemUIFont"),
             "NSSize": 11.0,
             "NSfFlags": 3100,
-        }),
+        })),
         "NSTextColor": makeSystemColor("labelColor"),
     })
     obj["NSTitlePosition"] = BOX_TITLE_POSITION_MAP[elem.attrib.get("titlePosition")]
