@@ -6,9 +6,8 @@ from ..parsers_base import parse_children
 
 def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> XibObject:
     obj = make_xib_object(ctx, "NSTableCellView", elem, parent)
-    obj["NSSuperview"] = obj.xib_parent()
 
     with __handle_view_chain(ctx, obj):
         parse_children(ctx, elem, obj)
-    
+
     return obj

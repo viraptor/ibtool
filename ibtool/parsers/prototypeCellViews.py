@@ -4,4 +4,8 @@ from typing import Optional
 from ..parsers_base import parse_children
 
 def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> None:
-    parse_children(ctx, elem, parent)
+    children = parse_children(ctx, elem, parent)
+    
+    assert len(children) == 1, "Unexpected number of prototypes"
+
+    parent.extraContext["prototypeCellView"] = children[0]
