@@ -24,6 +24,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
         obj["NSAnimates"] = elem.attrib.get("animates", "NO") == "YES"
         obj["NSContents"] = NibNil()
         obj["NSControlView"] = parent
+        obj["NSImageAnimation"] = -1
         obj["NSScale"] = {
             "proportionallyDown": 0,
             "axesIndependently": 1,

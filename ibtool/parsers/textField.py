@@ -14,6 +14,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
     obj["NSViewWantsBestResolutionOpenGLSurface"] = True
     obj["NSEnabled"] = True
     obj.setIfEmpty("NSCell", NibNil())
+    obj["NSAllowsWritingTools"] = True
     obj["NSAllowsLogicalLayoutDirection"] = False
     obj["NSControlRefusesFirstResponder"] = elem.attrib.get("refusesFirstResponder", "NO") == "YES"
     obj["NSControlUsesSingleLineMode"] = False
