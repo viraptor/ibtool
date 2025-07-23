@@ -4,6 +4,10 @@ from .helpers import makeSystemColor, NibInlineString
 from ..constants import CellFlags
 from ..constant_objects import GENERIC_GREY_COLOR_SPACE
 
+def _strip_dot_if_int(s: str) -> str:
+    s_val = float(s)
+    return str(int(s_val)) if int(s_val) == s_val else f'{s_val:.12}'
+
 def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
     assert isinstance(parent, XibObject) or isinstance(parent, NibObject), type(parent)
     assert elem.attrib["colorSpace"] in ["catalog", "calibratedWhite", "calibratedRGB"], elem.attrib["colorSpace"]
@@ -85,10 +89,10 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
             })
         target_obj[target_attribute] = color
     elif elem.attrib["colorSpace"] == "calibratedRGB":
-        red = "1" if elem.attrib["red"] == "1" else f'{float(elem.attrib["red"]):.12}'
-        green = "1" if elem.attrib["green"] == "1" else f'{float(elem.attrib["green"]):.12}'
-        blue = "1" if elem.attrib["blue"] == "1" else f'{float(elem.attrib["blue"]):.12}'
-        alpha = "1" if elem.attrib["alpha"] == "1" else f'{float(elem.attrib["alpha"]):.12}'
+        red = _strip_dot_if_int(elem.attrib["red"])
+        green = _strip_dot_if_int(elem.attrib["green"])
+        blue = _strip_dot_if_int(elem.attrib["blue"])
+        alpha = _strip_dot_if_int(elem.attrib["alpha"])
         color = NibObject("NSColor", None, {
             "NSColorSpace": 1,
             "NSRGB": NibInlineString(f"{red} {green} {blue}\x00") if alpha == "1" else f"{red} {green} {blue} {alpha}\x00",
