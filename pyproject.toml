@@ -1,0 +1,18 @@
+[project]
+name = "ibtool"
+version = "0.0.1"
+dependencies = [
+    "lxml",
+]
+authors = [
+    {name = "David Quesada"},
+    {name = "Stanisław Pitucha"},
+]
+readme = {file = "README.txt", content-type = "text/markdown"}
+license = "MIT"
+
+[project.scripts]
+ibtool = "ibtool.__main__:run"
+
+[tool.setuptools]
+packages = ["ibtool"]

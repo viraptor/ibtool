@@ -12,3 +12,5 @@
 !samples/**
 
 .venv
+
+*.egg-info
