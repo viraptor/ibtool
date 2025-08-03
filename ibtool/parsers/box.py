@@ -29,8 +29,8 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
         "NSControlSize2": 0,
         "NSSupport": parent.extraContext.get("titleFont", NibObject("NSFont", None, {
             "NSName": NibString.intern(".AppleSystemUIFont"),
-            "NSSize": 11.0,
-            "NSfFlags": 3100,
+            "NSSize": 13.0,
+            "NSfFlags": 0x414,
         })),
         "NSTextColor": makeSystemColor("labelColor"),
     })

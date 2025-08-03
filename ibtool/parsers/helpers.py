@@ -1,9 +1,10 @@
 from contextlib import contextmanager
 from ..models import ArchiveContext, XibId, NibObject, NibNil, XibObject, NibMutableSet, NibString, NibInlineString
 from xml.etree.ElementTree import Element
-from typing import Optional
+from typing import Optional, Any, Callable
 from ..constants import vFlags, CellFlags, CellFlags2, LineBreakMode, CONTROL_SIZE_MAP, CONTROL_SIZE_MAP2, ButtonFlags, ButtonFlags2
 from ..constant_objects import RGB_COLOR_SPACE, GENERIC_GREY_COLOR_SPACE
+from dataclasses import dataclass
 
 
 def parse_interfacebuilder_properties(ctx: ArchiveContext, elem: Element, _parent: Optional[NibObject], obj: NibObject) -> None:
@@ -77,7 +78,7 @@ def __xibparser_cell_flags(elem: Element, obj: NibObject, parent: NibObject) -> 
     textAlignmentMask = {None: CellFlags2.TEXT_ALIGN_NONE, "left": CellFlags2.TEXT_ALIGN_LEFT, "center": CellFlags2.TEXT_ALIGN_CENTER, "right": CellFlags2.TEXT_ALIGN_RIGHT}[textAlignment]
     selectable = (CellFlags.SELECTABLE + 1) if elem.attrib.get("selectable") == "YES" else 0
     state_on = CellFlags.STATE_ON if (elem.attrib.get("state") == "on") else 0
-    text_field_flag = CellFlags.UNKNOWN_TEXT_FIELD if obj.originalclassname() in ["NSTextFieldCell", "NSButtonCell", "NSSearchFieldCell", "NSPopUpButtonCell", "NSTableHeaderCell", "NSSegmentedCell"] else 0
+    text_field_flag = CellFlags.UNKNOWN_TEXT_FIELD if obj.originalclassname() in ["NSTextFieldCell", "NSButtonCell", "NSSearchFieldCell", "NSPopUpButtonCell", "NSTableHeaderCell", "NSSegmentedCell", "NSSliderCell"] else 0
     refuses_first_responder = elem.attrib.get("refusesFirstResponder", "NO") == "YES"
     refuses_first_responder_mask = CellFlags2.REFUSES_FIRST_RESPONDER if refuses_first_responder else 0
     scrollable = CellFlags.SCROLLABLE if elem.attrib.get("scrollable", "NO") == "YES" else 0
@@ -111,7 +112,7 @@ def __xibparser_cell_options(elem: Element, obj: NibObject, parent: NibObject) -
         "truncatingTail": LineBreakMode.BY_TRUNCATING_TAIL,
         "truncatingMiddle": LineBreakMode.BY_TRUNCATING_MIDDLE,
     }[elem.attrib.get("lineBreakMode")].value
-    if obj.originalclassname() in ['NSButtonCell', 'NSTextFieldCell', 'NSImageCell', 'NSSearchFieldCell', 'NSPopUpButtonCell', 'NSSegmentedCell', 'NSColorWellCell']:
+    if obj.originalclassname() in ['NSButtonCell', 'NSTextFieldCell', 'NSImageCell', 'NSSearchFieldCell', 'NSPopUpButtonCell', 'NSSegmentedCell', 'NSColorWellCell', 'NSSliderCell']:
         textAlignmentValue = {None: 4, "left": 0, "center": 1, "right": 2}[elem.attrib.get("alignment")]
         parent["NSControlTextAlignment"] = textAlignmentValue
         direction = {'natural': -1, "leftToRight": 0, "rightToLeft": 1}[elem.attrib.get("baseWritingDirection=", "natural")]
@@ -319,3 +320,39 @@ def design_size_for_image(name):
         return "{32, 32}"
     else:
         raise Exception(f"unknown image resource '{name}'")
+
+@dataclass
+class PropSchema:
+    prop: str
+    attrib: Optional[str] = None
+    const: Optional[Any] = None
+    default: Optional[Any] = None
+    map: Optional[dict[str | None, Any]] = None
+    filter: Optional[Callable[..., Any]] = None
+    skip_default: Optional[bool] = True
+    or_mask: Optional[int] = None
+
+def handle_props(_ctx: ArchiveContext, elem: Element, obj: NibObject, props: list[PropSchema]) -> None:
+    for prop in props:
+        is_default = False
+        if prop.const is not None:
+            val = prop.const
+        elif prop.map is not None:
+            val = prop.map[elem.attrib.get(prop.attrib, prop.default)]
+        elif prop.or_mask is not None:
+            val = obj.get(prop.prop) or 0
+            val |= prop.or_mask
+        else:
+            is_default = elem.attrib.get(prop.attrib, prop.default) == prop.default
+            val = elem.attrib.get(prop.attrib, prop.default if prop.default is not None else NibNil())
+
+        if prop.filter:
+            val = prop.filter(val)
+
+        if val is not None or (is_default and not prop.skip_default):
+            obj[prop.prop] = val
+
+MAP_YES_NO = {
+    "YES": True,
+    "NO": False,
+}

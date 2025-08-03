@@ -161,6 +161,12 @@ class CellFlags2(IntEnum):
 
     UNKNOWN_MATRIX_CELL = 0x2000
 
+class FontFlags(Enum):
+    ROLE_CONTROL_CONTENT_FONT = 0x10
+    ROLE_LABEL_FONT = 0x14
+    ROLE_TITLE_BAR_FONT = 0x16
+    ROLE_UNKNOWN = 0x1c
+
 class LineBreakMode(Enum):
     BY_WORD_WRAPPING = 0
     BY_CHAR_WRAPPING = 1

@@ -39,15 +39,17 @@ from . import popUpButtonCell
 from . import progressIndicator
 from . import prototypeCellViews
 from . import rect
-from . import segment
-from . import segmentedCell
-from . import segmentedControl
-from . import segments
 from . import scrollView
 from . import scroller
 from . import searchField
 from . import searchFieldCell
+from . import segment
+from . import segmentedCell
+from . import segmentedControl
+from . import segments
 from . import size
+from . import slider
+from . import sliderCell
 from . import sortDescriptor
 from . import stackView
 from . import subviews
@@ -115,13 +117,15 @@ all = {
     "rect": rect,
     "scrollView": scrollView,
     "scroller": scroller,
+    "searchField": searchField,
+    "searchFieldCell": searchFieldCell,
     "segment": segment,
     "segmentedCell": segmentedCell,
     "segmentedControl": segmentedControl,
     "segments": segments,
-    "searchField": searchField,
-    "searchFieldCell": searchFieldCell,
     "size": size,
+    "slider": slider,
+    "sliderCell": sliderCell,
     "sortDescriptor": sortDescriptor,
     "stackView": stackView,
     "subviews": subviews,
