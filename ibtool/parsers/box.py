@@ -1,6 +1,6 @@
-from ..models import ArchiveContext, NibObject, NibMutableList, NibString
+from ..models import ArchiveContext, NibObject, NibMutableList, NibString, NibNil
 from xml.etree.ElementTree import Element
-from .helpers import make_xib_object, makeSystemColor, _xibparser_common_translate_autoresizing
+from .helpers import make_xib_object, makeSystemColor, _xibparser_common_translate_autoresizing, handle_props, PropSchema
 from ..parsers_base import parse_children
 from ..constants import vFlags, CellFlags, CellFlags2
 
@@ -9,37 +9,64 @@ BOX_TITLE_POSITION_MAP = {
     None: 2,
 }
 
+BOX_BORDER_TYPE_MAP = {
+    "separator": 3,
+    None: 3,
+}
+
+BOX_TYPE_MAP = {
+    None: 0,
+    "separator": 2,
+}
+
+BOX_USING_CONTENT_VIEW_MAP = {
+    None: True,
+    "separator": False,
+}
+
 def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
     obj = make_xib_object(ctx, "NSBox", elem, parent)
     obj["NSSuperview"] = obj.xib_parent()
     parse_children(ctx, elem, obj)
     _xibparser_common_translate_autoresizing(ctx, elem, parent, obj)
-    obj["IBNSBoxIsUsingDocumentContentView"] = True
-    obj["NSBorderType"] = {
-        "separator": 3,
-        None: 3,
-    }[elem.attrib.get("boxType")]
-    obj["NSBoxType"] = 0
-    obj.setIfEmpty("NSSubviews", NibMutableList([]))
+
+    handle_props(ctx, elem, obj, [
+        PropSchema(prop="NSBoxType", attrib="boxType", default=None, map=BOX_TYPE_MAP, skip_default=False),
+        PropSchema(prop="NSBorderType", attrib="boxType", default=None, map=BOX_BORDER_TYPE_MAP, skip_default=False),
+        PropSchema(prop="IBNSBoxIsUsingDocumentContentView", attrib="boxType", default=None, map=BOX_USING_CONTENT_VIEW_MAP),
+        PropSchema(prop="NSTitlePosition", attrib="titlePosition", default=None, map=BOX_TITLE_POSITION_MAP, skip_default=False),
+        PropSchema(prop="NSTransparent", const=False),
+        PropSchema(prop="NSOffsets", const=NibString.intern("{0, 0}")),
+        PropSchema(prop="NSSubviews", default=NibMutableList([])),
+    ])
+    
+    if tf := parent.extraContext.get("titleFont"):
+        font = tf
+    elif elem.attrib.get("boxType") == "separator":
+        font = NibObject("NSFont", None, {
+            "NSName": NibString.intern(".AppleSystemUIFont"),
+            "NSSize": 11.0,
+            "NSfFlags": 0xc1c,
+        })
+    else:
+        font = NibObject("NSFont", None, {
+            "NSName": NibString.intern(".AppleSystemUIFont"),
+            "NSSize": 13.0,
+            "NSfFlags": 0x414,
+        })
+
     obj["NSTitleCell"] = NibObject("NSTextFieldCell", None, {
         "NSBackgroundColor": makeSystemColor("textBackgroundColor"),
         "NSCellFlags": CellFlags.UNKNOWN_TEXT_FIELD,
         "NSCellFlags2": CellFlags2.TEXT_ALIGN_CENTER,
         "NSContents": NibString.intern(elem.attrib.get("title", "Title")),
         "NSControlSize2": 0,
-        "NSSupport": parent.extraContext.get("titleFont", NibObject("NSFont", None, {
-            "NSName": NibString.intern(".AppleSystemUIFont"),
-            "NSSize": 13.0,
-            "NSfFlags": 0x414,
-        })),
+        "NSSupport": font,
         "NSTextColor": makeSystemColor("labelColor"),
     })
-    obj["NSTitlePosition"] = BOX_TITLE_POSITION_MAP[elem.attrib.get("titlePosition")]
-    obj["NSTransparent"] = False
     if "verticalHuggingPriority" in obj.extraContext or "horizontalHuggingPriority" in obj.extraContext:
         v, h = obj.extraContext.get("verticalHuggingPriority", 250), obj.extraContext.get("horizontalHuggingPriority", 250)
         obj["NSHuggingPriority"] = f"{{{h}, {v}}}"
-    obj["NSOffsets"] = NibString.intern("{0, 0}")
     if not obj.extraContext.get("parsed_autoresizing"):
         obj.flagsOr("NSvFlags", vFlags.DEFAULT_VFLAGS_AUTOLAYOUT if ctx.useAutolayout else vFlags.DEFAULT_VFLAGS)
 

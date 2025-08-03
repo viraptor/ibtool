@@ -344,9 +344,15 @@ def handle_props(_ctx: ArchiveContext, elem: Element, obj: NibObject, props: lis
         elif prop.or_mask is not None:
             val = obj.get(prop.prop) or 0
             val |= prop.or_mask
-        else:
+        elif prop.attrib is not None:
             is_default = elem.attrib.get(prop.attrib, prop.default) == prop.default
             val = elem.attrib.get(prop.attrib, prop.default if prop.default is not None else NibNil())
+        elif prop.default is not None:
+            if obj.get(prop.prop) is None:
+                obj[prop.prop] = prop.default
+            continue
+        else:
+            raise Exception("don't know what to do with prop")
 
         if prop.filter:
             val = prop.filter(val)
