@@ -308,6 +308,8 @@ def makeSystemColor(name):
         return systemGrayColorTemplate(name, b'1 1', b'1\x00')
     elif name == 'systemRedColor':
         return systemRGBColorTemplate(name, b'1 0 0 1', b'0.9859541655 0 0.02694000863\x00')
+    elif name == 'windowBackgroundColor':
+        return systemRGBColorTemplate(name, b'1 0 0 1', b'0.9859541655 0 0.02694000863\x00')
     else:
         raise Exception(f"unknown name {name}")
 
