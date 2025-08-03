@@ -18,7 +18,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
     obj["NSControlUsesSingleLineMode"] = False
     obj["NSTextFieldAlignmentRectInsetsVersion"] = 2
     obj["NSAllowsWritingTools"] = False
-    obj["NSvFlags"] = vFlags.DEFAULT_VFLAGS_AUTOLAYOUT
+    obj.setIfEmpty("NSvFlags", vFlags.DEFAULT_VFLAGS_AUTOLAYOUT)
 
     obj.setIfNotDefault("NSViewIsLayerTreeHost", elem.attrib.get("wantsLayer") == "YES", False)
 

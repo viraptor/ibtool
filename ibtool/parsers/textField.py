@@ -21,6 +21,8 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
     obj.setIfEmpty("NSControlLineBreakMode", 0)
     obj["NSControlSendActionMask"] = 4
     obj["NSTextFieldAlignmentRectInsetsVersion"] = 2
+    if elem.attrib.get("textCompletion") == "NO":
+        obj["NSCell"]["NSAutomaticTextCompletionDisabled"] = True
     if "verticalHuggingPriority" in obj.extraContext or "horizontalHuggingPriority" in obj.extraContext:
         v, h = obj.extraContext.get("verticalHuggingPriority", 250), obj.extraContext.get("horizontalHuggingPriority", 250)
         #obj["NSHuggingPriority"] = f"{{{h}, {v}}}"

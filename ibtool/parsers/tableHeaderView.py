@@ -28,7 +28,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
             parse_children(ctx, elem, obj)
 
         table_view = parent["NSContentView"]["NSSubviews"]._items[0]
-        assert table_view.originalclassname() == "NSTableView"
+        assert table_view.originalclassname() in ("NSTableView", "NSOutlineView"), table_view.originalclassname()
         table_view["NSHeaderView"] = obj
 
         obj["NSNextResponder"] = clip_view

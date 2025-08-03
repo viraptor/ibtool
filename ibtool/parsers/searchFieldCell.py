@@ -1,7 +1,7 @@
 from ..models import ArchiveContext, NibObject, XibObject, NibString, NibMutableList, NibMutableDictionary, NibNSNumber, NibInlineString
 from xml.etree.ElementTree import Element
 from typing import Optional
-from .helpers import make_xib_object, __xibparser_cell_options
+from .helpers import make_xib_object, __xibparser_cell_options, handle_props, PropSchema, MAP_YES_NO
 from ..parsers_base import parse_children
 from ..constants import ButtonFlags, CellFlags
 
@@ -53,13 +53,17 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     })
     if parent.extraContext.get("allowsCharacterPickerTouchBarItem"):
         obj["NSCharacterPickerEnabled"] = True
-    obj["NSContents"] = NibString.intern('')
-    obj["NSControlView"] = parent
-    obj["NSMaximumRecents"] = 255
-    obj["NSTextBezelStyle"] = 1
-    obj["NSSearchFieldFlags"] = NibInlineString(b"\x16\x00\x00\x00")
-    if placeholder_string := elem.attrib.get("placeholderString"):
-        obj["NSPlaceholderString"] = placeholder_string
+
+    handle_props(ctx, elem, obj, [
+        PropSchema(prop="NSRecentsAutosaveName", attrib="recentsAutosaveName", filter=NibString.intern),
+        PropSchema(prop="NSPlaceholderString", attrib="placeholderString", filter=NibString.intern),
+        PropSchema(prop="NSContents", const=NibString.intern('')),
+        PropSchema(prop="NSSearchFieldFlags", const=NibInlineString(b"\x16\x00\x00\x00")),
+        PropSchema(prop="NSTextBezelStyle", const=1),
+        PropSchema(prop="NSMaximumRecents", const=255),
+        PropSchema(prop="NSControlView", const=parent),
+        PropSchema(prop="NSSendsWholeSearchString", attrib="sendsWholeSearchString", default="NO", map=MAP_YES_NO),
+    ])
 
     parent["NSCell"] = obj
     return obj

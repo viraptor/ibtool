@@ -8,6 +8,12 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
     elif key == "minSize":
         pass # not used?
         #parent["NSMinSize"] = f'{{{elem.attrib["width"]}, {elem.attrib["height"]}}}'
+    elif key == "minContentSize":
+        parent["NSMinContentSize?"] = f'{{{elem.attrib["width"]}, {elem.attrib["height"]}}}'
+    elif key == "maxContentSize":
+        parent["NSMaxContentSize?"] = f'{{{elem.attrib["width"]}, {elem.attrib["height"]}}}'
+    elif key == "contentSize":
+        parent["NSContentSize?"] = f'{{{elem.attrib["width"]}, {elem.attrib["height"]}}}'
     elif key == "intercellSpacing":
         width = elem.attrib.get("width")
         height = elem.attrib.get("height")

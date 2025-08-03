@@ -21,22 +21,23 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
 
     if parent.originalclassname() == "NSTableView":
         parent["NSTableViewArchivedReusableViewsKey"].addItem(NibString.intern(elem.attrib.get("identifier", "")))
-        nib_view = obj.extraContext["prototypeCellView"]
-        nib_appl = NibObject("NSCustomObject", NibObject("NSCustomObject", None, {"NSClassName": "NSObject"}), {
-            "NSClassName": "NSApplication",
-        })
-        nib_view._parent = nib_appl
-        nib_view["NSReuseIdentifierKey"] = NibString.intern(elem.attrib.get("identifier", ""))
-        nib_sub = nib_view["NSSubviews"][0]
-        nib_sub_cell = nib_sub["NSCell"]
-        nib_data = CompileNibObjects([make_basic_nib([nib_view, nib_sub, nib_sub_cell, nib_appl])])
-        parent["NSTableViewArchivedReusableViewsKey"].addItem(NibObject("NSNib", None, {
-            "NSNibFileData": NibData(bytes(nib_data)),
-            "NSNibFileImages": NibNil(),
-            "NSNibFileIsKeyed": True,
-            "NSNibFileSounds": NibNil(),
-            "NSNibFileUseParentBundle": True,
-        }))
+        nib_view = obj.extraContext.get("prototypeCellView")
+        if nib_view:
+            nib_appl = NibObject("NSCustomObject", NibObject("NSCustomObject", None, {"NSClassName": "NSObject"}), {
+                "NSClassName": "NSApplication",
+            })
+            nib_view._parent = nib_appl
+            nib_view["NSReuseIdentifierKey"] = NibString.intern(elem.attrib.get("identifier", ""))
+            nib_sub = nib_view["NSSubviews"][0]
+            nib_sub_cell = nib_sub["NSCell"]
+            nib_data = CompileNibObjects([make_basic_nib([nib_view, nib_sub, nib_sub_cell, nib_appl])])
+            parent["NSTableViewArchivedReusableViewsKey"].addItem(NibObject("NSNib", None, {
+                "NSNibFileData": NibData(bytes(nib_data)),
+                "NSNibFileImages": NibNil(),
+                "NSNibFileIsKeyed": True,
+                "NSNibFileSounds": NibNil(),
+                "NSNibFileUseParentBundle": True,
+            }))
 
     return obj
 
