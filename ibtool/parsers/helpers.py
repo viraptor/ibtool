@@ -347,7 +347,7 @@ def handle_props(_ctx: ArchiveContext, elem: Element, obj: NibObject, props: lis
             val = prop.const
         elif prop.map is not None:
             val = prop.map[elem.attrib.get(prop.attrib, prop.default)]
-            is_default = (val == prop.default)
+            is_default = (val == prop.map[prop.default])
         elif prop.or_mask is not None:
             val = obj.get(prop.prop) or 0
             val |= prop.or_mask
@@ -364,7 +364,7 @@ def handle_props(_ctx: ArchiveContext, elem: Element, obj: NibObject, props: lis
         if prop.filter:
             val = prop.filter(val)
 
-        if val is not None or (is_default and not prop.skip_default):
+        if ((is_default and not prop.skip_default) or (not is_default)) and val is not None:
             obj[prop.prop] = val
 
 MAP_YES_NO = {
