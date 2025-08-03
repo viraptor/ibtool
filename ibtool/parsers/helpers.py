@@ -337,8 +337,6 @@ class PropSchema:
 
 def handle_props(_ctx: ArchiveContext, elem: Element, obj: NibObject, props: list[PropSchema]) -> None:
     for prop in props:
-        if prop.prop == "IBNSBoxIsUsingDocumentContentView":
-            print(prop)
         is_default = False
         if prop.const is not None:
             val = prop.const

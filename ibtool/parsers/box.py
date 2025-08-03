@@ -40,19 +40,13 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
         PropSchema(prop="NSSubviews", default=NibMutableList([])),
     ])
     
-    if tf := parent.extraContext.get("titleFont"):
+    if tf := obj.extraContext.get("titleFont"):
         font = tf
-    elif elem.attrib.get("boxType") == "separator":
+    else:
         font = NibObject("NSFont", None, {
             "NSName": NibString.intern(".AppleSystemUIFont"),
             "NSSize": 11.0,
             "NSfFlags": 0xc1c,
-        })
-    else:
-        font = NibObject("NSFont", None, {
-            "NSName": NibString.intern(".AppleSystemUIFont"),
-            "NSSize": 13.0,
-            "NSfFlags": 0x414,
         })
 
     obj["NSTitleCell"] = NibObject("NSTextFieldCell", None, {

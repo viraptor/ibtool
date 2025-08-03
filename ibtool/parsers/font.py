@@ -10,11 +10,6 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> NibObject:
     meta_font = elem.attrib.get("metaFont")
     key = elem.attrib.get("key")
 
-    if key == "titleFont":
-        flags = FontFlags.ROLE_UNKNOWN.value
-    else:
-        flags = 0
-
     if meta_font is None:
         item["NSName"] = NibString.intern(elem.attrib.get("name", ".AppleSystemUIFont"))
         item["NSSize"] = float(elem.attrib.get("size", 13.0))
@@ -28,8 +23,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> NibObject:
     elif meta_font == 'system':
         item["NSName"] = NibString.intern(".AppleSystemUIFont")
         item["NSSize"] = float(elem.attrib.get("size", 13.0))
-        flags = flags or FontFlags.ROLE_LABEL_FONT.value
-        item["NSfFlags"] = to_flags_val(flags)
+        item["NSfFlags"] = to_flags_val(FontFlags.ROLE_LABEL_FONT.value)
     elif meta_font == 'systemBold':
         item["NSName"] = NibString.intern(".AppleSystemUIFontBold")
         item["NSSize"] = float(elem.attrib.get("size", 24.0))
