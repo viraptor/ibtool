@@ -25,7 +25,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     vertically_resizable = TVFlags.VERTICALLY_RESIZABLE if elem.attrib.get("verticallyResizable", "YES" if ctx.toolsVersion < 23504 else "NO") == "YES" else 0
     uses_font_panel = 0x20 if elem.attrib.get("usesFontPanel", "NO") == "YES" else 0
     uses_ruler = 0x40 if elem.attrib.get("usesRuler", "NO") == "YES" else 0
-    allows_undo = 0x400 if elem.attrib.get("allowsUndo", "YES") == "YES" else 0
+    allows_undo = 0x400 if elem.attrib.get("allowsUndo", "NO") == "YES" else 0
     draws_background = 0x800
     something_with_ruler = 0x100
     allows_document_background_change = 0x4000 if elem.attrib.get("allowsDocumentBackgroundColorChange", "NO") == "YES" else 0
