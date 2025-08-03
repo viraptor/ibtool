@@ -66,7 +66,6 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
         obj["NSControlSize2"] = CONTROL_SIZE_MAP2[elem.attrib.get("controlSize", "regular")]
         parent["NSProtoCell"] = obj
     elif key is None:
-        obj["NSControlView"] = obj.xib_parent()
         obj["NSControlSize2"] = CONTROL_SIZE_MAP2[elem.attrib.get("controlSize", "regular")]
         __xibparser_cell_flags(elem, obj, parent)
     else:
