@@ -322,6 +322,10 @@ def design_size_for_image(name):
         return "{18, 4}"
     elif name == "NSAdvanced":
         return "{32, 32}"
+    elif name == "NSGoLeftTemplate":
+        return "{9999, 9999}"
+    elif name == "NSGoRightTemplate":
+        return "{9999, 9999}"
     else:
         raise Exception(f"unknown image resource '{name}'")
 
