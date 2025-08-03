@@ -22,6 +22,9 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     smart_insert_delete = 0x200 if elem.attrib.get("smartInsertDelete") == "YES" else 0
     horizontally_resizable = TVFlags.HORIZONTALLY_RESIZABLE if elem.attrib.get("horizontallyResizable") == "YES" else 0
     vertically_resizable = TVFlags.VERTICALLY_RESIZABLE if elem.attrib.get("verticallyResizable", "YES" if ctx.toolsVersion < 23504 else "NO") == "YES" else 0
+    uses_font_panel = 0x20 if elem.attrib.get("usesFontPanel", "NO") == "YES" else 0
+    uses_ruler = 0x40 if elem.attrib.get("usesRuler", "NO") == "YES" else 0
+    allows_document_background_change = 0x4000 if elem.attrib.get("allowsDocumentBackgroundColorChange", "NO") == "YES" else 0
     preferred_find_style = {
         None: None,
         "panel": 1,
@@ -37,7 +40,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     shared_data["NSAutomaticTextCompletionDisabled"] = False
     shared_data["NSBackgroundColor"] = NibNil()
     shared_data["NSDefaultParagraphStyle"] = NibNil()
-    shared_data["NSFlags"] = 0x901 | spelling_correction | editable | imports_graphics | rich_text | smart_insert_delete | preferred_find_style_flag
+    shared_data["NSFlags"] = 0x901 | spelling_correction | editable | imports_graphics | rich_text | smart_insert_delete | preferred_find_style_flag | uses_font_panel | allows_document_background_change | uses_ruler
     shared_data["NSInsertionColor"] = makeSystemColor('textInsertionPointColor')
     shared_data["NSLinkAttributes"] = NibDictionary([
         NibString.intern("NSColor"),

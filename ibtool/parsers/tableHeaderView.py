@@ -34,7 +34,6 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
         obj["NSNextResponder"] = clip_view
         obj["NSSuperview"] = clip_view
         obj["NSTableView"] = table_view
-        obj["NSViewIsLayerTreeHost"] = True
         clip_view["NSNextKeyView"] = obj
         clip_view["NSDocView"] = obj
         clip_view["NSSubviews"].addItem(obj)
