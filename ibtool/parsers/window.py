@@ -25,7 +25,8 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
     if not item.extraContext.get("NSWindowRect"):
         item.extraContext["NSWindowRect"] = (0, 0, 0, 0)
 
-    item.flagsOr("NSWTFlags", WTFlags.DEFER)
+    if elem.attrib.get("deferred", "YES") == "YES":
+        item.flagsOr("NSWTFlags", WTFlags.DEFER)
     if elem.attrib.get("allowsToolTipsWhenApplicationIsInactive", "YES") == "YES":
         item.flagsOr("NSWTFlags", WTFlags.ALLOWS_TOOL_TIPS_WHEN_APPLICATION_IS_INACTIVE)
     if elem.attrib.get("autorecalculatesKeyViewLoop", "YES") == "YES":
