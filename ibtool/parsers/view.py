@@ -34,7 +34,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: XibObject, **kwargs) -> Xi
     parse_interfacebuilder_properties(ctx, elem, parent, obj)
     parse_children(ctx, elem, obj)
 
-    _xibparser_common_view_attributes(ctx, elem, parent, obj, topLevelView=(key == "contentView"))
+    _xibparser_common_view_attributes(ctx, elem, parent, obj, topLevelView=(parent is None))
     _xibparser_common_translate_autoresizing(ctx, elem, parent, obj)
     obj.setIfNotDefault("NSViewIsLayerTreeHost", elem.attrib.get("wantsLayer") == "YES", False)
 
