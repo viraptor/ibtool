@@ -207,7 +207,7 @@ def diff(lhs: Union[NibValue,NibCollection,NibObject], rhs: Union[NibValue,NibCo
             #print(f"{key}, {lhs.entries.get(key)}, {rhs.entries.get(key)}")
             if key not in lhs.entries:
                 rval = rhs.entries.get(key)
-                if (key.endswith("Flags") or key.endswith("Flags2")) and isinstance(rval.value, int):
+                if (key.endswith("Flags") or key.endswith("Flags2") or key.endswith("Mask")) and isinstance(rval.value, int):
                     rval = rval.value
                     rval = hex(rval if rval >= 0 else rval + 0x10000000000000000)
 
@@ -215,7 +215,7 @@ def diff(lhs: Union[NibValue,NibCollection,NibObject], rhs: Union[NibValue,NibCo
                 continue
             if key not in rhs.entries:
                 lval = lhs.entries.get(key)
-                if (key.endswith("Flags") or key.endswith("Flags2")) and isinstance(lval.value, int):
+                if (key.endswith("Flags") or key.endswith("Flags2") or key.endswith("Mask")) and isinstance(lval.value, int):
                     lval = lval.value
                     lval = hex(lval if lval >= 0 else lval + 0x10000000000000000)
 
