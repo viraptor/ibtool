@@ -15,6 +15,7 @@ def __parse_pos_size(size: str) -> tuple[int, int, int, int]:
 def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> XibObject:
     obj = make_xib_object(ctx, "NSTextView", elem, parent)
     
+    selectable = 0x1 if elem.attrib.get("selectable", "YES") == "YES" else 0
     editable = 0x2 if elem.attrib.get("editable", "YES") == "YES" else 0
     imports_graphics = 0x8 if elem.attrib.get("importsGraphics") == "YES" else 0
     spelling_correction = 0x4000000 if elem.attrib.get("spellingCorrection") == "YES" else 0
@@ -24,6 +25,9 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     vertically_resizable = TVFlags.VERTICALLY_RESIZABLE if elem.attrib.get("verticallyResizable", "YES" if ctx.toolsVersion < 23504 else "NO") == "YES" else 0
     uses_font_panel = 0x20 if elem.attrib.get("usesFontPanel", "NO") == "YES" else 0
     uses_ruler = 0x40 if elem.attrib.get("usesRuler", "NO") == "YES" else 0
+    allows_undo = 0x400 if elem.attrib.get("allowsUndo", "YES") == "YES" else 0
+    draws_background = 0x800
+    something_with_ruler = 0x100
     allows_document_background_change = 0x4000 if elem.attrib.get("allowsDocumentBackgroundColorChange", "NO") == "YES" else 0
     preferred_find_style = {
         None: None,
@@ -40,7 +44,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     shared_data["NSAutomaticTextCompletionDisabled"] = False
     shared_data["NSBackgroundColor"] = NibNil()
     shared_data["NSDefaultParagraphStyle"] = NibNil()
-    shared_data["NSFlags"] = 0x901 | spelling_correction | editable | imports_graphics | rich_text | smart_insert_delete | preferred_find_style_flag | uses_font_panel | allows_document_background_change | uses_ruler
+    shared_data["NSFlags"] = something_with_ruler | draws_background | spelling_correction | editable | imports_graphics | rich_text | smart_insert_delete | preferred_find_style_flag | uses_font_panel | allows_document_background_change | uses_ruler | selectable | allows_undo
     shared_data["NSInsertionColor"] = makeSystemColor('textInsertionPointColor')
     shared_data["NSLinkAttributes"] = NibDictionary([
         NibString.intern("NSColor"),
@@ -64,6 +68,8 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     ])
     shared_data["NSTextCheckingTypes"] = 0
     shared_data["NSTextFinder"] = NibNil()
+    shared_data["NSWritingToolsFlags"] = 0x100
+    shared_data["NSTextHighlightAttributes"] = NibNil()
     if preferred_find_style is not None:
         shared_data["NSPreferredTextFinderStyle"] = preferred_find_style
     obj["NSSharedData"] = shared_data
