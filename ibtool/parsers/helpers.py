@@ -104,6 +104,7 @@ def __xibparser_cell_flags(elem: Element, obj: NibObject, parent: NibObject) -> 
 def __xibparser_cell_options(elem: Element, obj: NibObject, parent: NibObject) -> None:
     __xibparser_cell_flags(elem, obj, parent)
     parent["NSControlRefusesFirstResponder"] = elem.attrib.get("refusesFirstResponder") == "YES"
+    parent.setIfNotDefault("NSAutomaticTextCompletionDisabled", elem.attrib.get("textCompletion") == "NO", False)
     parent["NSControlLineBreakMode"] = {
         None: LineBreakMode.BY_WORD_WRAPPING,
         "wordWrapping": LineBreakMode.BY_WORD_WRAPPING,
