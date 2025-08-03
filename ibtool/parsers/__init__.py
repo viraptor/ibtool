@@ -18,9 +18,10 @@ from . import customFormatter
 from . import customObject
 from . import customSpacing
 from . import customView
-from . import drawer
 from . import dateFormatter
+from . import drawer
 from . import font
+from . import holdingPriorities
 from . import imageCell
 from . import imageView
 from . import items
@@ -51,7 +52,10 @@ from . import size
 from . import slider
 from . import sliderCell
 from . import sortDescriptor
+from . import splitView
 from . import stackView
+from . import stepper
+from . import stepperCell
 from . import subviews
 from . import tableCellView
 from . import tableColumn
@@ -69,6 +73,8 @@ from . import userDefaultsController
 from . import value
 from . import view
 from . import visibilityPriorities
+from . import webPreferences
+from . import webView
 from . import window
 from . import windowCollectionBehavior
 from . import windowPositionMask
@@ -95,9 +101,10 @@ all = {
     "customObject": customObject,
     "customSpacing": customSpacing,
     "customView": customView,
-    "drawer": drawer,
     "dateFormatter": dateFormatter,
+    "drawer": drawer,
     "font": font,
+    "holdingPriorities": holdingPriorities,
     "imageCell": imageCell,
     "imageView": imageView,
     "items": items,
@@ -128,7 +135,10 @@ all = {
     "slider": slider,
     "sliderCell": sliderCell,
     "sortDescriptor": sortDescriptor,
+    "splitView": splitView,
     "stackView": stackView,
+    "stepper": stepper,
+    "stepperCell": stepperCell,
     "subviews": subviews,
     "tableCellView": tableCellView,
     "tableColumn": tableColumn,
@@ -146,6 +156,8 @@ all = {
     "value": value,
     "view": view,
     "visibilityPriorities": visibilityPriorities,
+    "webPreferences": webPreferences,
+    "webView": webView,
     "window": window,
     "windowCollectionBehavior": windowCollectionBehavior,
     "windowPositionMask": windowPositionMask,
