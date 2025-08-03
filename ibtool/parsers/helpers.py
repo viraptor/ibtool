@@ -86,6 +86,7 @@ def __xibparser_cell_flags(elem: Element, obj: NibObject, parent: NibObject) -> 
     editable = CellFlags.EDITABLE if elem.attrib.get("editable") == "YES" else 0
     bezeled = CellFlags.BEZELED if elem.attrib.get("borderStyle") == "bezel" else 0
     border = CellFlags.BORDERED if obj.originalclassname() in ("NSTableHeaderCell", "NSSegmentedCell") else 0 # TODO: hack
+    allows_undo = 0 if elem.attrib.get("allowsUndo", "YES") == "YES" else CellFlags2.FORBIDS_UNDO
     size_flag = {
         None: 0,
         "regular": 0,
@@ -95,7 +96,7 @@ def __xibparser_cell_flags(elem: Element, obj: NibObject, parent: NibObject) -> 
     allows_mixed_state = CellFlags2.ALLOWS_MIXED_STATE if elem.attrib.get("allowsMixedState") == "YES" else 0
 
     obj.flagsOr("NSCellFlags", lineBreakModeMask | text_field_flag | selectable | state_on | scrollable | disabled | editable | bezeled | border)
-    obj.flagsOr("NSCellFlags2", textAlignmentMask | sendsActionMask | lineBreakModeMask2 | refuses_first_responder_mask | size_flag | allows_mixed_state)
+    obj.flagsOr("NSCellFlags2", textAlignmentMask | sendsActionMask | lineBreakModeMask2 | refuses_first_responder_mask | size_flag | allows_mixed_state | allows_undo)
 
     if parent.originalclassname() == "NSTableColumn" and editable:
         parent["NSIsEditable"] = True
