@@ -65,6 +65,7 @@ from . import tableViewGridLines
 from . import textField
 from . import textFieldCell
 from . import textView
+from . import userDefaultsController
 from . import value
 from . import view
 from . import visibilityPriorities
@@ -141,6 +142,7 @@ all = {
     "textField": textField,
     "textFieldCell": textFieldCell,
     "textView": textView,
+    "userDefaultsController": userDefaultsController,
     "value": value,
     "view": view,
     "visibilityPriorities": visibilityPriorities,
