@@ -26,11 +26,11 @@ BOX_USING_CONTENT_VIEW_MAP = {
 
 def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
     obj = make_xib_object(ctx, "NSBox", elem, parent)
-    obj["NSSuperview"] = obj.xib_parent()
     parse_children(ctx, elem, obj)
     _xibparser_common_translate_autoresizing(ctx, elem, parent, obj)
 
     handle_props(ctx, elem, obj, [
+        PropSchema(prop="NSSuperview", const=obj.xib_parent()),
         PropSchema(prop="NSBoxType", attrib="boxType", default=None, map=BOX_TYPE_MAP, skip_default=False),
         PropSchema(prop="NSBorderType", attrib="boxType", default=None, map=BOX_BORDER_TYPE_MAP, skip_default=False),
         PropSchema(prop="IBNSBoxIsUsingDocumentContentView", attrib="boxType", default=None, map=BOX_USING_CONTENT_VIEW_MAP),
