@@ -209,7 +209,7 @@ class NibData(NibObject):
 
 
 class NibInlineString:
-    def __init__(self, text: str ="") -> None:
+    def __init__(self, text: str|bytes ="") -> None:
         self._text = text
 
     def text(self) -> str:
