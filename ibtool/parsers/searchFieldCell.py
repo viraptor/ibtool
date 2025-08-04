@@ -4,6 +4,7 @@ from typing import Optional
 from .helpers import make_xib_object, __xibparser_cell_options, handle_props, PropSchema, MAP_YES_NO
 from ..parsers_base import parse_children
 from ..constants import ButtonFlags, CellFlags
+import struct
 
 def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> XibObject:
     assert parent is not None
@@ -54,11 +55,13 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     if parent.extraContext.get("allowsCharacterPickerTouchBarItem"):
         obj["NSCharacterPickerEnabled"] = True
 
+    sends_immediately = 0x8 if elem.attrib.get("sendsSearchStringImmediately", "NO") == "YES" else 0
+    field_flags = 0x16 | sends_immediately
     handle_props(ctx, elem, obj, [
         PropSchema(prop="NSRecentsAutosaveName", attrib="recentsAutosaveName", filter=NibString.intern),
         PropSchema(prop="NSPlaceholderString", attrib="placeholderString", filter=NibString.intern),
         PropSchema(prop="NSContents", const=NibString.intern('')),
-        PropSchema(prop="NSSearchFieldFlags", const=NibInlineString(b"\x16\x00\x00\x00")),
+        PropSchema(prop="NSSearchFieldFlags", const=NibInlineString(struct.pack("<I", field_flags))),
         PropSchema(prop="NSTextBezelStyle", const=1),
         PropSchema(prop="NSMaximumRecents", const=255),
         PropSchema(prop="NSControlView", const=parent),

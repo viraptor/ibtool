@@ -15,7 +15,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
     obj["NSAllowsLogicalLayoutDirection"] = False
     obj["NSEnabled"] = True
     obj["NSControlSendActionMask"] = 4
-    obj["NSControlUsesSingleLineMode"] = False
+    obj["NSControlUsesSingleLineMode"] = obj.extraContext.get("usesSingleLineMode", False)
     obj["NSTextFieldAlignmentRectInsetsVersion"] = 2
     obj["NSAllowsWritingTools"] = False
     obj.setIfEmpty("NSvFlags", vFlags.DEFAULT_VFLAGS_AUTOLAYOUT)

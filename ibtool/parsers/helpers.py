@@ -87,6 +87,8 @@ def __xibparser_cell_flags(elem: Element, obj: NibObject, parent: NibObject) -> 
     bezeled = CellFlags.BEZELED if elem.attrib.get("borderStyle") == "bezel" else 0
     border = CellFlags.BORDERED if obj.originalclassname() in ("NSTableHeaderCell", "NSSegmentedCell") else 0 # TODO: hack
     allows_undo = 0 if elem.attrib.get("allowsUndo", "YES") == "YES" else CellFlags2.FORBIDS_UNDO
+    uses_single_line_mode = CellFlags2.USES_SINGLE_LINE_MODE if elem.attrib.get("usesSingleLineMode", "NO") == "YES" else 0
+    parent.extraContext["usesSingleLineMode"] = bool(uses_single_line_mode)
     size_flag = {
         None: 0,
         "regular": 0,
@@ -96,7 +98,7 @@ def __xibparser_cell_flags(elem: Element, obj: NibObject, parent: NibObject) -> 
     allows_mixed_state = CellFlags2.ALLOWS_MIXED_STATE if elem.attrib.get("allowsMixedState") == "YES" else 0
 
     obj.flagsOr("NSCellFlags", lineBreakModeMask | text_field_flag | selectable | state_on | scrollable | disabled | editable | bezeled | border)
-    obj.flagsOr("NSCellFlags2", textAlignmentMask | sendsActionMask | lineBreakModeMask2 | refuses_first_responder_mask | size_flag | allows_mixed_state | allows_undo)
+    obj.flagsOr("NSCellFlags2", textAlignmentMask | sendsActionMask | lineBreakModeMask2 | refuses_first_responder_mask | size_flag | allows_mixed_state | allows_undo | uses_single_line_mode)
 
     if parent.originalclassname() == "NSTableColumn" and editable:
         parent["NSIsEditable"] = True
