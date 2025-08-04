@@ -68,8 +68,9 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     ])
     shared_data["NSTextCheckingTypes"] = 0
     shared_data["NSTextFinder"] = NibNil()
-    shared_data["NSWritingToolsFlags"] = 0x100
-    shared_data["NSTextHighlightAttributes"] = NibNil()
+    if ctx.toolsVersion <= 17701:
+        shared_data["NSWritingToolsFlags"] = 0x100
+        shared_data["NSTextHighlightAttributes"] = NibNil()
     if preferred_find_style is not None:
         shared_data["NSPreferredTextFinderStyle"] = preferred_find_style
     obj["NSSharedData"] = shared_data

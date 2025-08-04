@@ -37,7 +37,12 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
 
     if elem.attrib.get("image"):
         obj["NSNormalImage"] = NibNil() # TODO requires parsing embedded bplist
-    obj.setIfEmpty("NSKeyEquivalent", NibString.intern(''))
+
+    if (key_equiv := elem.attrib.get("keyEquivalent")) is not None:
+        obj["NSKeyEquivalent"] = NibString.intern(key_equiv)
+        obj.flagsOr("NSButtonFlags2", 0x10000000)
+    else:
+        obj["NSKeyEquivalent"] = NibString.intern('')
     obj.setIfEmpty("NSAlternateContents", NibString.intern(''))
     obj["NSPeriodicDelay"] = 400
     obj["NSPeriodicInterval"] = 75

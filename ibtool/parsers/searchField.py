@@ -19,6 +19,8 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
     obj["NSTextFieldAlignmentRectInsetsVersion"] = 2
     obj["NSAllowsWritingTools"] = False
     obj.setIfEmpty("NSvFlags", vFlags.DEFAULT_VFLAGS_AUTOLAYOUT)
+    if ctx.toolsVersion >= 17701:
+        obj["NSTextFieldAllowsWritingToolsAffordance"] = False
 
     obj.setIfNotDefault("NSViewIsLayerTreeHost", elem.attrib.get("wantsLayer") == "YES", False)
 

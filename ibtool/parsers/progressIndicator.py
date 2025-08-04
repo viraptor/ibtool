@@ -13,6 +13,8 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
     indeterminate = 0x2 if indeterminate_value else 0
     style_value = elem.attrib.get("style", "bar")
     style = {"bar": 0, "spinning": 0x1000}[style_value]
+    displayed_when_stopped = 0x2000 if elem.attrib.get("displayedWhenStopped", "YES") == "NO" else 0
+    is_small = 0x100 if elem.attrib.get("controlSize") == "small" else 0
 
     _xibparser_common_view_attributes(ctx, elem, parent, obj)
     obj["NSSuperview"] = obj.xib_parent()
@@ -22,7 +24,10 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
         obj["NSMaxValue"] = float(elem.attrib["maxValue"])
     if elem.attrib.get("minValue"):
         obj["NSMinValue"] = float(elem.attrib["minValue"])
-    obj.flagsOr("NSpiFlags", 0x4004 | bezeled | indeterminate | style)
+    obj.flagsOr("NSpiFlags", 0x4004 | bezeled | indeterminate | style | displayed_when_stopped | is_small)
+    if "verticalHuggingPriority" in obj.extraContext or "horizontalHuggingPriority" in obj.extraContext:
+        v, h = obj.extraContext.get("verticalHuggingPriority", 250), obj.extraContext.get("horizontalHuggingPriority", 250)
+        obj["NSHuggingPriority"] = f"{{{h}, {v}}}"
 
     if not obj.extraContext.get("parsed_autoresizing"):
         obj.flagsOr("NSvFlags", vFlags.DEFAULT_VFLAGS_AUTOLAYOUT if ctx.useAutolayout else vFlags.DEFAULT_VFLAGS)
