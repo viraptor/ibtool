@@ -1,7 +1,7 @@
 from ..models import ArchiveContext, NibObject, XibObject, NibNil, NibMutableList, NibString
 from xml.etree.ElementTree import Element
 from typing import Optional
-from .helpers import make_xib_object, __handle_view_chain
+from .helpers import make_xib_object, __handle_view_chain, handle_props, PropSchema, MAP_YES_NO
 from ..parsers_base import parse_children
 
 def containing_clip_view(ctx: ArchiveContext, parent: Optional[NibObject]) -> XibObject:
@@ -38,7 +38,9 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
         clip_view["NSDocView"] = obj
         clip_view["NSSubviews"].addItem(obj)
         parent["NSHeaderClipView"] = clip_view
-
+        handle_props(ctx, elem, obj, [
+            PropSchema(prop="NSViewIsLayerTreeHost", attrib="wantsLayer", map=MAP_YES_NO, default="NO", skip_default=True)
+        ])
     else:
         raise ValueError(f"Unknown table header view key: {key}")
 

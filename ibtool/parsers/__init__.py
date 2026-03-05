@@ -31,6 +31,7 @@ from . import matrix
 from . import menu
 from . import menuItem
 from . import modifierMask
+from . import nil
 from . import outlet
 from . import outlineView
 from . import placeholder
@@ -114,6 +115,7 @@ all = {
     "menu": menu,
     "menuItem": menuItem,
     "modifierMask": modifierMask,
+    "nil": nil,
     "outlet": outlet,
     "outlineView": outlineView,
     "placeholder": placeholder,

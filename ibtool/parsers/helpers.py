@@ -241,7 +241,7 @@ def default_drag_types() -> NibMutableSet:
 def makeSystemColor(name):
     def systemGrayColorTemplate(name, components, white):
         return NibObject('NSColor', None, {
-            'NSCatalogName': 'System',
+            'NSCatalogName': NibString.intern('System'),
             'NSColor': NibObject('NSColor', None, {
                 'NSColorSpace': 3,
                 'NSComponents': NibInlineString(components),
@@ -251,6 +251,24 @@ def makeSystemColor(name):
             'NSColorName': NibString.intern(name),
             'NSColorSpace': 6,
             })
+
+    def systemCustomGrayColorTemplate(name, sub_name, components, white):
+        return NibObject("NSColor", None, {
+            "NSCatalogName": NibString.intern("System"),
+            "NSColorName": NibString.intern(name),
+            "NSColorSpace": 6,
+            "NSColor": NibObject("NSColor", None, {
+                "NSCatalogName": NibString.intern("System"),
+                "NSColorSpace": 6,
+                "NSColorName": NibString.intern(sub_name),
+                "NSColor": NibObject("NSColor", None, {
+                    "NSComponents": NibInlineString(components),
+                    "NSColorSpace": 3,
+                    "NSWhite": NibInlineString(white),
+                    "NSCustomColorSpace": GENERIC_GREY_COLOR_SPACE,
+                }),
+            })
+        })
 
     def systemCustomRGBColorTemplate(name, sub_name, components, rgb):
         return NibObject("NSColor", None, {
@@ -314,6 +332,8 @@ def makeSystemColor(name):
         return systemRGBColorTemplate(name, b'1 0 0 1', b'0.9859541655 0 0.02694000863\x00')
     elif name == 'windowBackgroundColor':
         return systemGrayColorTemplate(name, b'0.5 1', b'0.4246723652\x00')
+    elif name == '_sourceListBackgroundColor':
+        return systemCustomGrayColorTemplate(name, 'controlBackgroundColor', '0.6666666667 1', b'0.602715373\x00')
     else:
         raise Exception(f"unknown name {name}")
 
@@ -347,12 +367,24 @@ def handle_props(_ctx: ArchiveContext, elem: Element, obj: NibObject, props: lis
         is_default = False
         if prop.const is not None:
             val = prop.const
-        elif prop.map is not None:
-            val = prop.map[elem.attrib.get(prop.attrib, prop.default)]
-            is_default = (val == prop.map[prop.default])
         elif prop.or_mask is not None:
-            val = obj.get(prop.prop) or 0
-            val |= prop.or_mask
+            do_set = False
+            if prop.map is not None:
+                if prop.map[elem.attrib.get(prop.attrib, prop.default)]:
+                    do_set = True
+            else:
+                do_set = True
+            if do_set:
+                val = obj.get(prop.prop) or 0
+                val |= prop.or_mask
+            else:
+                continue
+        elif prop.map is not None:
+            try:
+                val = prop.map[elem.attrib.get(prop.attrib, prop.default)]
+            except KeyError:
+                raise Exception(f"Not found key '{elem.attrib.get(prop.attrib, prop.default)}' for {prop}")
+            is_default = (val == prop.map[prop.default])
         elif prop.attrib is not None:
             is_default = elem.attrib.get(prop.attrib, prop.default) == prop.default
             val = elem.attrib.get(prop.attrib, prop.default if prop.default is not None else NibNil())

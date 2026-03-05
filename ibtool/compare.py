@@ -198,6 +198,8 @@ def diff(lhs: Union[NibValue,NibCollection,NibObject], rhs: Union[NibValue,NibCo
             yield from diff(left, right, lhs_root, rhs_root, current_path + [str(i)], lhs_path, rhs_path, lhs.classname)
     elif isinstance(lhs, NibCollection) and isinstance(rhs, NibCollection):
         if len(lhs.entries) != len(rhs.entries):
+            print("lhs", lhs.entries)
+            print("rhs", rhs.entries)
             yield f"{path} Mismatched length: {len(lhs.entries)} != {len(rhs.entries)}"
         for i, (left, right) in enumerate(zip(lhs.entries, rhs.entries)):
             yield from diff(left, right, lhs_root, rhs_root, current_path + [str(i)], lhs_path, rhs_path, lhs.classname)

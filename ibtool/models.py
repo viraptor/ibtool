@@ -389,6 +389,11 @@ class ArchiveContext:
         # self.viewController = None
 
         self.viewKeyList: list[XibObject] = []
+    
+    def nested_context(self) -> 'ArchiveContext':
+        ctx = ArchiveContext(self.useAutolayout, self.customObjectInstantitationMethod, self.toolsVersion)
+        ctx.parentContext = self
+        return ctx
 
     def contextForSegues(self) -> 'ArchiveContext':
         if self.isPrototypeList:
