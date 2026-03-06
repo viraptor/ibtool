@@ -25,6 +25,14 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
         raise Exception(f"view in unknown key {key} (parent {parent.repr()})")
     
     obj.extraContext["is_window_content_view"] = is_main_view
+    if not is_main_view:
+        # ClipView fills scrollView's full inner area regardless of XIB rect.
+        # Store scrollView dimensions so frame() uses them instead of XIB rect.
+        sv = parent.extraContext
+        if "NSFrame" in sv:
+            obj.extraContext["scrollview_size"] = (sv["NSFrame"][2], sv["NSFrame"][3])
+        elif "NSFrameSize" in sv:
+            obj.extraContext["scrollview_size"] = sv["NSFrameSize"]
     with __handle_view_chain(ctx, obj):
         parse_children(ctx, elem, obj)
     if not is_main_view:
