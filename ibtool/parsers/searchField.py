@@ -18,7 +18,9 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
     obj["NSControlUsesSingleLineMode"] = obj.extraContext.get("usesSingleLineMode", False)
     obj["NSTextFieldAlignmentRectInsetsVersion"] = 2
     obj["NSAllowsWritingTools"] = False
-    obj.setIfEmpty("NSvFlags", vFlags.DEFAULT_VFLAGS_AUTOLAYOUT)
+    obj["NS.resolvesNaturalAlignmentWithBaseWritingDirection"] = False
+    if not obj.extraContext.get("parsed_autoresizing"):
+        obj.flagsOr("NSvFlags", vFlags.DEFAULT_VFLAGS_AUTOLAYOUT if ctx.useAutolayout else vFlags.DEFAULT_VFLAGS)
     if ctx.toolsVersion >= 17701:
         obj["NSTextFieldAllowsWritingToolsAffordance"] = False
 

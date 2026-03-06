@@ -21,7 +21,7 @@ BOX_TYPE_MAP = {
 
 BOX_USING_CONTENT_VIEW_MAP = {
     None: True,
-    "separator": False,
+    "separator": None,
 }
 
 def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
@@ -36,7 +36,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
         PropSchema(prop="IBNSBoxIsUsingDocumentContentView", attrib="boxType", default=None, map=BOX_USING_CONTENT_VIEW_MAP),
         PropSchema(prop="NSTitlePosition", attrib="titlePosition", default=None, map=BOX_TITLE_POSITION_MAP, skip_default=False),
         PropSchema(prop="NSTransparent", const=False),
-        PropSchema(prop="NSOffsets", const=NibString.intern("{0, 0}")),
+        PropSchema(prop="NSOffsets", const=NibString.intern("{5, 5}")),
         PropSchema(prop="NSSubviews", default=NibMutableList([])),
     ])
     
@@ -54,7 +54,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
         "NSCellFlags": CellFlags.UNKNOWN_TEXT_FIELD,
         "NSCellFlags2": CellFlags2.TEXT_ALIGN_CENTER,
         "NSContents": NibString.intern(elem.attrib.get("title", "Title")),
-        "NSControlSize2": 0,
+        "NSControlView": NibNil(),
         "NSSupport": font,
         "NSTextColor": makeSystemColor("labelColor"),
     })

@@ -29,7 +29,6 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
         "NSButtonFlags2": 0,
         "NSCellFlags": CellFlags.STATE_ON,
         "NSCellFlags2": 0,
-        "NSControlSize2": 0,
         "NSKeyEquivalent": NibString.intern(''),
         "NSPeriodicDelay": 400,
         "NSPeriodicInterval": 75,
@@ -44,7 +43,6 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
         "NSButtonFlags2": 0,
         "NSCellFlags": 0,
         "NSCellFlags2": 0,
-        "NSControlSize2": 0,
         "NSKeyEquivalent": NibString.intern(''),
         "NSPeriodicDelay": 400,
         "NSPeriodicInterval": 75,
@@ -56,7 +54,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
         obj["NSCharacterPickerEnabled"] = True
 
     sends_immediately = 0x8 if elem.attrib.get("sendsSearchStringImmediately", "NO") == "YES" else 0
-    field_flags = 0x16 | sends_immediately
+    field_flags = 0x06 | sends_immediately
     handle_props(ctx, elem, obj, [
         PropSchema(prop="NSRecentsAutosaveName", attrib="recentsAutosaveName", filter=NibString.intern),
         PropSchema(prop="NSPlaceholderString", attrib="placeholderString", filter=NibString.intern),
