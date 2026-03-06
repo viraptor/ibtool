@@ -1,4 +1,4 @@
-from ..models import ArchiveContext, NibObject, XibObject, NibNil, NibString
+from ..models import ArchiveContext, NibObject, XibObject, NibNil, NibString, NibInlineString
 from xml.etree.ElementTree import Element
 from typing import Optional
 from .helpers import make_xib_object, __handle_view_chain, makeSystemColor
@@ -24,6 +24,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     else:
         raise Exception(f"view in unknown key {key} (parent {parent.repr()})")
     
+    obj.extraContext["is_window_content_view"] = is_main_view
     with __handle_view_chain(ctx, obj):
         parse_children(ctx, elem, obj)
     if not is_main_view:
@@ -32,7 +33,9 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     obj["NSAutomaticallyAdjustsContentInsets"] = True
     if not is_main_view:
         obj["NSvFlags"] = vFlags.AUTORESIZES_SUBVIEWS # clearing the values from elem - they don't seem to matter
-    if elem.attrib.get("drawsBackground", "YES" if ctx.toolsVersion >= 20037 else "NO") == "YES":
+    if is_main_view:
+        obj.flagsOr("NScvFlags", cvFlags.DRAW_BACKGROUND)
+    elif elem.attrib.get("drawsBackground", "YES" if ctx.toolsVersion >= 20037 else "NO") == "YES":
         obj.flagsOr("NScvFlags", cvFlags.DRAW_BACKGROUND)
     cursor = NibObject("NSCursor", obj)
     cursor["NSCursorType"] = 0

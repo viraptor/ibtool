@@ -20,6 +20,13 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
     ctx.extraNibObjects.append(item)
     item.flagsOr("NSWTFlags", 0x780000) # default initial position mask, can be overriden by children
 
+    # Pre-read contentRect so children (e.g. clipView) can compute frames
+    content_rect_elem = elem.find("rect[@key='contentRect']")
+    if content_rect_elem is not None:
+        w = 0 if content_rect_elem.attrib["width"] == "0.0" else int(content_rect_elem.attrib["width"])
+        h = 0 if content_rect_elem.attrib["height"] == "0.0" else int(content_rect_elem.attrib["height"])
+        item.extraContext["NSFrameSize"] = (w, h)
+
     parse_children(ctx, elem, item)
     item["NSWindowBacking"] = 2
     if not item.extraContext.get("NSWindowRect"):
@@ -56,9 +63,10 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
     if frame_autosave_name := elem.attrib.get("frameAutosaveName"):
         item["NSFrameAutosaveName"] = NibString.intern(frame_autosave_name)
 
-    # fixup the rects
+    # fixup the rects - expose content dimensions for child frame calculation
     if item.extraContext.get("NSWindowRect"):
         content_rect = item.extraContext["NSWindowRect"]
+        item.extraContext["NSFrameSize"] = (content_rect[2], content_rect[3])
         screen_rect = item.extraContext["NSScreenRect"]
         item.extraContext["NSWindowRect"] = calculate_window_rect(item.extraContext.get("initialPositionMask", {}), content_rect, screen_rect)
         item["NSWindowRect"] = "{{" + str(item.extraContext["NSWindowRect"][0]) + ", " + str(item.extraContext["NSWindowRect"][1]) + "}, {" + str(item.extraContext["NSWindowRect"][2]) + ", " + str(item.extraContext["NSWindowRect"][3]) + "}}"
