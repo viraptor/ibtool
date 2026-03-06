@@ -45,14 +45,17 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
         obj.flagsOr("NScvFlags", cvFlags.DRAW_BACKGROUND)
     elif elem.attrib.get("drawsBackground", "YES" if ctx.toolsVersion >= 20037 else "NO") == "YES":
         obj.flagsOr("NScvFlags", cvFlags.DRAW_BACKGROUND)
-    cursor = NibObject("NSCursor", obj)
-    cursor["NSCursorType"] = 0
-    cursor["NSHotSpot"] = NibString.intern("{1, -1}")
-    obj["NSCursor"] = cursor
     obj["NSNextResponder"] = NibNil() if is_main_view else obj.xib_parent()
     if obj.get("NSSubviews") and len(obj["NSSubviews"]) > 0:
         obj["NSDocView"] = obj["NSSubviews"][0]
     else:
         obj["NSDocView"] = NibNil()
+    # ClipViews containing textViews get a cursor; table/outline views don't
+    doc_view = obj.get("NSDocView")
+    if doc_view is not None and not isinstance(doc_view, NibNil) and doc_view.originalclassname() not in ("NSTableView", "NSOutlineView"):
+        cursor = NibObject("NSCursor", obj)
+        cursor["NSCursorType"] = 0
+        cursor["NSHotSpot"] = NibString.intern("{1, -1}")
+        obj["NSCursor"] = cursor
     obj.setIfEmpty("NSBGColor", makeSystemColor("controlBackgroundColor"))
     return obj
