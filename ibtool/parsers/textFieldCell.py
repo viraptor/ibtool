@@ -2,7 +2,6 @@ from ..models import ArchiveContext, NibObject, XibObject, NibString, NibNil
 from xml.etree.ElementTree import Element
 from .helpers import __xibparser_cell_flags, __xibparser_cell_options, handle_props, PropSchema, MAP_YES_NO
 from ..parsers_base import parse_children
-from ..constants import CONTROL_SIZE_MAP2
 
 def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
     obj = XibObject(ctx, "NSTextFieldCell", elem, parent)
@@ -32,7 +31,6 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
     elif key == "dataCell":
         parse_children(ctx, elem, obj)
         __xibparser_cell_flags(elem, obj, parent)
-        obj["NSControlSize2"] = CONTROL_SIZE_MAP2[elem.attrib.get("controlSize")]
 
         obj["NSControlView"] = obj.xib_parent().xib_parent() # should be table not the column
         assert obj["NSControlView"].originalclassname() in ("NSTableView", "NSOutlineView"), obj["NSControlView"].originalclassname()

@@ -10,6 +10,10 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
 
     parse_children(ctx, elem, obj)
 
+    # Column's editable attribute overrides any NSIsEditable set by child cells
+    if elem.attrib.get("editable") == "NO" and obj.get("NSIsEditable"):
+        del obj["NSIsEditable"]
+
     obj["NSIdentifier"] = NibString.intern(elem.attrib.get("identifier", ""))
     if max_width := elem.attrib.get("maxWidth"):
         obj["NSMaxWidth"] = float(max_width)
@@ -19,7 +23,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     if width := elem.attrib.get("width"):
         obj["NSWidth"] = float(width)
 
-    if parent.originalclassname() == "NSTableView":
+    if parent.originalclassname() in ("NSTableView", "NSOutlineView"):
         nested_ctx = ctx.nested_context()
         if parent.get("NSTableViewArchivedReusableViewsKey") is not None:
             parent["NSTableViewArchivedReusableViewsKey"].addItem(NibString.intern(elem.attrib.get("identifier", "")))

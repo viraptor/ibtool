@@ -63,6 +63,20 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     if (horizontal_line_scroll, vertical_line_scroll, horizontal_page_scroll, vertical_page_scroll) != (10, 10, 10, 10):
         obj["NSScrollAmts"] = NibInlineString(NibFloatToWord(vertical_page_scroll) + NibFloatToWord(horizontal_page_scroll) + NibFloatToWord(vertical_line_scroll) + NibFloatToWord(horizontal_line_scroll))
 
+    # Recompute vertical scroller frame from scrollView dimensions
+    insets = obj.extraContext.get("insets", (0, 0))
+    border = insets[0] // 2  # total inset / 2 = per-side border
+    sv_frame = obj.extraContext.get("NSFrame") or obj.extraContext.get("NSFrameSize")
+    if sv_frame is not None:
+        sv_w = sv_frame[2] if len(sv_frame) == 4 else sv_frame[0]
+        sv_h = sv_frame[3] if len(sv_frame) == 4 else sv_frame[1]
+        # Get the scroller width from its extraContext (set by scroller parser)
+        vs_w = obj["NSVScroller"].extraContext.get("scroller_width", 15)
+        vs_x = sv_w - border - vs_w
+        vs_y = border
+        vs_h = sv_h - 2 * border
+        obj["NSVScroller"]["NSFrame"] = NibString.intern(f"{{{{{vs_x}, {vs_y}}}, {{{vs_w}, {vs_h}}}}}")
+
     if (content_view := obj.get("NSContentView")) is not None:
         if (doc_view := content_view.get("NSDocView")) is not None:
             if doc_view.originalclassname() == "NSTableView":

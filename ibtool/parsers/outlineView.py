@@ -23,7 +23,6 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     obj["NSControlLineBreakMode"] = 0
     obj["NSControlRefusesFirstResponder"] = False
     obj["NSControlSize"] = 0
-    obj["NSControlSize2"] = 0
     obj["NSControlTextAlignment"] = 0
     obj["NSControlUsesSingleLineMode"] = False
     obj["NSControlWritingDirection"] = 0
@@ -31,7 +30,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
         "IBNSClipsToBounds": 0,
         "IBNSLayoutMarginsGuide": NibNil(),
         "IBNSSafeAreaLayoutGuide": NibNil(),
-        "NSFrameSize": NibString.intern("{15, 28}"),
+        "NSFrameSize": NibString.intern("{17, 28}"),
         "NSNextResponder": NibNil(),
         "NSNibTouchBar": NibNil(),
         "NSViewWantsBestResolutionOpenGLSurface": True,
