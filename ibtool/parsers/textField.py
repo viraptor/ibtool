@@ -10,6 +10,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
     if elem.attrib.get("allowsCharacterPickerTouchBarItem") == "YES":
         obj.extraContext["allowsCharacterPickerTouchBarItem"] = True
     obj["NSSuperview"] = obj.xib_parent()
+    obj["NSNextResponder"] = obj.xib_parent()
     parse_children(ctx, elem, obj)
     _xibparser_common_translate_autoresizing(ctx, elem, parent, obj)
     obj.setIfEmpty("NSFrame", NibNil())

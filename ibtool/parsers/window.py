@@ -50,7 +50,10 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
     if item.get("NSClassName"):
         del item["NSClassName"]
     item["NSViewClass"] = NibNil() # TODO
-    item["NSUserInterfaceItemIdentifier"] = NibNil() # TODO
+    if window_id := elem.attrib.get("identifier"):
+        item["NSUserInterfaceItemIdentifier"] = NibString.intern(window_id)
+    else:
+        item["NSUserInterfaceItemIdentifier"] = NibNil()
     if not item.get("NSWindowView"):
         item["NSWindowView"] = NibNil()
     if not item.extraContext.get("NSScreenRect"):
@@ -63,7 +66,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
         item["NSWindowTabbingMode"] = {"disallowed": 2}[elem.attrib["tabbingMode"]]
     if elem.attrib.get("visibleAtLaunch", "YES") == "YES":
         ctx.visibleWindows.append(item)
-    if frame_autosave_name := elem.attrib.get("frameAutosaveName"):
+    if (frame_autosave_name := elem.attrib.get("frameAutosaveName")) is not None:
         item["NSFrameAutosaveName"] = NibString.intern(frame_autosave_name)
 
     # fixup the rects - expose content dimensions for child frame calculation
