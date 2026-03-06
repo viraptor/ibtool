@@ -13,6 +13,7 @@ def run():
     parser.add_argument("-e", "--encoding", action="store_true", help="Show encoding")
     parser.add_argument("-t", "--tree", action="store_true", help="Show tree")
     parser.add_argument("-s", "--sort", action="store_true", help="Sort keys")
+    parser.add_argument("-f", "--filter", metavar="PATH", help="Structure path to dump, segments separated by / (e.g. NSView/NSSubviews/1/NSButton)")
     args = parser.parse_args()
 
     if args.compile:
@@ -22,7 +23,7 @@ def run():
         compare.main(args.compare, args.input)
 
     elif args.dump:
-        ibdump.ibdump(args.input, args.encoding, args.tree, args.sort)
+        ibdump.ibdump(args.input, args.encoding, args.tree, args.sort, args.filter)
 
     else:
         parser.print_help()

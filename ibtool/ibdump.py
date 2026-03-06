@@ -339,10 +339,94 @@ def getNibSections(filebytes: bytes, filename: str) -> NibStructure:
     return readNibSectionsFromBytes(filebytes)
 
 
-def ibdump(filename: str, showencoding: bool=False, showTree: bool=False, sortKeys: bool=False) -> None:
+def resolveStructurePath(nib: NibStructure, path: str) -> Optional[int]:
+    """Resolve a dot-separated path to an object index in the nib structure.
+
+    Path segments (separated by /) can be:
+    - Class name (e.g. "NSView") - matches an object by its class
+    - Key name (e.g. "NSSubviews") - follows an object reference property
+    - Numeric index (e.g. "2") - when a key has multiple object references,
+      picks the Nth one (0-based)
+
+    Example: "NSWindowTemplate/NSWindowView/NSSubviews/1"
+    """
+    objects, keys, values, classes = nib
+    segments = path.split("/")
+
+    # First segment must be a class name - find matching top-level object
+    first_class = segments[0]
+    current = None
+    for i, o in enumerate(objects):
+        if classes[o[0]] == first_class:
+            current = i
+            break
+    if current is None:
+        return None
+
+    seg_idx = 1
+    while seg_idx < len(segments):
+        seg = segments[seg_idx]
+        obj = objects[current]
+        obj_values = values[obj[1] : obj[1] + obj[2]]
+
+        if seg.isdigit():
+            # Numeric index: pick the Nth object reference of the current object
+            idx = int(seg)
+            obj_refs = [v for v in obj_values if v[2] == 10]
+            if idx >= len(obj_refs):
+                return None
+            current = int(obj_refs[idx][1][1:])  # "@N" -> N
+            seg_idx += 1
+        else:
+            # Try as key name first
+            key_refs = [v for v in obj_values if v[2] == 10 and keys[v[0]] == seg]
+            if key_refs:
+                seg_idx += 1
+                # If next segment is a digit, use it as index into these refs
+                if seg_idx < len(segments) and segments[seg_idx].isdigit():
+                    idx = int(segments[seg_idx])
+                    if idx >= len(key_refs):
+                        return None
+                    current = int(key_refs[idx][1][1:])
+                    seg_idx += 1
+                else:
+                    current = int(key_refs[0][1][1:])
+
+                # If next segment matches the resolved object's class, consume it
+                if seg_idx < len(segments) and not segments[seg_idx].isdigit():
+                    actual = classes[objects[current][0]]
+                    if actual == segments[seg_idx]:
+                        seg_idx += 1
+            else:
+                # Try as class name - find any ref pointing to an object of this class
+                found = False
+                for v in obj_values:
+                    if v[2] == 10:
+                        ref_idx = int(v[1][1:])
+                        if classes[objects[ref_idx][0]] == seg:
+                            current = ref_idx
+                            seg_idx += 1
+                            found = True
+                            break
+                if not found:
+                    return None
+
+    return current
+
+
+def ibdump(filename: str, showencoding: bool=False, showTree: bool=False, sortKeys: bool=False, structureFilter: Optional[str]=None) -> None:
     nib = getNibSectionsFile(filename)
+
+    obj_id = None
+    if structureFilter:
+        obj_id = resolveStructurePath(nib, structureFilter)
+        if obj_id is None:
+            print(f"No object found matching path: {structureFilter}", file=sys.stderr)
+            sys.exit(1)
+        showTree = True
+
     if showTree:
-        treePrintObjects(nib, showencoding=showencoding, sortKeys=sortKeys)
+        treePrintObjects(nib, showencoding=showencoding, sortKeys=sortKeys, obj_id=obj_id)
     else:
         fancyPrintObjects(nib, showencoding=showencoding, sortKeys=sortKeys)
 
