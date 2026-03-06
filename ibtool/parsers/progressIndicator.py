@@ -25,9 +25,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
     if elem.attrib.get("minValue"):
         obj["NSMinValue"] = float(elem.attrib["minValue"])
     obj.flagsOr("NSpiFlags", 0x4004 | bezeled | indeterminate | style | displayed_when_stopped | is_small)
-    if "verticalHuggingPriority" in obj.extraContext or "horizontalHuggingPriority" in obj.extraContext:
-        v, h = obj.extraContext.get("verticalHuggingPriority", 250), obj.extraContext.get("horizontalHuggingPriority", 250)
-        obj["NSHuggingPriority"] = f"{{{h}, {v}}}"
+    obj["NSViewIsLayerTreeHost"] = True
 
     if not obj.extraContext.get("parsed_autoresizing"):
         obj.flagsOr("NSvFlags", vFlags.DEFAULT_VFLAGS_AUTOLAYOUT if ctx.useAutolayout else vFlags.DEFAULT_VFLAGS)

@@ -1,9 +1,9 @@
-from ..models import ArchiveContext, NibObject, XibObject, NibNil, NibMutableSet, NibString
+from ..models import ArchiveContext, NibObject, XibObject, NibNil, NibMutableSet, NibString, NibMutableList
 from ..parsers.helpers import make_xib_object
 from ..parsers_base import parse_children
 from xml.etree.ElementTree import Element
 from typing import Optional
-from ..constants import vFlags, CONTROL_SIZE_MAP, CONTROL_SIZE_MAP2
+from ..constants import vFlags, CONTROL_SIZE_MAP
 
 def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> XibObject:
     obj = make_xib_object(ctx, "NSColorWell", elem, parent)
@@ -23,7 +23,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     obj["NSControlTextAlignment"] = 0
     control_size = elem.attrib.get("controlSize")
     obj["NSControlSize"] = CONTROL_SIZE_MAP[control_size]
-    obj["NSControlSize2"] = CONTROL_SIZE_MAP2[control_size]
+    obj.setIfEmpty("NSSubviews", NibMutableList([]))
     obj["NSDragTypes"] = NibMutableSet([
         NibString.intern("NSColor pasteboard type")
     ])

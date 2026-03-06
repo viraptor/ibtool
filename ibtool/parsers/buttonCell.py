@@ -40,7 +40,8 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
 
     if (key_equiv := elem.attrib.get("keyEquivalent")) is not None:
         obj["NSKeyEquivalent"] = NibString.intern(key_equiv)
-        obj.flagsOr("NSButtonFlags2", 0x10000000)
+        if key_equiv:
+            obj.flagsOr("NSButtonFlags2", 0x10000000)
     else:
         obj["NSKeyEquivalent"] = NibString.intern('')
     obj.setIfEmpty("NSAlternateContents", NibString.intern(''))
