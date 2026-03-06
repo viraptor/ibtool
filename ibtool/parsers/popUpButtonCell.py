@@ -8,6 +8,8 @@ from ..constants import ButtonFlags, CellFlags
 def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> XibObject:
     assert parent is not None
     obj = make_xib_object(ctx, "NSPopUpButtonCell", elem, parent, view_attributes=False)
+    if obj.get("NSTag") is not None:
+        del obj["NSTag"]  # tag on cells is for item selection, not NSTag
     parse_children(ctx, elem, obj)
     __xibparser_cell_options(elem, obj, parent)
     obj["NSAlternateContents"] = NibString.intern("")
