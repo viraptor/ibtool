@@ -59,29 +59,36 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
     elif elem.attrib["colorSpace"] == "calibratedWhite":
         if ctx.toolsVersion <= 11762:
             parent_is_clip_view = parent.originalclassname() == "NSClipView"
+            is_window_content_clip_view = parent_is_clip_view and isinstance(parent, XibObject) and parent.extraContext.get("is_window_content_view")
             attr_white = float(elem.attrib["white"])
-            if parent_is_clip_view:
+            if parent_is_clip_view and not is_window_content_clip_view:
                 attr_white = attr_white * 0.602715373
             if attr_white.is_integer():
                 attr_white = int(attr_white)
                 white = f'{attr_white} {elem.attrib["alpha"]:.12}\x00' if 'alpha' in elem.attrib and elem.attrib["alpha"] != "1" else f'{attr_white}\x00'
             else:
                 white = f'{attr_white:.12} {elem.attrib["alpha"]:.12}\x00' if 'alpha' in elem.attrib and elem.attrib["alpha"] != "1" else f'{attr_white:.12}\x00'
-            color = NibObject("NSColor", None, {
-                "NSColorSpace": 6,
-                "NSCatalogName": "System",
-                "NSColorName": {
-                    "NSClipView": "controlBackgroundColor",
-                    "NSTextView": "textBackgroundColor",
-                }[parent.originalclassname()],
-                "NSColor": NibObject("NSColor", None, {
+            if is_window_content_clip_view:
+                color = NibObject("NSColor", None, {
                     "NSColorSpace": 3,
-                    "NSComponents": NibInlineString(b'0.6666666667 1' if parent_is_clip_view else b'1 1'),
-                    "NSCustomColorSpace": GENERIC_GREY_COLOR_SPACE,
                     "NSWhite": NibInlineString(white),
-                    "NSLinearExposure": NibInlineString(b'1'),
-                }),
-            })
+                })
+            else:
+                color = NibObject("NSColor", None, {
+                    "NSColorSpace": 6,
+                    "NSCatalogName": "System",
+                    "NSColorName": {
+                        "NSClipView": "controlBackgroundColor",
+                        "NSTextView": "textBackgroundColor",
+                    }[parent.originalclassname()],
+                    "NSColor": NibObject("NSColor", None, {
+                        "NSColorSpace": 3,
+                        "NSComponents": NibInlineString(b'0.6666666667 1' if parent_is_clip_view else b'1 1'),
+                        "NSCustomColorSpace": GENERIC_GREY_COLOR_SPACE,
+                        "NSWhite": NibInlineString(white),
+                        "NSLinearExposure": NibInlineString(b'1'),
+                    }),
+                })
         else:
             white = f'{elem.attrib["white"]:.12} {elem.attrib["alpha"]:.12}\x00' if 'alpha' in elem.attrib and elem.attrib["alpha"] != "1" else f'{elem.attrib["white"]:.12}\x00'
             color = NibObject("NSColor", None, {
