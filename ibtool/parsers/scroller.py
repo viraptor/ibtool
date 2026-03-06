@@ -15,7 +15,6 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
     obj["NSControlContinuous"] = False
     obj["NSControlSendActionMask"] = 4
     obj["NSControlSize"] = 0
-    obj["NSControlSize2"] = 0
     obj["NSControlTarget"] = parent
     obj["NSTarget"] = parent
     obj["NSControlUsesSingleLineMode"] = False

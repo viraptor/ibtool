@@ -79,6 +79,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
                     "NSComponents": NibInlineString(b'0.6666666667 1' if parent_is_clip_view else b'1 1'),
                     "NSCustomColorSpace": GENERIC_GREY_COLOR_SPACE,
                     "NSWhite": NibInlineString(white),
+                    "NSLinearExposure": NibInlineString(b'1'),
                 }),
             })
         else:

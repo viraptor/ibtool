@@ -49,8 +49,6 @@ def _xibparser_common_view_attributes(ctx: ArchiveContext, elem: Element, parent
 def _xibparser_common_translate_autoresizing(ctx: ArchiveContext, elem: Element, _parent: Optional[NibObject], obj: XibObject) -> None:
     if elem is not None and elem.attrib.get('translatesAutoresizingMaskIntoConstraints', "YES") == "NO":
         obj.extraContext["NSDoNotTranslateAutoresizingMask"] = True
-        if ctx.useAutolayout and not obj.extraContext.get("parsed_autoresizing"):
-            obj["NSDoNotTranslateAutoresizingMask"] = True
 
 def __xibparser_cell_flags(elem: Element, obj: NibObject, parent: NibObject) -> None:
     sendsAction = elem.attrib.get("sendsActionOnEndEditing", "NO") == "YES"
@@ -125,8 +123,6 @@ def __xibparser_cell_options(elem: Element, obj: NibObject, parent: NibObject) -
 
     control_size = elem.attrib.get("controlSize")
     parent["NSControlSize"] = CONTROL_SIZE_MAP[control_size]
-    parent["NSControlSize2"] = CONTROL_SIZE_MAP2[control_size]
-    obj["NSControlSize2"] = CONTROL_SIZE_MAP2[control_size]
 
 
 
@@ -247,6 +243,7 @@ def makeSystemColor(name):
                 'NSComponents': NibInlineString(components),
                 'NSCustomColorSpace': GENERIC_GREY_COLOR_SPACE,
                 'NSWhite': NibInlineString(white),
+                'NSLinearExposure': NibInlineString(b'1'),
                 }),
             'NSColorName': NibString.intern(name),
             'NSColorSpace': 6,
@@ -266,6 +263,7 @@ def makeSystemColor(name):
                     "NSColorSpace": 3,
                     "NSWhite": NibInlineString(white),
                     "NSCustomColorSpace": GENERIC_GREY_COLOR_SPACE,
+                    "NSLinearExposure": NibInlineString(b'1'),
                 }),
             })
         })
@@ -284,6 +282,7 @@ def makeSystemColor(name):
                     "NSColorSpace": 1,
                     "NSRGB": NibInlineString(rgb),
                     "NSCustomColorSpace": RGB_COLOR_SPACE,
+                    "NSLinearExposure": NibInlineString(b'1'),
                 }),
             })
         })
@@ -298,6 +297,7 @@ def makeSystemColor(name):
                 "NSComponents": NibInlineString(components),
                 "NSRGB": NibInlineString(rgb),
                 "NSCustomColorSpace": RGB_COLOR_SPACE,
+                "NSLinearExposure": NibInlineString(b'1'),
             }),
         })
 
