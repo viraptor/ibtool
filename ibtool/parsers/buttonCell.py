@@ -40,7 +40,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
 
     if (key_equiv := elem.attrib.get("keyEquivalent")) is not None:
         obj["NSKeyEquivalent"] = NibString.intern(key_equiv)
-        if key_equiv and key_equiv != "\r":
+        if key_equiv and key_equiv not in ("\r", "\x1b"):
             obj.flagsOr("NSButtonFlags2", 0x10000000)
     else:
         obj["NSKeyEquivalent"] = NibString.intern('')
