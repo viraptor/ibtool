@@ -44,8 +44,9 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
         if tracking_mode in (0, 1):
             for i, seg in enumerate(obj["NSSegmentImages"].items()):
                 if seg.get("NSSegmentItemSelected"):
-                    obj["NSSelectedSegment"] = i
-        obj.setIfEmpty("NSSelectedSegment", -1)
+                    obj.setIfNotDefault("NSSelectedSegment", i, 0)
+        if tracking_mode not in (0, 1):
+            obj.setIfEmpty("NSSelectedSegment", -1)
 
         distribution = {
             "fit": 0,

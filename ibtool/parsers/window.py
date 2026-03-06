@@ -3,6 +3,7 @@ from ..models import ArchiveContext, NibObject, XibObject, NibString, NibNil
 from xml.etree.ElementTree import Element
 from ..constants import WTFlags
 from typing import Union
+import ctypes
 
 def calculate_window_rect(struts: dict[str, bool], content_rect: tuple[int, int, int, int], screen_rect: tuple[int, int, int, int]) -> tuple[Union[int,float], ...]:
     if screen_rect == (0, 0, 0, 0):
@@ -40,6 +41,8 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
         item.flagsOr("NSWTFlags", WTFlags.AUTORECALCULATES_KEY_VIEW_LOOP)
     if elem.attrib.get("releasedWhenClosed", "YES") == "NO":
         item.flagsOr("NSWTFlags", WTFlags.RELEASED_WHEN_CLOSED)
+    if elem.attrib.get("hidesOnDeactivate") == "YES":
+        item.flagsOr("NSWTFlags", WTFlags.HIDES_ON_DEACTIVATE)
 
     item["NSWindowTitle"] = NibString.intern(elem.attrib.get("title", ''))
     item["NSWindowSubtitle"] = ""
@@ -72,5 +75,8 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
         item["NSWindowRect"] = "{{" + str(item.extraContext["NSWindowRect"][0]) + ", " + str(item.extraContext["NSWindowRect"][1]) + "}, {" + str(item.extraContext["NSWindowRect"][2]) + ", " + str(item.extraContext["NSWindowRect"][3]) + "}}"
     if item.extraContext.get("NSScreenRect"):
         item["NSScreenRect"] = "{{" + str(item.extraContext["NSScreenRect"][0]) + ", " + str(item.extraContext["NSScreenRect"][1]) + "}, {" + str(item.extraContext["NSScreenRect"][2]) + ", " + str(item.extraContext["NSScreenRect"][3]) + "}}"
+
+    # Treat NSWTFlags as signed 32-bit to match Apple's encoding
+    item["NSWTFlags"] = ctypes.c_int32(item["NSWTFlags"]).value
 
     return item
