@@ -557,6 +557,18 @@ class XibObject(NibObject):
         else:
             insets = None
 
+        # ClipView inside scrollView: use scrollView dimensions
+        if sv_size := self.extraContext.get("scrollview_size"):
+            if my_frame := self.extraContext.get("NSFrame"):
+                x, y = my_frame[:2]
+            else:
+                x, y = 0, 0
+            result = [x, y, sv_size[0], sv_size[1]]
+            if insets:
+                result[2] -= insets[0]
+                result[3] -= insets[1]
+            return tuple(result)
+
         if self.xib_parent() and (auto_resizing := self.extraContext.get("parsed_autoresizing")):
             assert (parent := self.xib_parent())
             if my_frame := self.extraContext.get("NSFrame"):
