@@ -11,9 +11,9 @@ fi
 for xib in $xibs_to_test ; do
 	echo "Testing $xib"
 
-	python -m ibtool --compile "$test_out" "$xib"
+	python3 -m ibtool --compile "$test_out" "$xib"
 
-	python -m ibtool --compare "${xib/xib/nib}" "$test_out"
+	python3 -m ibtool --compare "${xib/xib/nib}" "$test_out"
 	if [[ $? == 0 ]] ; then
 		echo "ok"
 	else
