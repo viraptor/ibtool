@@ -37,15 +37,18 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     pulls_down = elem.attrib.get("pullsDown") == "YES"
 
     __xibparser_button_flags(elem, obj, parent)
-    obj.flagsOr("NSCellFlags", CellFlags.BEZELED)
+
+    border_style = elem.attrib.get("borderStyle")
+    if border_style in ("bezel", "borderAndBezel"):
+        obj.flagsOr("NSCellFlags", CellFlags.BEZELED)
 
     obj["NSBezelStyle"] = BEZEL_STYLE_MAP.get(elem.attrib.get("bezelStyle"))
     # Clear BEZEL from button flags for popup button cells
     if obj.get("NSButtonFlags") is not None:
         obj["NSButtonFlags"] = obj["NSButtonFlags"] & ~ButtonFlags.BEZEL
 
-    # For push-type popup button cells, override NSAuxButtonType to 0
-    if elem.attrib.get("type", "push") == "push":
+    # Override NSAuxButtonType to 0 for borderAndBezel popup button cells
+    if border_style == "borderAndBezel":
         obj["NSAuxButtonType"] = 0
 
     if pulls_down:
@@ -80,8 +83,8 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     if arrow_pos := elem.attrib.get("arrowPosition"):
         obj["NSArrowPosition"] = ARROW_POSITION_MAP[arrow_pos]
 
-    # Popup button cells use ROLE_TITLE_BAR_FONT for their font
-    if obj.get("NSSupport") is not None:
+    # Popup button cells use ROLE_TITLE_BAR_FONT for their font (only for default controlSize)
+    if obj.get("NSSupport") is not None and elem.attrib.get("controlSize") is None:
         obj["NSSupport"]["NSfFlags"] = to_flags_val(FontFlags.ROLE_TITLE_BAR_FONT.value)
 
     obj["NSMenuItemRespectAlignment"] = True
