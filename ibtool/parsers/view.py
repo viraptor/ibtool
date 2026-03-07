@@ -10,6 +10,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: XibObject, **kwargs) -> Xi
     obj.setrepr(elem)
 
     key = elem.get("key")
+    is_box_content = False
     if key == "contentView":
         if parent.originalclassname() == "NSWindowTemplate":
             parent["NSWindowView"] = obj
@@ -18,6 +19,14 @@ def parse(ctx: ArchiveContext, elem: Element, parent: XibObject, **kwargs) -> Xi
             parent["NSContentView"] = obj
             parent["NSSubviews"] = NibMutableList([obj])
             obj["NSSuperview"] = parent
+            is_box_content = True
+            # Store box outer size so subviews' frame() uses it as parent size
+            box_frame = parent.extraContext.get("NSFrame") or parent.extraContext.get("NSFrameSize")
+            if box_frame:
+                bw = box_frame[2] if len(box_frame) == 4 else box_frame[0]
+                bh = box_frame[3] if len(box_frame) == 4 else box_frame[1]
+                obj.extraContext["box_content_size"] = (bw, bh)
+                obj.extraContext["box_design_size"] = (int(content_rect.attrib["width"]), int(content_rect.attrib["height"])) if (content_rect := elem.find('rect[@key="frame"]')) is not None else (bw, bh)
         else:
             raise Exception(
                 "Unhandled class '%s' to take NSView with key 'contentView'"
@@ -35,6 +44,17 @@ def parse(ctx: ArchiveContext, elem: Element, parent: XibObject, **kwargs) -> Xi
     parse_children(ctx, elem, obj)
 
     _xibparser_common_view_attributes(ctx, elem, parent, obj, topLevelView=(parent is None))
+    if is_box_content:
+        # Box content views should point to the box, not NibNil
+        obj["NSNextResponder"] = parent
+        # Override frame: box content view uses box's outer size at position (0,0)
+        box_frame = parent.extraContext.get("NSFrame") or parent.extraContext.get("NSFrameSize")
+        if box_frame:
+            bw = box_frame[2] if len(box_frame) == 4 else box_frame[0]
+            bh = box_frame[3] if len(box_frame) == 4 else box_frame[1]
+            obj["NSFrameSize"] = NibString.intern(f"{{{bw}, {bh}}}")
+            if obj.get("NSFrame"):
+                del obj["NSFrame"]
     _xibparser_common_translate_autoresizing(ctx, elem, parent, obj)
     obj.setIfNotDefault("NSViewIsLayerTreeHost", elem.attrib.get("wantsLayer") == "YES", False)
 

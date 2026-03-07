@@ -33,10 +33,10 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
         PropSchema(prop="NSSuperview", const=obj.xib_parent()),
         PropSchema(prop="NSBoxType", attrib="boxType", default=None, map=BOX_TYPE_MAP, skip_default=False),
         PropSchema(prop="NSBorderType", attrib="boxType", default=None, map=BOX_BORDER_TYPE_MAP, skip_default=False),
-        PropSchema(prop="IBNSBoxIsUsingDocumentContentView", attrib="boxType", default=None, map=BOX_USING_CONTENT_VIEW_MAP),
+        PropSchema(prop="IBNSBoxIsUsingDocumentContentView", attrib="boxType", default=None, map=BOX_USING_CONTENT_VIEW_MAP, skip_default=False),
         PropSchema(prop="NSTitlePosition", attrib="titlePosition", default=None, map=BOX_TITLE_POSITION_MAP, skip_default=False),
         PropSchema(prop="NSTransparent", const=False),
-        PropSchema(prop="NSOffsets", const=NibString.intern("{5, 5}")),
+        PropSchema(prop="NSOffsets", attrib="boxType", default=None, map={None: NibString.intern("{0, 0}"), "separator": NibString.intern("{5, 5}")}, skip_default=False),
         PropSchema(prop="NSSubviews", default=NibMutableList([])),
     ])
     
