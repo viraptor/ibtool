@@ -31,11 +31,12 @@ def _xibparser_common_view_attributes(ctx: ArchiveContext, elem: Element, parent
     obj["IBNSClipsToBounds"] = int(0 if elem is None else elem.attrib.get("clipsToBounds") == "YES")
     if elem is not None and elem.attrib.get("hidden", "NO") == "YES":
         obj.flagsOr("NSvFlags", vFlags.HIDDEN)
-    obj.flagsOr("NSvFlags", vFlags.AUTORESIZES_SUBVIEWS)
+    if elem is None or elem.attrib.get("autoresizesSubviews", "YES") != "NO":
+        obj.flagsOr("NSvFlags", vFlags.AUTORESIZES_SUBVIEWS)
     obj["NSViewWantsBestResolutionOpenGLSurface"] = True
     if parent is None or obj.extraContext.get("key") == "contentView":
         obj.setIfEmpty("NSNextResponder", NibNil())
-    elif isinstance(parent, XibObject) and (parent.extraContext.get("key") == "contentView" or parent.xib_parent() is None):
+    elif isinstance(parent, XibObject):
         obj.setIfEmpty("NSNextResponder", parent)
     else:
         obj.setIfEmpty("NSNextResponder", parent.get("NSNextResponder") or NibNil())

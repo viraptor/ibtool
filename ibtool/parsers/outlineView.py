@@ -51,4 +51,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     obj["NSTableViewGroupRowStyle"] = 1
     obj["NSTvFlags"] = 440434688
 
+    # Outline views always get WIDTH_SIZABLE | HEIGHT_SIZABLE
+    obj.flagsOr("NSvFlags", vFlags.WIDTH_SIZABLE | vFlags.HEIGHT_SIZABLE)
+
     return obj
