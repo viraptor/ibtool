@@ -47,6 +47,9 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
         obj.flagsOr("NScvFlags", cvFlags.DRAW_BACKGROUND)
     elif elem.attrib.get("drawsBackground", "YES" if ctx.toolsVersion >= 20037 else "NO") == "YES":
         obj.flagsOr("NScvFlags", cvFlags.DRAW_BACKGROUND)
+    # catalog/System backgroundColor color implies DRAW_BACKGROUND (unless drawsBackground is explicitly NO)
+    elif elem.attrib.get("drawsBackground") != "NO" and any(child.tag == "color" and child.attrib.get("key") == "backgroundColor" and child.attrib.get("colorSpace") == "catalog" for child in elem):
+        obj.flagsOr("NScvFlags", cvFlags.DRAW_BACKGROUND)
     obj["NSNextResponder"] = NibNil() if is_main_view else obj.xib_parent()
     if obj.get("NSSubviews") and len(obj["NSSubviews"]) > 0:
         obj["NSDocView"] = obj["NSSubviews"][0]
@@ -54,12 +57,17 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
         obj["NSDocView"] = NibNil()
     if not is_main_view and not isinstance(obj.get("NSDocView"), NibNil):
         obj["NSNextKeyView"] = obj["NSDocView"]
-    # ClipViews containing textViews get a cursor; table/outline views don't
+    # Only clip views containing text views get a cursor
     doc_view = obj.get("NSDocView")
-    if doc_view is not None and not isinstance(doc_view, NibNil) and doc_view.originalclassname() not in ("NSTableView", "NSOutlineView", "NSMatrix"):
+    if doc_view is not None and not isinstance(doc_view, NibNil) and doc_view.originalclassname() == "NSTextView":
         cursor = NibObject("NSCursor", obj)
         cursor["NSCursorType"] = 0
         cursor["NSHotSpot"] = NibString.intern("{1, -1}")
         obj["NSCursor"] = cursor
+    # Table/outline view doc views imply DRAW_BACKGROUND on clip view
+    doc_view = obj.get("NSDocView")
+    if not is_main_view and doc_view is not None and not isinstance(doc_view, NibNil):
+        if doc_view.originalclassname() in ("NSTableView", "NSOutlineView"):
+            obj.flagsOr("NScvFlags", cvFlags.DRAW_BACKGROUND)
     obj.setIfEmpty("NSBGColor", makeSystemColor("controlBackgroundColor"))
     return obj

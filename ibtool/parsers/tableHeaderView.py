@@ -6,6 +6,8 @@ from ..parsers_base import parse_children
 
 def containing_clip_view(ctx: ArchiveContext, parent: Optional[NibObject]) -> XibObject:
     obj = make_xib_object(ctx, "NSClipView", None, parent)
+    # Header clip view should not be a top-level object
+    ctx.extraNibObjects.remove(obj)
     obj["NSNextResponder"] = parent
     obj["NSSuperview"] = parent
     obj["NSAutomaticallyAdjustsContentInsets"] = True
@@ -22,7 +24,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
 
         clip_view = containing_clip_view(ctx, parent)
 
-        obj = make_xib_object(ctx, "NSTableHeaderView", elem, clip_view)
+        obj = make_xib_object(ctx, "NSTableHeaderView", elem, parent)
 
         with __handle_view_chain(ctx, obj):
             parse_children(ctx, elem, obj)

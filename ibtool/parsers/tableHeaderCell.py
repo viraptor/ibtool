@@ -14,7 +14,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Ni
     parse_children(ctx, elem, obj)
     __xibparser_cell_flags(elem, obj, parent)
     obj["NSContents"] = NibString.intern(elem.attrib.get("title", ''))
-    obj.setIfEmpty("NSSupport", NibObject("NSFont", obj, {
+    obj["NSSupport"] = NibObject("NSFont", obj, {
         "NSName": ".AppleSystemUIFont",
         "NSSize": 11.0,
         "NSfFlags": 16,
@@ -30,7 +30,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Ni
             ]),
             "NSFontDescriptorOptions": 0x80008404,
         }),
-    }))
+    })
     parent["NSHeaderCell"] = obj
 
     return obj

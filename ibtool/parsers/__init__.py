@@ -35,6 +35,7 @@ from . import nil
 from . import outlet
 from . import outlineView
 from . import placeholder
+from . import pdfView
 from . import point
 from . import popUpButton
 from . import popUpButtonCell
@@ -119,6 +120,7 @@ all = {
     "outlet": outlet,
     "outlineView": outlineView,
     "placeholder": placeholder,
+    "pdfView": pdfView,
     "point": point,
     "popUpButton": popUpButton,
     "popUpButtonCell": popUpButtonCell,

@@ -51,6 +51,13 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     obj["NSSubviews"].addItem(obj["NSContentView"])
     if obj.get("NSHeaderClipView"):
         obj["NSSubviews"].addItem(obj["NSHeaderClipView"])
+        # Content clip view gets NSBounds with y offset for header
+        cv = obj["NSContentView"]
+        cv_frame = cv.extraContext.get("NSFrame") or cv.extraContext.get("NSFrameSize")
+        if cv_frame is not None:
+            cv_w = cv_frame[2] if len(cv_frame) == 4 else cv_frame[0]
+            cv_h = cv_frame[3] if len(cv_frame) == 4 else cv_frame[1]
+            cv["NSBounds"] = NibString.intern(f"{{{{{0}, {-23}}}, {{{int(cv_w)}, {int(cv_h)}}}}}")
     obj["NSSubviews"].addItem(obj["NSHScroller"])
     obj["NSSubviews"].addItem(obj["NSVScroller"])
 
@@ -76,10 +83,5 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
         vs_y = border
         vs_h = sv_h - 2 * border
         obj["NSVScroller"]["NSFrame"] = NibString.intern(f"{{{{{vs_x}, {vs_y}}}, {{{vs_w}, {vs_h}}}}}")
-
-    if (content_view := obj.get("NSContentView")) is not None:
-        if (doc_view := content_view.get("NSDocView")) is not None:
-            if doc_view.originalclassname() == "NSTableView":
-                obj["NSHScroller"]["NSEnabled"] = True
 
     return obj
