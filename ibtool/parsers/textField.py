@@ -19,7 +19,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
     obj.setIfEmpty("NSCell", NibNil())
     obj["NSAllowsWritingTools"] = True
     obj["NSAllowsLogicalLayoutDirection"] = False
-    obj["NSControlRefusesFirstResponder"] = elem.attrib.get("refusesFirstResponder", "NO") == "YES"
+    obj.setIfEmpty("NSControlRefusesFirstResponder", elem.attrib.get("refusesFirstResponder", "NO") == "YES")
     obj["NSControlUsesSingleLineMode"] = False
     obj.setIfEmpty("NSControlLineBreakMode", 0)
     obj["NSControlSendActionMask"] = 4

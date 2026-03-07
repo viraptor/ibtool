@@ -21,8 +21,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
     obj["NS.resolvesNaturalAlignmentWithBaseWritingDirection"] = False
     if not obj.extraContext.get("parsed_autoresizing"):
         obj.flagsOr("NSvFlags", vFlags.DEFAULT_VFLAGS_AUTOLAYOUT if ctx.useAutolayout else vFlags.DEFAULT_VFLAGS)
-    if ctx.toolsVersion >= 17701:
-        obj["NSTextFieldAllowsWritingToolsAffordance"] = False
+    obj["NSTextFieldAllowsWritingToolsAffordance"] = False
 
     obj.setIfNotDefault("NSViewIsLayerTreeHost", elem.attrib.get("wantsLayer") == "YES", False)
 

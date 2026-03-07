@@ -164,7 +164,7 @@ def __xibparser_button_flags(elem: Element, obj: XibObject, parent: NibObject) -
         "bevel": 0x2,
     }[buttonType]
     borderStyle = elem.attrib.get("borderStyle")
-    borderStyleMask = {None: 0, "border": ButtonFlags.BORDERED, "borderAndBezel": ButtonFlags.BORDERED | ButtonFlags.BEZEL}[borderStyle]
+    borderStyleMask = {None: 0, "border": ButtonFlags.BORDERED, "bezel": ButtonFlags.BEZEL, "borderAndBezel": ButtonFlags.BORDERED | ButtonFlags.BEZEL}[borderStyle]
     imageScaling = elem.attrib.get("imageScaling")
     imageScalingMask = {None: 0, "proportionallyDown": ButtonFlags2.IMAGE_SCALING_PROPORTIONALLY_DOWN}[imageScaling]
     imagePosition = elem.attrib.get("imagePosition")
