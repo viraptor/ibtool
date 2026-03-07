@@ -52,9 +52,11 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
         obj["NSDocView"] = obj["NSSubviews"][0]
     else:
         obj["NSDocView"] = NibNil()
+    if not is_main_view and not isinstance(obj.get("NSDocView"), NibNil):
+        obj["NSNextKeyView"] = obj["NSDocView"]
     # ClipViews containing textViews get a cursor; table/outline views don't
     doc_view = obj.get("NSDocView")
-    if doc_view is not None and not isinstance(doc_view, NibNil) and doc_view.originalclassname() not in ("NSTableView", "NSOutlineView"):
+    if doc_view is not None and not isinstance(doc_view, NibNil) and doc_view.originalclassname() not in ("NSTableView", "NSOutlineView", "NSMatrix"):
         cursor = NibObject("NSCursor", obj)
         cursor["NSCursorType"] = 0
         cursor["NSHotSpot"] = NibString.intern("{1, -1}")

@@ -60,15 +60,25 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
         if ctx.toolsVersion <= 11762:
             parent_is_clip_view = parent.originalclassname() == "NSClipView"
             is_window_content_clip_view = parent_is_clip_view and isinstance(parent, XibObject) and parent.extraContext.get("is_window_content_view")
+            # Determine if this should be a system color or simple white
+            use_system_color = False
+            if parent.originalclassname() == "NSTextView":
+                use_system_color = True
+            elif parent_is_clip_view and not is_window_content_clip_view:
+                # NSDocView isn't set yet during parse_children, check NSSubviews instead
+                subviews = parent.get("NSSubviews")
+                first_subview = subviews[0] if subviews and len(subviews) > 0 else None
+                if first_subview is not None and first_subview.originalclassname() == "NSTextView":
+                    use_system_color = True
             attr_white = float(elem.attrib["white"])
-            if parent_is_clip_view and not is_window_content_clip_view:
+            if use_system_color and parent_is_clip_view:
                 attr_white = attr_white * 0.602715373
             if attr_white.is_integer():
                 attr_white = int(attr_white)
                 white = f'{attr_white} {elem.attrib["alpha"]:.12}\x00' if 'alpha' in elem.attrib and elem.attrib["alpha"] != "1" else f'{attr_white}\x00'
             else:
                 white = f'{attr_white:.12} {elem.attrib["alpha"]:.12}\x00' if 'alpha' in elem.attrib and elem.attrib["alpha"] != "1" else f'{attr_white:.12}\x00'
-            if is_window_content_clip_view:
+            if not use_system_color:
                 color = NibObject("NSColor", None, {
                     "NSColorSpace": 3,
                     "NSWhite": NibInlineString(white),
