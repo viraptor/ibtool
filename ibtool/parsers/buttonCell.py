@@ -2,7 +2,7 @@ from ..models import ArchiveContext, NibObject, XibObject, NibString, NibNil, Ni
 from xml.etree.ElementTree import Element
 from ..parsers_base import parse_children
 from .helpers import __xibparser_button_flags, __xibparser_cell_options, __xibparser_cell_flags
-from ..constants import BEZEL_STYLE_MAP, CONTROL_SIZE_MAP2
+from ..constants import BEZEL_STYLE_MAP
 
 def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
     obj = XibObject(ctx, "NSButtonCell", elem, parent)
@@ -68,10 +68,8 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
         parent["NSDataCell"] = obj
     elif key == "prototype":
         __xibparser_cell_flags(elem, obj, parent)
-        obj["NSControlSize2"] = CONTROL_SIZE_MAP2[elem.attrib.get("controlSize", "regular")]
         parent["NSProtoCell"] = obj
     elif key is None:
-        obj["NSControlSize2"] = CONTROL_SIZE_MAP2[elem.attrib.get("controlSize", "regular")]
         __xibparser_cell_flags(elem, obj, parent)
     else:
         raise Exception(f"unexpected key {key}")
