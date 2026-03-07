@@ -3,9 +3,10 @@ import sys
 from typing import Any, Union, cast, Iterable, Optional
 
 class NibCollection:
-    def __init__(self, classname: str, entries: list[Any]):
+    def __init__(self, classname: str, entries: list[Any], nibidx: int = -1):
         self.classname = classname
         self.entries = entries
+        self.nibidx = nibidx
 
     def __repr__(self):
         return f"{self.classname} ({len(self.entries)} entries)"
@@ -17,9 +18,10 @@ class NibCollection:
             return hash((self.classname, tuple([x.rec_hash(path + [id(self)]) if getattr(x, "rec_hash", None) else x for x in self.entries])))
 
 class NibObject:
-    def __init__(self, classname: str, entries: dict[str,Any]):
+    def __init__(self, classname: str, entries: dict[str,Any], nibidx: int = -1):
         self.classname = classname
         self.entries = entries
+        self.nibidx = nibidx
 
     def __eq__(self, other):
         assert isinstance(other, NibObject), type(other)
@@ -74,13 +76,13 @@ def pythonObjects(nib: NibStructure) -> tuple[NibObject, list[Any]]:
                     continue
                 assert keys[k_idx] == 'UINibEncoderEmptyKey', keys[k_idx]
                 lentries.append(NibValue(v, v_type))
-            res[o_idx] = NibCollection(classname, lentries)
+            res[o_idx] = NibCollection(classname, lentries, nibidx=o_idx)
         else:
             dentries: dict[str,Any] = {}
             for k_idx, v, v_type in obj_values:
                 if keys[k_idx] not in dentries:
                     dentries[keys[k_idx]] = NibValue(v, v_type)
-            res[o_idx] = NibObject(classname, dentries)
+            res[o_idx] = NibObject(classname, dentries, nibidx=o_idx)
 
     for obj in res.values():
         if isinstance(obj.entries, list):
@@ -120,7 +122,16 @@ def pythonObjects(nib: NibStructure) -> tuple[NibObject, list[Any]]:
 
 already_seen = set()
 
-def diff(lhs: Union[NibValue,NibCollection,NibObject], rhs: Union[NibValue,NibCollection,NibObject], lhs_root: list[Union[NibValue,NibCollection,NibObject]], rhs_root: list[Union[NibValue,NibCollection,NibObject]], current_path: list[str]=[], lhs_path: list[int]=[], rhs_path: list[int]=[], parent_class: Optional[str] = None) -> Iterable[str]:
+def _xib_annotation(obj: Union[NibValue,NibCollection,NibObject], xibid_map: Optional[dict[int,str]]) -> str:
+    """Return ' [xib:ID]' annotation if the object has a known XIB id, else ''."""
+    if xibid_map is None:
+        return ""
+    nibidx = getattr(obj, 'nibidx', -1)
+    if nibidx >= 0 and nibidx in xibid_map:
+        return f" [xib:{xibid_map[nibidx]}]"
+    return ""
+
+def diff(lhs: Union[NibValue,NibCollection,NibObject], rhs: Union[NibValue,NibCollection,NibObject], lhs_root: list[Union[NibValue,NibCollection,NibObject]], rhs_root: list[Union[NibValue,NibCollection,NibObject]], current_path: list[str]=[], lhs_path: list[int]=[], rhs_path: list[int]=[], parent_class: Optional[str] = None, xibid_map: Optional[dict[int,str]] = None) -> Iterable[str]:
     if (id(lhs), id(rhs)) in already_seen:
         return
     already_seen.add((id(lhs), id(rhs)))
@@ -130,13 +141,13 @@ def diff(lhs: Union[NibValue,NibCollection,NibObject], rhs: Union[NibValue,NibCo
     path = '->'.join(str(key) for key in current_path)
 
     if type(lhs) != type(rhs):
-        yield f"{path} (in {parent_class}): Types don't match {type(lhs)} != {type(rhs)}"
+        yield f"{path}{_xib_annotation(rhs, xibid_map)} (in {parent_class}): Types don't match {type(lhs)} != {type(rhs)}"
         return
 
     if isinstance(lhs, NibValue) and isinstance(rhs, NibValue):
         if lhs.type != rhs.type:
             yield f"{path} (in {parent_class}): Object types don't match {lhs.type} != {rhs.type}"
-        
+
         if type(lhs.value) is bytes and lhs.value.startswith(b"NIBArchive") and not rhs.value.startswith(b"NIBArchive"):
             yield f"{path} (in {parent_class}): LHS is a NIB, but RHS isn't"
         elif type(rhs.value) is bytes and rhs.value.startswith(b"NIBArchive") and not lhs.value.startswith(b"NIBArchive"):
@@ -146,7 +157,7 @@ def diff(lhs: Union[NibValue,NibCollection,NibObject], rhs: Union[NibValue,NibCo
             nib_left_root, _ = pythonObjects(nib_left)
             nib_right = getNibSections(rhs.value, "(inlined)")
             nib_right_root, _ = pythonObjects(nib_right)
-            yield from diff(nib_left_root, nib_right_root, nib_left_root.entries["IB.objectdata"].entries["NSObjectsKeys"].entries, nib_right_root.entries["IB.objectdata"].entries["NSObjectsKeys"].entries, current_path + ["nib"], [], [])
+            yield from diff(nib_left_root, nib_right_root, nib_left_root.entries["IB.objectdata"].entries["NSObjectsKeys"].entries, nib_right_root.entries["IB.objectdata"].entries["NSObjectsKeys"].entries, current_path + ["nib"], [], [], xibid_map=xibid_map)
 
         elif type(lhs.value) in [int, str, float, bytes, type(None)]:
             if lhs.value != rhs.value:
@@ -162,15 +173,17 @@ def diff(lhs: Union[NibValue,NibCollection,NibObject], rhs: Union[NibValue,NibCo
     assert isinstance(lhs, NibObject) or isinstance(lhs, NibCollection), type(lhs)
     assert isinstance(rhs, NibObject) or isinstance(rhs, NibCollection), type(rhs)
 
+    annotation = _xib_annotation(rhs, xibid_map)
+
     connector_classes = ("NSNibConnector", "NSNibOutletConnector", "NSNibControlConnector", "NSNibAuxiliaryActionConnector", "NSIBHelpConnector", "NSNibBindingConnector")
     if lhs.classname in connector_classes and rhs.classname in connector_classes:
         # Connections are unordered
         return
     if lhs.classname != rhs.classname:
-        yield f"{path} (in {parent_class}): Class name doesn't match {lhs.classname} != {rhs.classname}"
+        yield f"{path}{annotation} (in {parent_class}): Class name doesn't match {lhs.classname} != {rhs.classname}"
         return
     if type(lhs.entries) != type(rhs.entries):
-        yield f"{path} (in {parent_class}): Values types don't match"
+        yield f"{path}{annotation} (in {parent_class}): Values types don't match"
         return
 
     l_ind = lhs_path.index(id(lhs))
@@ -186,34 +199,31 @@ def diff(lhs: Union[NibValue,NibCollection,NibObject], rhs: Union[NibValue,NibCo
     if path.endswith("NSViewConstraints"):
         # They're hopefully unordered. TODO match the apple's order later
         if len(lhs.entries) != len(rhs.entries):
-            yield f"{path} Mismatched length: {len(lhs.entries)} != {len(rhs.entries)}"
+            yield f"{path}{annotation} Mismatched length: {len(lhs.entries)} != {len(rhs.entries)}"
         fixup_layout_constrints(lhs.entries, lhs_root)
         fixup_layout_constrints(rhs.entries, rhs_root)
         for i, (left, right) in enumerate(zip(lhs.entries, rhs.entries)):
-            yield from diff(left, right, lhs_root, rhs_root, current_path + [str(i)], lhs_path, rhs_path, lhs.classname)
+            yield from diff(left, right, lhs_root, rhs_root, current_path + [str(i)], lhs_path, rhs_path, lhs.classname, xibid_map=xibid_map)
     elif path.endswith("NSConnections"):
         lhs_entries = sorted(lhs.entries, key=lambda x: x.rec_hash([]))
         rhs_entries = sorted(rhs.entries, key=lambda x: x.rec_hash([]))
         for i, (left, right) in enumerate(zip(lhs_entries, rhs_entries)):
-            yield from diff(left, right, lhs_root, rhs_root, current_path + [str(i)], lhs_path, rhs_path, lhs.classname)
+            yield from diff(left, right, lhs_root, rhs_root, current_path + [str(i)], lhs_path, rhs_path, lhs.classname, xibid_map=xibid_map)
     elif isinstance(lhs, NibCollection) and isinstance(rhs, NibCollection):
         if len(lhs.entries) != len(rhs.entries):
-            #print("lhs", lhs.entries)
-            #print("rhs", rhs.entries)
-            yield f"{path} Mismatched length: {len(lhs.entries)} != {len(rhs.entries)}"
+            yield f"{path}{annotation} Mismatched length: {len(lhs.entries)} != {len(rhs.entries)}"
         for i, (left, right) in enumerate(zip(lhs.entries, rhs.entries)):
-            yield from diff(left, right, lhs_root, rhs_root, current_path + [str(i)], lhs_path, rhs_path, lhs.classname)
+            yield from diff(left, right, lhs_root, rhs_root, current_path + [str(i)], lhs_path, rhs_path, lhs.classname, xibid_map=xibid_map)
     elif isinstance(lhs, NibObject) and isinstance(rhs, NibObject):
         all_keys = set(list(lhs.entries.keys()) + list(rhs.entries.keys()))
         for key in sorted(all_keys):
-            #print(f"{key}, {lhs.entries.get(key)}, {rhs.entries.get(key)}")
             if key not in lhs.entries:
                 rval = rhs.entries.get(key)
                 if (key.endswith("Flags") or key.endswith("Flags2") or key.endswith("Mask")) and isinstance(rval.value, int):
                     rval = rval.value
                     rval = hex(rval if rval >= 0 else rval + 0x10000000000000000)
 
-                yield f"{path} LHS ({lhs.classname}) missing key {key}, RHS {rval}"
+                yield f"{path}{annotation} LHS ({lhs.classname}) missing key {key}, RHS {rval}"
                 continue
             if key not in rhs.entries:
                 lval = lhs.entries.get(key)
@@ -221,9 +231,9 @@ def diff(lhs: Union[NibValue,NibCollection,NibObject], rhs: Union[NibValue,NibCo
                     lval = lval.value
                     lval = hex(lval if lval >= 0 else lval + 0x10000000000000000)
 
-                yield f"{path} RHS ({rhs.classname}) missing key {key}, LHS {lval}"
+                yield f"{path}{annotation} RHS ({rhs.classname}) missing key {key}, LHS {lval}"
                 continue
-            yield from diff(lhs.entries[key], rhs.entries[key], lhs_root, rhs_root, current_path + [key], lhs_path, rhs_path, lhs.classname)
+            yield from diff(lhs.entries[key], rhs.entries[key], lhs_root, rhs_root, current_path + [key], lhs_path, rhs_path, lhs.classname, xibid_map=xibid_map)
     else:
         raise Exception(f"Unknown type {type(lhs)}")
 
@@ -256,7 +266,7 @@ def fixup_layout_constrints(collection, all_objects):
     all_objects = all_objects.copy()
     collection.sort(key=lambda x: find_order(x, all_objects))
 
-def main(orig_path, test_path):
+def main(orig_path, test_path, xib_path=None):
     orig_nib = getNibSectionsFile(orig_path)
     test_nib = getNibSectionsFile(test_path)
 
@@ -268,6 +278,12 @@ def main(orig_path, test_path):
     if test_rest:
         print("test has unreferenced items")
 
+    # Build xibid map if a XIB source file is provided
+    xibid_map = None
+    if xib_path:
+        from .xibmap import build_nibidx_to_xibid
+        xibid_map = build_nibidx_to_xibid(xib_path)
+
     found_issues = False
     orig_objects = orig_root.entries["IB.objectdata"].entries["NSObjectsKeys"].entries
     test_objects = test_root.entries["IB.objectdata"].entries["NSObjectsKeys"].entries
@@ -275,7 +291,7 @@ def main(orig_path, test_path):
     fixup_layout_constrints(test_root.entries["IB.objectdata"].entries["NSObjectsKeys"].entries, test_objects)
     fixup_layout_constrints(orig_root.entries["IB.objectdata"].entries["NSOidsKeys"].entries, orig_objects)
     fixup_layout_constrints(test_root.entries["IB.objectdata"].entries["NSOidsKeys"].entries, test_objects)
-    for issue in diff(orig_root, test_root, lhs_root=orig_objects, rhs_root=test_objects):
+    for issue in diff(orig_root, test_root, lhs_root=orig_objects, rhs_root=test_objects, xibid_map=xibid_map):
         found_issues = True
         print(issue)
     sys.exit(int(found_issues))
