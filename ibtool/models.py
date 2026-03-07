@@ -569,6 +569,10 @@ class XibObject(NibObject):
                 result[3] -= insets[1]
             return tuple(result)
 
+        # Box content view: use box outer size
+        if box_size := self.extraContext.get("box_content_size"):
+            return (0, 0, box_size[0], box_size[1])
+
         if self.xib_parent() and (auto_resizing := self.extraContext.get("parsed_autoresizing")):
             assert (parent := self.xib_parent())
             if my_frame := self.extraContext.get("NSFrame"):

@@ -386,7 +386,7 @@ def handle_props(_ctx: ArchiveContext, elem: Element, obj: NibObject, props: lis
                 val = prop.map[elem.attrib.get(prop.attrib, prop.default)]
             except KeyError:
                 raise Exception(f"Not found key '{elem.attrib.get(prop.attrib, prop.default)}' for {prop}")
-            is_default = (val == prop.map[prop.default])
+            is_default = (prop.default in prop.map and val == prop.map[prop.default])
         elif prop.attrib is not None:
             is_default = elem.attrib.get(prop.attrib, prop.default) == prop.default
             val = elem.attrib.get(prop.attrib, prop.default if prop.default is not None else NibNil())

@@ -14,8 +14,8 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
     handle_props(ctx, elem, obj, [
         PropSchema(prop="NSTickMarkPosition", attrib="tickMarkPosition", map={"above": 1}),
         PropSchema(prop="NSValue", attrib="doubleValue", filter=float),
-        PropSchema(prop="NSMaxValue", attrib="maxValue", filter=float, default=1.0),
-        PropSchema(prop="NSMinValue", attrib="minValue", filter=float, default=0.0),
+        PropSchema(prop="NSMaxValue", attrib="maxValue", filter=float, default=1.0, skip_default=False),
+        PropSchema(prop="NSMinValue", attrib="minValue", filter=float, default=0.0, skip_default=False),
         PropSchema(prop="NSVertical", const=False), # TODO
         PropSchema(prop="NSNumberOfTickMarks", const=0), # TODO
         PropSchema(prop="NSAllowsTickMarkValuesOnly", const=False), # TODO
