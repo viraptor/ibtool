@@ -44,6 +44,10 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> NibObject:
         item["NSName"] = NibString.intern(".AppleSystemUIFont")
         item["NSSize"] = float(elem.attrib.get("size", 12.0))
         item["NSfFlags"] = to_flags_val(0x13) | 0x1000
+    elif meta_font == 'label':
+        item["NSName"] = NibString.intern(".AppleSystemUIFont")
+        item["NSSize"] = float(elem.attrib.get("size", 10.0))
+        item["NSfFlags"] = to_flags_val(0x1b)
     elif meta_font == 'menu':
         item["NSName"] = NibString.intern(".AppleSystemUIFont")
         item["NSSize"] = float(elem.attrib.get("size", 13.0))
