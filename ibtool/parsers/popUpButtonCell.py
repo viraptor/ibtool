@@ -39,11 +39,14 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     __xibparser_button_flags(elem, obj, parent)
     obj.flagsOr("NSCellFlags", CellFlags.BEZELED)
 
-    # Common: override bezel style from XML, clear BEZEL flag, fix aux button type
     obj["NSBezelStyle"] = BEZEL_STYLE_MAP.get(elem.attrib.get("bezelStyle"))
-    obj["NSAuxButtonType"] = 0
+    # Clear BEZEL from button flags for popup button cells
     if obj.get("NSButtonFlags") is not None:
         obj["NSButtonFlags"] = obj["NSButtonFlags"] & ~ButtonFlags.BEZEL
+
+    # For push-type popup button cells, override NSAuxButtonType to 0
+    if elem.attrib.get("type", "push") == "push":
+        obj["NSAuxButtonType"] = 0
 
     if pulls_down:
         obj["NSPullDown"] = True
@@ -57,6 +60,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
                 menu_items[0]["NSIsHidden"] = True
     else:
         obj["NSPreferredEdge"] = PREFERRED_EDGE_MAP.get(elem.attrib.get("preferredEdge"), 1)
+        obj["NSArrowPosition"] = 2  # default for popups
 
         # Set selected item from menu
         selected_item_id = elem.attrib.get("selectedItem")
@@ -66,7 +70,8 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
             for i, item in enumerate(menu_items):
                 if item is selected_obj:
                     obj["NSMenuItem"] = item
-                    obj["NSSelectedIndex"] = i
+                    if i > 0:
+                        obj["NSSelectedIndex"] = i
                     obj["NSContents"] = NibString.intern(elem.attrib.get("title", ""))
                     break
         if obj.get("NSContents") is None:

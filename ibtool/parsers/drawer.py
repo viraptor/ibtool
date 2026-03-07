@@ -14,7 +14,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
         PropSchema(prop="NSNextResponder", const=NibNil()),
         PropSchema(prop="NSNibTouchBar", const=NibNil()),
         PropSchema(prop="NSParentWindow", const=NibNil()),
-        PropSchema(prop="NSPreferredEdge", const=2),
+        PropSchema(prop="NSPreferredEdge", attrib="preferredEdge", default="minY", map={"minX": 0, "minY": 1, "maxX": 2, "maxY": 3}, skip_default=False),
     ])
 
     return obj

@@ -28,8 +28,8 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     uses_ruler = 0x40 if elem.attrib.get("usesRuler", "NO") == "YES" else 0
     allows_undo = 0x400 if elem.attrib.get("allowsUndo", "NO") == "YES" else 0
     draws_background = 0x800
-    something_with_ruler = 0x100
     allows_document_background_change = 0x4000 if elem.attrib.get("allowsDocumentBackgroundColorChange", "NO") == "YES" else 0
+    unknown_0x100 = 0x100 if not allows_document_background_change else 0
     preferred_find_style = {
         None: None,
         "panel": 1,
@@ -45,7 +45,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     shared_data["NSAutomaticTextCompletionDisabled"] = False
     shared_data["NSBackgroundColor"] = NibNil()
     shared_data["NSDefaultParagraphStyle"] = NibNil()
-    shared_data["NSFlags"] = something_with_ruler | draws_background | spelling_correction | editable | imports_graphics | rich_text | continuous_spell_checking | smart_insert_delete | preferred_find_style_flag | uses_font_panel | allows_document_background_change | uses_ruler | selectable | allows_undo
+    shared_data["NSFlags"] = unknown_0x100 | draws_background | spelling_correction | editable | imports_graphics | rich_text | continuous_spell_checking | smart_insert_delete | preferred_find_style_flag | uses_font_panel | allows_document_background_change | uses_ruler | selectable | allows_undo
     shared_data["NSInsertionColor"] = makeSystemColor('textInsertionPointColor')
     shared_data["NSLinkAttributes"] = NibDictionary([
         NibString.intern("NSColor"),
