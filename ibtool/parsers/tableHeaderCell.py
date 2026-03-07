@@ -3,7 +3,7 @@ from xml.etree.ElementTree import Element
 from typing import Optional
 from .helpers import __xibparser_cell_flags
 from ..parsers_base import parse_children
-from ..constants import CONTROL_SIZE_MAP2
+
 
 def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> NibObject:
     assert parent is not None

@@ -44,7 +44,6 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     obj["NSControlRefusesFirstResponder"] = False
     obj["NSControlSendActionMask"] = 0
     obj["NSControlSize"] = 0
-    obj["NSControlSize2"] = 0
     obj["NSControlTextAlignment"] = 0
     obj["NSControlUsesSingleLineMode"] = False
     obj["NSControlWritingDirection"] = 0

@@ -2,7 +2,7 @@ from ..models import ArchiveContext, NibObject, XibObject, NibString
 from xml.etree.ElementTree import Element
 from .helpers import make_xib_object, _xibparser_common_view_attributes, makeSystemColor, __xibparser_cell_options
 from ..parsers_base import parse_children
-from ..constants import CellFlags, CellFlags2, CONTROL_SIZE_MAP2
+from ..constants import CellFlags, CellFlags2
 
 def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
     obj = make_xib_object(ctx, "NSMatrix", elem, parent, view_attributes=False)
@@ -16,7 +16,6 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
     obj["NSAllowsLogicalLayoutDirection"] = False
     obj["NSControlUsesSingleLineMode"] = False
     obj["NSControlSize"] = 0
-    obj["NSControlSize2"] = 0
     obj["NSControlTextAlignment"] = 0
     obj["NSControlWritingDirection"] = 0
     obj["NSEnabled"] = True
@@ -29,6 +28,5 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
     obj["NSCell"] = NibObject("NSActionCell", None, {
         "NSCellFlags": CellFlags.DONT_ACT_ON_MOUSE_UP,
         "NSCellFlags2": CellFlags2.UNKNOWN_MATRIX_CELL,
-        "NSControlSize2": CONTROL_SIZE_MAP2[None],
     })
     return obj
