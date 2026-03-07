@@ -2,7 +2,6 @@ from ..models import ArchiveContext, NibObject, XibObject, NibString, NibFloat, 
 from xml.etree.ElementTree import Element
 from .helpers import make_xib_object
 from ..parsers_base import parse_children
-from ..constants import vFlags
 
 def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
     obj = make_xib_object(ctx, "PDFView", elem, parent)
@@ -24,8 +23,5 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
     obj["EnableDataDetectors"] = False
     obj["InterpolationQuality"] = 2
     obj["AcceptsDraggedFiles"] = False
-
-    # PDFView always gets WIDTH_SIZABLE | HEIGHT_SIZABLE
-    obj.flagsOr("NSvFlags", vFlags.WIDTH_SIZABLE | vFlags.HEIGHT_SIZABLE)
 
     return obj
