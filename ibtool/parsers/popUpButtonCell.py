@@ -1,9 +1,24 @@
-from ..models import ArchiveContext, NibObject, XibObject, NibString
+from ..models import ArchiveContext, NibObject, XibObject, NibString, XibId
 from xml.etree.ElementTree import Element
 from typing import Optional
 from .helpers import make_xib_object, __xibparser_cell_options, __xibparser_button_flags
 from ..parsers_base import parse_children
-from ..constants import ButtonFlags, CellFlags
+from ..constants import ButtonFlags, CellFlags, BEZEL_STYLE_MAP, FontFlags
+from .font import to_flags_val
+
+PREFERRED_EDGE_MAP = {
+    None: 1,
+    "minX": 0,
+    "minY": 1,
+    "maxX": 2,
+    "maxY": 3,
+}
+
+ARROW_POSITION_MAP = {
+    "arrowAtCenter": 1,
+    "arrowAtBottom": 2,
+    "noArrow": 2,
+}
 
 def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> XibObject:
     assert parent is not None
@@ -14,17 +29,55 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     __xibparser_cell_options(elem, obj, parent)
     obj["NSAlternateContents"] = NibString.intern("")
     obj["NSAltersState"] = True
-    obj["NSBezelStyle"] = 13
-    obj["NSContents"] = NibString.intern("")
     obj["NSControlView"] = parent
     obj["NSKeyEquivalent"] = NibString.intern("")
     obj["NSPeriodicDelay"] = 400
     obj["NSPeriodicInterval"] = 75
-    obj["NSPreferredEdge"] = 1
-    obj["NSPullDown"] = True
+
+    pulls_down = elem.attrib.get("pullsDown") == "YES"
+
     __xibparser_button_flags(elem, obj, parent)
-    obj.flagsOr("NSButtonFlags", ButtonFlags.IMAGE_ABOVE)
     obj.flagsOr("NSCellFlags", CellFlags.BEZELED)
+
+    # Common: override bezel style from XML, clear BEZEL flag, fix aux button type
+    obj["NSBezelStyle"] = BEZEL_STYLE_MAP.get(elem.attrib.get("bezelStyle"))
+    obj["NSAuxButtonType"] = 0
+    if obj.get("NSButtonFlags") is not None:
+        obj["NSButtonFlags"] = obj["NSButtonFlags"] & ~ButtonFlags.BEZEL
+
+    if pulls_down:
+        obj["NSPullDown"] = True
+        obj["NSContents"] = NibString.intern("")
+        obj["NSPreferredEdge"] = 1
+        obj["NSArrowPosition"] = 2
+        # Hide the first menu item for pulldown buttons
+        if obj.get("NSMenu"):
+            menu_items = obj["NSMenu"]["NSMenuItems"]._items
+            if menu_items:
+                menu_items[0]["NSIsHidden"] = True
+    else:
+        obj["NSPreferredEdge"] = PREFERRED_EDGE_MAP.get(elem.attrib.get("preferredEdge"), 1)
+
+        # Set selected item from menu
+        selected_item_id = elem.attrib.get("selectedItem")
+        if selected_item_id and obj.get("NSMenu"):
+            menu_items = obj["NSMenu"]["NSMenuItems"]._items
+            selected_obj = ctx.findObject(XibId(selected_item_id))
+            for i, item in enumerate(menu_items):
+                if item is selected_obj:
+                    obj["NSMenuItem"] = item
+                    obj["NSSelectedIndex"] = i
+                    obj["NSContents"] = NibString.intern(elem.attrib.get("title", ""))
+                    break
+        if obj.get("NSContents") is None:
+            obj["NSContents"] = NibString.intern(elem.attrib.get("title", ""))
+
+    if arrow_pos := elem.attrib.get("arrowPosition"):
+        obj["NSArrowPosition"] = ARROW_POSITION_MAP[arrow_pos]
+
+    # Popup button cells use ROLE_TITLE_BAR_FONT for their font
+    if obj.get("NSSupport") is not None:
+        obj["NSSupport"]["NSfFlags"] = to_flags_val(FontFlags.ROLE_TITLE_BAR_FONT.value)
 
     obj["NSMenuItemRespectAlignment"] = True
 
