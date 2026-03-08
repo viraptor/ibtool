@@ -25,8 +25,22 @@ def parse(ctx: ArchiveContext, elem: Element, parent: XibObject, **kwargs) -> Xi
             if box_frame:
                 bw = box_frame[2] if len(box_frame) == 4 else box_frame[0]
                 bh = box_frame[3] if len(box_frame) == 4 else box_frame[1]
-                obj.extraContext["box_content_size"] = (bw, bh)
-                obj.extraContext["box_design_size"] = (int(content_rect.attrib["width"]), int(content_rect.attrib["height"])) if (content_rect := elem.find('rect[@key="frame"]')) is not None else (bw, bh)
+                # Titled boxes have a 12px title area
+                title_offset = 12 if parent.extraContext.get("titlePosition") != "noTitle" else 0
+                content_h = bh - title_offset
+                obj.extraContext["box_content_size"] = (bw, content_h)
+                # Compute offsets between computed and XIB content rect
+                content_rect = elem.find('rect[@key="frame"]')
+                if content_rect is not None:
+                    xib_w = int(content_rect.attrib["width"])
+                    xib_h = int(content_rect.attrib["height"])
+                    x_offset = bw - xib_w
+                    y_offset = content_h - xib_h
+                    if x_offset != 0:
+                        obj.extraContext["box_child_x_offset"] = x_offset
+                    if y_offset != 0:
+                        obj.extraContext["box_child_y_offset"] = y_offset
+                    obj.extraContext["box_xib_size"] = (xib_w, xib_h)
         else:
             raise Exception(
                 "Unhandled class '%s' to take NSView with key 'contentView'"
@@ -47,14 +61,53 @@ def parse(ctx: ArchiveContext, elem: Element, parent: XibObject, **kwargs) -> Xi
     if is_box_content:
         # Box content views should point to the box, not NibNil
         obj["NSNextResponder"] = parent
-        # Override frame: box content view uses box's outer size at position (0,0)
-        box_frame = parent.extraContext.get("NSFrame") or parent.extraContext.get("NSFrameSize")
-        if box_frame:
-            bw = box_frame[2] if len(box_frame) == 4 else box_frame[0]
-            bh = box_frame[3] if len(box_frame) == 4 else box_frame[1]
-            obj["NSFrameSize"] = NibString.intern(f"{{{bw}, {bh}}}")
+        # Override frame using pre-computed box content size
+        if box_size := obj.extraContext.get("box_content_size"):
+            obj["NSFrameSize"] = NibString.intern(f"{{{int(box_size[0])}, {int(box_size[1])}}}")
             if obj.get("NSFrame"):
                 del obj["NSFrame"]
+        # Adjust child coordinates for autoresizing when content view size differs from XIB
+        x_off = obj.extraContext.get("box_child_x_offset", 0)
+        y_off = obj.extraContext.get("box_child_y_offset", 0)
+        xib_size = obj.extraContext.get("box_xib_size")
+        if (x_off or y_off) and xib_size:
+            subviews = obj.get("NSSubviews")
+            if subviews:
+                for child in subviews:
+                    ar = child.extraContext.get("parsed_autoresizing") if hasattr(child, 'extraContext') else None
+                    if not ar or not isinstance(ar, dict):
+                        continue
+                    child_frame = child.extraContext.get("NSFrame")
+                    if not child_frame:
+                        continue
+                    cx, cy, cw, ch = child_frame
+                    changed = False
+                    if x_off and ar.get("flexibleMinX"):
+                        if ar.get("flexibleMaxX"):
+                            left_margin = cx
+                            right_margin = xib_size[0] - cx - cw
+                            total = left_margin + right_margin
+                            dx = int(x_off * left_margin / total) if total else 0
+                        else:
+                            dx = x_off
+                        cx += dx
+                        changed = True
+                    if y_off and ar.get("flexibleMinY"):
+                        if ar.get("flexibleMaxY"):
+                            bot_margin = cy
+                            top_margin = xib_size[1] - cy - ch
+                            total = bot_margin + top_margin
+                            dy = int(y_off * bot_margin / total) if total else 0
+                        else:
+                            dy = y_off
+                        cy += dy
+                        changed = True
+                    if changed:
+                        child["NSFrame"] = NibString.intern(f"{{{{{cx}, {cy}}}, {{{cw}, {ch}}}}}")
+                        child.extraContext["NSFrame"] = (cx, cy, cw, ch)
+        # Box content views are width+height sizable, skip default autolayout flags
+        obj.flagsOr("NSvFlags", vFlags.WIDTH_SIZABLE | vFlags.HEIGHT_SIZABLE)
+        obj.extraContext["parsed_autoresizing"] = True
     _xibparser_common_translate_autoresizing(ctx, elem, parent, obj)
     obj.setIfNotDefault("NSViewIsLayerTreeHost", elem.attrib.get("wantsLayer") == "YES", False)
 

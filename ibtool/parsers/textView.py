@@ -109,6 +109,21 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
 
     obj["NSTextContainer"] = text_container
 
+    # Adjust NSMaxSize width to match the scroll view's raw frame width
+    if obj.get("NSMaxSize"):
+        clip_view = obj.xib_parent()
+        if clip_view and clip_view.originalclassname() == "NSClipView":
+            scroll_view = clip_view.xib_parent()
+            if scroll_view and scroll_view.originalclassname() == "NSScrollView":
+                sv_frame = scroll_view.extraContext.get("NSFrame") or scroll_view.extraContext.get("NSFrameSize")
+                if sv_frame:
+                    sv_w = sv_frame[2] if len(sv_frame) == 4 else sv_frame[0]
+                    max_size = obj.extraContext.get("maxSize")
+                    if max_size:
+                        max_w = int(max_size[0])
+                        if max_w <= sv_w:
+                            obj["NSMaxSize"] = f'{{{sv_w}, {max_size[1]}}}'
+
     if ctx.toolsVersion < 23504:
         obj.setIfEmpty("NSTextViewTextColor", makeSystemColor("textColor"))
 

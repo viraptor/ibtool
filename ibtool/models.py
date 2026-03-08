@@ -604,7 +604,7 @@ class XibObject(NibObject):
                 if insets:
                     result[2] -= insets[0]
                     result[3] -= insets[1]
-                return frame
+                return tuple(result)
             elif frame_size := self.extraContext.get("NSFrameSize"):
                 result = [0, 0, frame_size[0], frame_size[1]]
                 if insets:

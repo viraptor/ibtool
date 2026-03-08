@@ -26,6 +26,7 @@ BOX_USING_CONTENT_VIEW_MAP = {
 
 def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
     obj = make_xib_object(ctx, "NSBox", elem, parent)
+    obj.extraContext["titlePosition"] = elem.attrib.get("titlePosition")
     parse_children(ctx, elem, obj)
     _xibparser_common_translate_autoresizing(ctx, elem, parent, obj)
 
