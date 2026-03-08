@@ -212,6 +212,8 @@ def __handle_view_chain(ctx: ArchiveContext, obj: XibObject):
     yield object()
     ctx.viewKeyList.pop(-1)
 
+    # Use frame() for views that need computed frames (e.g. clip views with scrollview_size),
+    # but for views with explicit XIB frames, preserve the raw coordinates
     x, y, w, h = obj.frame()
     if x == 0 and y == 0:
         obj["NSFrameSize"] = NibString.intern(f"{{{w}, {h}}}")

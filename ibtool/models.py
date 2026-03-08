@@ -562,6 +562,14 @@ class XibObject(NibObject):
         else:
             insets = None
 
+        # Window content view: use window content rect
+        if wc_size := self.extraContext.get("window_content_size"):
+            if my_frame := self.extraContext.get("NSFrame"):
+                x, y = my_frame[:2]
+            else:
+                x, y = 0, 0
+            return (x, y, wc_size[0], wc_size[1])
+
         # ClipView inside scrollView: use scrollView dimensions
         if sv_size := self.extraContext.get("scrollview_size"):
             if my_frame := self.extraContext.get("NSFrame"):
@@ -587,17 +595,28 @@ class XibObject(NibObject):
                 x, y = 0, 0
             else:
                 raise Exception(f"No frame or framesize for {self}")
-            parent_frame = parent.frame()
 
-            result = [x, y, mw, mh]
-            if auto_resizing.get("widthSizable"):
-                result[2] = parent_frame[2]
-            if auto_resizing.get("heightSizable"):
-                result[3] = parent_frame[3]
-            if insets:
-                result[2] -= insets[0]
-                result[3] -= insets[1]
-            return tuple(result)
+            # Only apply compile-time autoresizing when the parent has a computed size
+            # (scrollview_size, box_content_size, window_content_size), not a raw XIB frame
+            parent_has_computed_size = any(k in parent.extraContext for k in
+                ("scrollview_size", "box_content_size", "window_content_size"))
+            if parent_has_computed_size:
+                parent_frame = parent.frame()
+                result = [x, y, mw, mh]
+                if auto_resizing.get("widthSizable"):
+                    result[2] = parent_frame[2]
+                if auto_resizing.get("heightSizable"):
+                    result[3] = parent_frame[3]
+                if insets:
+                    result[2] -= insets[0]
+                    result[3] -= insets[1]
+                return tuple(result)
+            else:
+                result = [x, y, mw, mh]
+                if insets:
+                    result[2] -= insets[0]
+                    result[3] -= insets[1]
+                return tuple(result)
         else:
             if frame := self.extraContext.get("NSFrame"):
                 result = list(frame)
