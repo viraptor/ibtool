@@ -2,7 +2,7 @@ from contextlib import contextmanager
 from ..models import ArchiveContext, XibId, NibObject, NibNil, XibObject, NibMutableSet, NibString, NibInlineString
 from xml.etree.ElementTree import Element
 from typing import Optional, Any, Callable
-from ..constants import vFlags, CellFlags, CellFlags2, LineBreakMode, CONTROL_SIZE_MAP, CONTROL_SIZE_MAP2, ButtonFlags, ButtonFlags2
+from ..constants import vFlags, CellFlags, CellFlags2, LineBreakMode, CONTROL_SIZE_MAP, CONTROL_SIZE_MAP2, ButtonFlags, ButtonFlags2, BEZEL_STYLE_MAP
 from ..constant_objects import RGB_COLOR_SPACE, GENERIC_GREY_COLOR_SPACE
 from dataclasses import dataclass
 
@@ -33,6 +33,9 @@ def _xibparser_common_view_attributes(ctx: ArchiveContext, elem: Element, parent
         obj.flagsOr("NSvFlags", vFlags.HIDDEN)
     if elem is None or elem.attrib.get("autoresizesSubviews", "YES") != "NO":
         obj.flagsOr("NSvFlags", vFlags.AUTORESIZES_SUBVIEWS)
+    focus_ring_type = elem.attrib.get("focusRingType") if elem is not None else None
+    if focus_ring_type:
+        obj.extraContext["focusRingType"] = focus_ring_type
     obj["NSViewWantsBestResolutionOpenGLSurface"] = True
     if parent is None or obj.extraContext.get("key") == "contentView":
         obj.setIfEmpty("NSNextResponder", NibNil())
@@ -97,9 +100,10 @@ def __xibparser_cell_flags(elem: Element, obj: NibObject, parent: NibObject) -> 
         "small": CellFlags2.CONTROL_SIZE_SMALL,
     }[elem.attrib.get("controlSize")]
     allows_mixed_state = CellFlags2.ALLOWS_MIXED_STATE if elem.attrib.get("allowsMixedState") == "YES" else 0
+    focus_ring_none = 0x8000 if elem.attrib.get("focusRingType") == "none" else 0
 
     obj.flagsOr("NSCellFlags", lineBreakModeMask | text_field_flag | selectable | state_on | scrollable | disabled | editable | bezeled | border)
-    obj.flagsOr("NSCellFlags2", textAlignmentMask | sendsActionMask | lineBreakModeMask2 | refuses_first_responder_mask | size_flag | allows_mixed_state | allows_undo | uses_single_line_mode)
+    obj.flagsOr("NSCellFlags2", textAlignmentMask | sendsActionMask | lineBreakModeMask2 | refuses_first_responder_mask | size_flag | allows_mixed_state | allows_undo | uses_single_line_mode | focus_ring_none)
 
     if parent.originalclassname() == "NSTableColumn" and editable:
         parent["NSIsEditable"] = True
@@ -149,8 +153,9 @@ def __xibparser_button_flags(elem: Element, obj: XibObject, parent: NibObject) -
         "inline": 0,
         "bevel": 0,
     }[buttonType]
+    bezelStyle = elem.attrib.get("bezelStyle")
     button_type_id = {
-        "radio": 0x0,
+        "radio": BEZEL_STYLE_MAP.get(bezelStyle, 0),
         "push": 0x1,
         "check": 0x2,
         "square": 0x2|0x4,

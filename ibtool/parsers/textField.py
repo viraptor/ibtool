@@ -13,7 +13,11 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
     obj["NSNextResponder"] = obj.xib_parent()
     parse_children(ctx, elem, obj)
     _xibparser_common_translate_autoresizing(ctx, elem, parent, obj)
-    obj.setIfEmpty("NSFrame", NibNil())
+    x, y, w, h = obj.frame()
+    if x == 0 and y == 0:
+        obj.setIfEmpty("NSFrameSize", NibString.intern(f"{{{w}, {h}}}"))
+    else:
+        obj.setIfEmpty("NSFrame", NibString.intern(f"{{{{{x}, {y}}}, {{{w}, {h}}}}}"))
     obj["NSViewWantsBestResolutionOpenGLSurface"] = True
     obj["NSEnabled"] = True
     obj.setIfEmpty("NSCell", NibNil())

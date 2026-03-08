@@ -48,7 +48,9 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
         del obj["NSNextKeyView"]
 
     obj["NSAllowsLogicalLayoutDirection"] = False
-    obj["NSColumnAutoresizingStyle"] = 4
+    cas_str = elem.attrib.get("columnAutoresizingStyle")
+    cas_val = COLUMN_AUTORESIZE_STYLE_MAP.get(cas_str, 1)  # default is uniform (1)
+    obj["NSColumnAutoresizingStyle"] = cas_val
     obj.setIfNotDefault("NSControlAllowsExpansionToolTips", elem.attrib.get("allowsExpansionToolTips") == "YES", False)
     obj["NSControlContinuous"] = False
     obj["NSControlLineBreakMode"] = 0
@@ -88,12 +90,12 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
         "sourceList": 1,
     }
     handle_props(ctx, elem, obj, [
-        PropSchema(prop="NSTvFlags", const=TVFLAGS.UNKNOWN_1 | TVFLAGS.ALLOWS_COLUMN_RESIZING | TVFLAGS.AUTORESIZE_STYLE_BIT2 | TVFLAGS.UNKNOWN_2 | TVFLAGS.AUTORESIZE_STYLE_BIT1),
+        PropSchema(prop="NSTvFlags", const=TVFLAGS.ALLOWS_COLUMN_RESIZING | TVFLAGS.AUTORESIZE_STYLE_BIT2 | TVFLAGS.UNKNOWN_2 | TVFLAGS.AUTORESIZE_STYLE_BIT1),
         PropSchema(prop="NSTvFlags", attrib="alternatingRowBackgroundColors", default="NO", map=MAP_YES_NO, or_mask=TVFLAGS.ALTERNATING_ROW_BACKGROUND_COLORS),
         PropSchema(prop="NSTvFlags", attrib="autosaveColumns", default="NO", map=MAP_YES_NO, or_mask=TVFLAGS.AUTOSAVE_COLUMNS),
         PropSchema(prop="NSTvFlags", attrib="columnSelection", default="NO", map=MAP_YES_NO, or_mask=TVFLAGS.ALLOWS_COLUMN_SELECTION),
         PropSchema(prop="NSTvFlags", attrib="multipleSelection", default="YES", map=MAP_YES_NO, or_mask=TVFLAGS.ALLOWS_MULTIPLE_SELECTION),
-        PropSchema(prop="NSTvFlags", attrib="columnReordering", default="YES", map=MAP_YES_NO, or_mask=TVFLAGS.ALLOWS_COLUMN_REORDERING),
+        PropSchema(prop="NSTvFlags", attrib="columnReordering", default="YES", map=MAP_YES_NO, or_mask=TVFLAGS.ALLOWS_COLUMN_REORDERING | TVFLAGS.UNKNOWN_1),
         PropSchema(prop="NSTvFlags", attrib="emptySelection", default="YES", map=MAP_YES_NO, or_mask=TVFLAGS.ALLOWS_EMPTY_SELECTION),
         PropSchema(prop="NSTableViewShouldFloatGroupRows", attrib="floatsGroupRows", default="YES", map=MAP_YES_NO),
         PropSchema(prop="NSTableViewStyle", attrib="tableStyle", map=MAP_TABLE_STYLE, skip_default=True),
@@ -107,7 +109,15 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     if elem.attrib.get("autosaveName"):
         obj.flagsOr("NSTvFlags", TVFLAGS.AUTOSAVE_COLUMNS)
 
+    # Uniform autoresize style → AUTORESIZE_ALL_COLUMNS_TO_FIT
+    if cas_val == 1:
+        obj.flagsOr("NSTvFlags", TVFLAGS.AUTORESIZE_ALL_COLUMNS_TO_FIT)
+
     # Table views always get WIDTH_SIZABLE | HEIGHT_SIZABLE
     obj.flagsOr("NSvFlags", vFlags.WIDTH_SIZABLE | vFlags.HEIGHT_SIZABLE)
+
+    focus_ring = {"none": 0x1000, "exterior": 0x2000}.get(obj.extraContext.get("focusRingType"), 0)
+    if focus_ring:
+        obj.flagsOr("NSvFlags", focus_ring)
 
     return obj

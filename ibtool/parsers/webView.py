@@ -32,10 +32,15 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
     obj["NSDragTypes"] = NibMutableSet([NibString.intern(s) for s in WEBVIEW_DRAG_TYPES])
     obj["FrameName"] = NibString.intern("")
     obj["GroupName"] = NibString.intern("")
-    obj["Preferences"] = NibObject("WebPreferences", obj, {
-        "Identifier": NibNil(),
-        "Values": NibMutableDictionary([]),
+
+    identifier = obj.extraContext.get("webPrefsIdentifier")
+    values = obj.extraContext.get("webPrefsValues", [])
+    prefs = NibObject("WebPreferences", obj, {
+        "Identifier": NibString.intern(identifier) if identifier else NibNil(),
+        "Values": NibMutableDictionary(values),
     })
+    obj["Preferences"] = prefs
+
     obj["UseBackForwardList"] = True
     obj["AllowsUndo"] = True
 

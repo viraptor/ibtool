@@ -29,7 +29,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     allows_undo = 0x400 if elem.attrib.get("allowsUndo", "NO") == "YES" else 0
     draws_background = 0x800
     allows_document_background_change = 0x4000 if elem.attrib.get("allowsDocumentBackgroundColorChange", "NO") == "YES" else 0
-    unknown_0x100 = 0x100 if not allows_document_background_change else 0
+    unknown_0x100 = 0x100
     preferred_find_style = {
         None: None,
         "panel": 1,

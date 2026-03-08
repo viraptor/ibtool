@@ -16,7 +16,7 @@ SYSTEM_MENUS = {
 def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
     obj = make_xib_object(ctx, "NSMenu", elem, parent, view_attributes=False)
     parse_children(ctx, elem, obj)
-    obj["NSTitle"] = elem.attrib.get("title", NibNil())
+    obj["NSTitle"] = NibString.intern(elem.attrib.get("title", ""))
     if elem.attrib.get("key") == "submenu":
         parent["NSAction"] = NibString.intern("submenuAction:")
         obj.setIfEmpty("NSMenuItems", NibMutableList())

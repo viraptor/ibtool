@@ -8,7 +8,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
         has_explicit_modifiers = any(k != 'key' for k in elem.attrib)
         if has_explicit_modifiers:
             mask = 0
-            if elem.attrib.get('command') != 'NO':
+            if elem.attrib.get('command') == 'YES':
                 mask |= 0x100000
             if elem.attrib.get('control') == 'YES':
                 mask |= 0x40000
