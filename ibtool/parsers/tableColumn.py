@@ -10,9 +10,12 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
 
     parse_children(ctx, elem, obj)
 
-    # Column's editable attribute overrides any NSIsEditable set by child cells
-    if elem.attrib.get("editable") == "NO" and obj.get("NSIsEditable"):
-        del obj["NSIsEditable"]
+    # Columns are editable by default; only remove when explicitly disabled
+    if elem.attrib.get("editable") == "NO":
+        if obj.get("NSIsEditable"):
+            del obj["NSIsEditable"]
+    else:
+        obj.setIfEmpty("NSIsEditable", True)
 
     obj["NSIdentifier"] = NibString.intern(elem.attrib.get("identifier", ""))
     if max_width := elem.attrib.get("maxWidth"):

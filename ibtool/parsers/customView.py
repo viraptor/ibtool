@@ -28,6 +28,10 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     if not obj.extraContext.get("parsed_autoresizing"):
         obj.flagsOr("NSvFlags", vFlags.DEFAULT_VFLAGS_AUTOLAYOUT if ctx.useAutolayout else vFlags.DEFAULT_VFLAGS)
 
+    focus_ring = {"none": 0x1000, "exterior": 0x2000}.get(obj.extraContext.get("focusRingType"), 0)
+    if focus_ring:
+        obj.flagsOr("NSvFlags", focus_ring)
+
     if elem.attrib.get("clipsToBounds") == "YES":
         obj["NSViewClipsToBoundsKeyName"] = True
 

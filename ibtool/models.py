@@ -291,7 +291,9 @@ class NibNSNumber(NibObject):
         NibObject.__init__(self, "NSNumber")
         self._value = value
 
-        if isinstance(value, str):
+        if isinstance(value, bool):
+            self._value = value
+        elif isinstance(value, str):
             try:
                 self._value = int(value)
             except ValueError:
@@ -306,6 +308,8 @@ class NibNSNumber(NibObject):
 
     def getKeyValuePairs(self):
         val = self._value
+        if isinstance(val, bool):
+            return [("NS.boolval", val)]
         if isinstance(val, float):
             return [("NS.dblval", val)]
         return [("NS.intval", val)]
@@ -515,11 +519,12 @@ class XibObject(NibObject):
         if elem is not None and (tag := elem.attrib.get("tag")) is not None:
             self["NSTag"] = int(tag)
         if elem is not None and (tooltip := elem.attrib.get("toolTip")) is not None:
-            ctx.connections.append(NibObject("NSIBHelpConnector", None, {
-                "NSDestination": self.xibid,
-                "NSFile": NibString.intern("NSToolTipHelpKey"),
-                "NSMarker": NibString.intern(tooltip),
-            }))
+            if elem.attrib.get("_base64ToolTip") != "YES":
+                ctx.connections.append(NibObject("NSIBHelpConnector", None, {
+                    "NSDestination": self.xibid,
+                    "NSFile": NibString.intern("NSToolTipHelpKey"),
+                    "NSMarker": NibString.intern(tooltip),
+                }))
 
 
     def originalclassname(self) -> Optional[str]:
@@ -624,13 +629,13 @@ def _xibparser_handle_custom_class(ctx: ArchiveContext, elem: Element, obj: "Xib
             obj["IBClassReference"] = make_class_reference(custom_class or "NSApplication", None, None)
     elif custom_class:
         #print(obj.xibid, obj.originalclassname(), obj.classname(), custom_class)
-        if ctx.customObjectInstantitationMethod == "direct" and not (obj.originalclassname() in ("NSCustomObject", "NSWindowTemplate") and not custom_module) or obj.originalclassname() in ("NSView", "NSOutlineView", "NSButton", "NSTextField", "NSTextView", "NSProgressIndicator", "NSTableView", "NSPopUpButtonCell", "NSScrollView"):
+        if ctx.customObjectInstantitationMethod == "direct" and not (obj.originalclassname() in ("NSCustomObject", "NSWindowTemplate") and not custom_module) or obj.originalclassname() in ("NSView", "NSOutlineView", "NSButton", "NSTextField", "NSTextView", "NSProgressIndicator", "NSTableView", "NSTableHeaderView", "NSPopUpButtonCell", "NSScrollView"):
             #print("direct")
             if custom_module:
                 obj["NSClassName"] = NibString.intern(f"_TtC{len(custom_module)}{custom_module}{len(custom_class)}{custom_class}")
             else:
                 obj["NSClassName"] = NibString.intern(custom_class)
-            if obj.classname() not in ("NSView", "NSCustomView", "NSButton", "NSTextField", "NSOutlineView", "NSScrollView", "NSClipView", "NSColorWell", "NSStackView", "NSTextView", "NSProgressIndicator", "NSTableView", "NSPopUpButtonCell"):
+            if obj.classname() not in ("NSView", "NSCustomView", "NSButton", "NSTextField", "NSOutlineView", "NSScrollView", "NSClipView", "NSColorWell", "NSStackView", "NSTextView", "NSProgressIndicator", "NSTableView", "NSTableHeaderView", "NSPopUpButtonCell"):
                 obj["NSInitializeWithInit"] = True
             final_original_class = {
                 "NSCustomObject": "NSObject",

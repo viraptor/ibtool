@@ -22,6 +22,8 @@ def replace_string_attribures(elem: Element):
         if string_elem.attrib.get("base64-UTF8") == "YES":
             text = (string_elem.text or '').strip()
             value = base64.b64decode(text + ((4 - (len(text) % 4)) * '=')).decode('utf-8')
+            if key == "toolTip":
+                elem.set("_base64ToolTip", "YES")
         else:
             value = (string_elem.text or '')
         elem.set(key, value)

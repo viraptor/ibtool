@@ -1,15 +1,33 @@
 from ..models import ArchiveContext, NibObject, XibObject, NibNil, NibMutableList
 from xml.etree.ElementTree import Element
-from .helpers import make_xib_object, handle_props, PropSchema, MAP_YES_NO, __xibparser_cell_options
+from .helpers import make_xib_object, handle_props, PropSchema, MAP_YES_NO
 from ..parsers_base import parse_children
+from ..constants import CellFlags
 
 def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
-    obj = make_xib_object(ctx, "NSStepperCell", elem, parent)
-    
-    parse_children(ctx, elem, obj)
-    __xibparser_cell_options(elem, obj, parent)
+    obj = XibObject(ctx, "NSStepperCell", elem, parent)
+    ctx.extraNibObjects.append(obj)
 
-    handle_props(ctx, elem, obj, [
-    ])
+    parse_children(ctx, elem, obj)
+
+    # Stepper cell flags: CONTINUOUS (if set) | ACTION_ON_MOUSE_DOWN | DONT_ACT_ON_MOUSE_UP
+    cell_flags = CellFlags.ACTION_ON_MOUSE_DOWN | CellFlags.DONT_ACT_ON_MOUSE_UP
+    if elem.attrib.get("continuous", "NO") == "YES":
+        cell_flags |= CellFlags.CONTINUOUS
+        obj.extraContext["continuous"] = True
+    obj["NSCellFlags"] = cell_flags
+    obj["NSCellFlags2"] = 0
+
+    obj["NSControlView"] = parent
+
+    # Value properties
+    obj["NSValue"] = float(elem.attrib.get("doubleValue", "0"))
+    obj["NSMinValue"] = float(elem.attrib.get("minValue", "0"))
+    obj["NSMaxValue"] = float(elem.attrib.get("maxValue", "100"))
+    obj["NSIncrement"] = float(elem.attrib.get("increment", "1"))
+    obj["NSValueWraps"] = elem.attrib.get("valueWraps", "YES") == "YES"
+    obj["NSAutorepeat"] = elem.attrib.get("autorepeat", "YES") == "YES"
+
+    parent["NSCell"] = obj
 
     return obj
