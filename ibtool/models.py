@@ -557,7 +557,9 @@ class XibObject(NibObject):
             return False
 
     def frame(self) -> Optional[tuple[int, int, int, int]]:
-        if parent := self.xib_parent():
+        if self.extraContext.get("skip_parent_insets"):
+            insets = None
+        elif parent := self.xib_parent():
             insets = parent.extraContext.get("insets")
         else:
             insets = None
@@ -572,7 +574,10 @@ class XibObject(NibObject):
 
         # ClipView inside scrollView: use scrollView dimensions
         if sv_size := self.extraContext.get("scrollview_size"):
-            if my_frame := self.extraContext.get("NSFrame"):
+            if insets:
+                border = insets[0] // 2
+                x, y = border, border
+            elif my_frame := self.extraContext.get("NSFrame"):
                 x, y = my_frame[:2]
             else:
                 x, y = 0, 0
@@ -601,12 +606,25 @@ class XibObject(NibObject):
             parent_has_computed_size = any(k in parent.extraContext for k in
                 ("scrollview_size", "box_content_size", "window_content_size"))
             if parent_has_computed_size:
-                parent_frame = parent.frame()
+                parent_computed = parent.frame()
+                # Get parent's raw XIB size for delta-based autoresizing
+                if parent_raw := parent.extraContext.get("NSFrame"):
+                    raw_pw, raw_ph = parent_raw[2], parent_raw[3]
+                elif parent_raw := parent.extraContext.get("NSFrameSize"):
+                    raw_pw, raw_ph = parent_raw[0], parent_raw[1]
+                else:
+                    raw_pw, raw_ph = parent_computed[2], parent_computed[3]
                 result = [x, y, mw, mh]
                 if auto_resizing.get("widthSizable"):
-                    result[2] = parent_frame[2]
+                    if mw >= raw_pw:
+                        result[2] = parent_computed[2]
+                    else:
+                        result[2] = mw + (parent_computed[2] - raw_pw)
                 if auto_resizing.get("heightSizable"):
-                    result[3] = parent_frame[3]
+                    if mh >= raw_ph:
+                        result[3] = parent_computed[3]
+                    else:
+                        result[3] = mh + (parent_computed[3] - raw_ph)
                 if insets:
                     result[2] -= insets[0]
                     result[3] -= insets[1]
