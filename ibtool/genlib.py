@@ -1,7 +1,7 @@
 import struct
 from . import nibencoding
 from typing import Union
-from .models import PropValue, NibObject, NibDictionaryImpl, ArrayLike, NibInlineString, NibByte, NibFloat, NibNil, XibId
+from .models import PropValue, NibObject, NibDictionaryImpl, ArrayLike, NibInlineString, NibByte, NibFloat, NibNil, NibNSNumber, XibId
 
 
 class CompilationContext:
@@ -160,5 +160,27 @@ This really has (at least) two phases.
 def CompileNibObjects(objects: list[NibObject]) -> bytes:
     ctx = CompilationContext()
     ctx.addObjects(objects)
+
+    # Deduplicate OID value NSNumbers: Apple's ibtool reuses existing NSNumber
+    # objects, so e.g. OID value 11 becomes NS.dblval 11.0 if that already exists.
+    # Use the already-collected object_list to find candidates, then replace.
+    root_data = objects[0].properties.get("IB.objectdata") if objects else None
+    oids_values = root_data.properties.get("NSOidsValues") if isinstance(root_data, NibObject) else None
+    if isinstance(oids_values, ArrayLike):
+        oid_set = set(id(item) for item in oids_values._items)
+        number_by_value: dict[float, NibNSNumber] = {}
+        for o in ctx.object_list:
+            if isinstance(o, NibNSNumber) and id(o) not in oid_set:
+                val = o.value()
+                if isinstance(val, (int, float)):
+                    number_by_value.setdefault(float(val), o)
+        for i, item in enumerate(oids_values._items):
+            if isinstance(item, NibNSNumber):
+                val = item.value()
+                if isinstance(val, (int, float)):
+                    existing = number_by_value.get(float(val))
+                    if existing is not None and existing is not item:
+                        oids_values._items[i] = existing
+
     t = ctx.makeTuples()
     return nibencoding.WriteNib(t)
