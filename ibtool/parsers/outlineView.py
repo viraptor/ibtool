@@ -13,8 +13,17 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     with __handle_view_chain(ctx, obj):
         parse_children(ctx, elem, obj)
         # Outline view width is managed by the scroll view, not frame() autoresizing.
-        if "parsed_autoresizing" in obj.extraContext:
-            del obj.extraContext["parsed_autoresizing"]
+        # Keep only heightSizable so the outline fills the clip view vertically.
+        obj.extraContext["parsed_autoresizing"] = {
+            "flexibleMaxX": False, "flexibleMaxY": False,
+            "flexibleMinX": False, "flexibleMinY": False,
+            "widthSizable": False, "heightSizable": True,
+        }
+
+    # Update extraContext to match computed frame (used by scrollView.py)
+    computed = obj.frame()
+    obj.extraContext["NSFrameSize"] = (computed[2], computed[3])
+    obj.extraContext.pop("NSFrame", None)
 
     if obj.get("NSNextKeyView") is not None:
         del obj["NSNextKeyView"]
@@ -51,13 +60,15 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     obj["NSIntercellSpacingHeight"] = 2.0
     obj["NSIntercellSpacingWidth"] = 3.0
     obj["NSOutineViewStronglyReferencesItems"] = True
-    obj["NSOutlineViewAutoresizesOutlineColumnKey"] = False
-    obj["NSOutlineViewIndentationPerLevelKey"] = NibFloat(0.0)
+    if elem.attrib.get("autoresizesOutlineColumn") != "YES":
+        obj["NSOutlineViewAutoresizesOutlineColumnKey"] = False
+    indent = elem.attrib.get("indentationPerLevel")
+    obj["NSOutlineViewIndentationPerLevelKey"] = NibFloat(float(indent) if indent else 0.0)
     obj["NSTableViewDraggingDestinationStyle"] = 0
     obj["NSTableViewGroupRowStyle"] = 1
 
     handle_props(ctx, elem, obj, [
-        PropSchema(prop="NSTvFlags", const=TVFLAGS.ALLOWS_COLUMN_RESIZING | TVFLAGS.UNKNOWN_4 | TVFLAGS.UNKNOWN_2 | TVFLAGS.GRID_STYLE_BIT0),
+        PropSchema(prop="NSTvFlags", const=TVFLAGS.ALLOWS_COLUMN_RESIZING | TVFLAGS.UNKNOWN_2 | TVFLAGS.GRID_STYLE_BIT0),
         PropSchema(prop="NSTvFlags", attrib="alternatingRowBackgroundColors", default="NO", map=MAP_YES_NO, or_mask=TVFLAGS.ALTERNATING_ROW_BACKGROUND_COLORS),
         PropSchema(prop="NSTvFlags", attrib="columnSelection", default="NO", map=MAP_YES_NO, or_mask=TVFLAGS.ALLOWS_COLUMN_SELECTION),
         PropSchema(prop="NSTvFlags", attrib="multipleSelection", default="YES", map=MAP_YES_NO, or_mask=TVFLAGS.ALLOWS_MULTIPLE_SELECTION | TVFLAGS.GRID_STYLE_BIT1),
@@ -68,6 +79,10 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
         PropSchema(prop="NSAutosaveName", attrib="autosaveName", skip_default=True),
         PropSchema(prop="NSRowHeight", attrib="rowHeight", default="17", filter=float, skip_default=False),
     ])
+
+    # UNKNOWN_4 only when both columnReordering and multipleSelection are YES
+    if elem.attrib.get("columnReordering", "YES") == "YES" and elem.attrib.get("multipleSelection", "YES") == "YES":
+        obj.flagsOr("NSTvFlags", TVFLAGS.UNKNOWN_4)
 
     if cas_val == 1:  # uniform → AUTORESIZE_ALL_COLUMNS_TO_FIT
         obj.flagsOr("NSTvFlags", TVFLAGS.AUTORESIZE_ALL_COLUMNS_TO_FIT)

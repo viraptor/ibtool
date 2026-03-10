@@ -1,3 +1,4 @@
+import math
 from ..models import ArchiveContext, NibObject, XibObject, NibString, NibMutableList, NibList, NibInlineString, NibFloatToWord
 from xml.etree.ElementTree import Element
 from typing import Optional
@@ -5,6 +6,26 @@ from .helpers import make_xib_object, __handle_view_chain, _xibparser_common_tra
 from ..parsers_base import parse_children
 from ..constants import sFlagsScrollView, vFlags
 from .tableView import TVFLAGS
+
+def _get_ics_w(doc_view):
+    ics_w = doc_view.get("NSIntercellSpacingWidth")
+    return ics_w if ics_w is not None else 3.0
+
+def _reduce_column_widths(doc_view, reduction):
+    table_columns = doc_view.get("NSTableColumns")
+    if not table_columns or len(table_columns) == 0:
+        return
+    cas = doc_view.get("NSColumnAutoresizingStyle")
+    if cas == 4:  # lastColumnOnly
+        table_columns[-1]["NSWidth"] = table_columns[-1]["NSWidth"] - reduction
+    elif cas == 5:  # firstColumnOnly
+        table_columns[0]["NSWidth"] = table_columns[0]["NSWidth"] - reduction
+    elif cas == 1:  # uniform
+        n = len(table_columns)
+        per_col = math.ceil(reduction / n)
+        for i, col in enumerate(table_columns):
+            r = per_col if i < n - 1 else reduction - per_col * (n - 1)
+            col["NSWidth"] = col["NSWidth"] - r
 
 def default_pan_recognizer(scrollView: XibObject) -> NibObject:
     obj = NibObject("NSPanGestureRecognizer", None)
@@ -76,7 +97,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
                 if hv_frame:
                     header_h = hv_frame[3] if len(hv_frame) == 4 else hv_frame[1]
             cv["NSBounds"] = NibString.intern(f"{{{{{0}, {-header_h}}}, {{{cv_w}, {cv_h}}}}}")
-    # Adjust table height and flags when clip view y doesn't account for border
+    # Adjust table flags when clip view y doesn't account for border
     insets = obj.extraContext.get("insets", (0, 0))
     border = insets[0] // 2
     cv = obj["NSContentView"]
@@ -85,36 +106,19 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     border_deficit = border - clip_y
     doc_view = cv.get("NSDocView")
     if border_deficit > 0 and doc_view and doc_view.originalclassname() in ("NSTableView", "NSOutlineView"):
-        # Reduce table height by the missing border pixels
-        dv_frame = doc_view.extraContext.get("NSFrame") or doc_view.extraContext.get("NSFrameSize")
-        if dv_frame:
-            if len(dv_frame) == 4:
-                dv_w, dv_h = int(dv_frame[2]), int(dv_frame[3]) - border_deficit
-            else:
-                dv_w, dv_h = int(dv_frame[0]), int(dv_frame[1]) - border_deficit
-            doc_view["NSFrameSize"] = NibString.intern(f"{{{dv_w}, {dv_h}}}")
-            doc_view.extraContext["NSFrameSize"] = (dv_w, dv_h)
-            doc_view.extraContext.pop("NSFrame", None)
+        # Height adjustment is handled by heightSizable autoresizing in the table/outline parser.
         # When grid lines are present and clip_y < border, swap GRID_STYLE_BIT0 → BIT1
-        # and reduce autoresizable column width by ics * n_columns
+        # and reduce autoresizable column width by ics * 3
         if doc_view.get("NSGridStyleMask"):
             doc_view.flagsAnd("NSTvFlags", ~TVFLAGS.GRID_STYLE_BIT0)
             doc_view.flagsOr("NSTvFlags", TVFLAGS.GRID_STYLE_BIT1)
-            table_columns = doc_view.get("NSTableColumns")
-            if table_columns and len(table_columns) > 0:
-                ics_w = doc_view.get("NSIntercellSpacingWidth")
-                if ics_w is None:
-                    ics_w = 3.0
-                reduction = ics_w * len(table_columns)
-                cas = doc_view.get("NSColumnAutoresizingStyle")
-                if cas == 4:  # lastColumnOnly
-                    table_columns[-1]["NSWidth"] = table_columns[-1]["NSWidth"] - reduction
-                elif cas == 5:  # firstColumnOnly
-                    table_columns[0]["NSWidth"] = table_columns[0]["NSWidth"] - reduction
-                elif cas == 1:  # uniform
-                    per_col = reduction / len(table_columns)
-                    for col in table_columns:
-                        col["NSWidth"] = col["NSWidth"] - per_col
+            reduction = _get_ics_w(doc_view) * 3
+            _reduce_column_widths(doc_view, reduction)
+        elif auto_hiding and obj.get("NSHeaderClipView") is not None:
+            # Autohiding scroll views with headers and no grid lines:
+            # reduce column widths by scroller_width + ics * 4
+            reduction = 17 + _get_ics_w(doc_view) * 4
+            _reduce_column_widths(doc_view, reduction)
     # Expand table/outline view and header view widths for visible vertical scroller
     doc_view = cv.get("NSDocView")
     vs_orig_frame = obj["NSVScroller"].extraContext.get("NSFrame")
