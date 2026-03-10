@@ -66,7 +66,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: XibObject, **kwargs) -> Xi
             obj["NSFrameSize"] = NibString.intern(f"{{{int(box_size[0])}, {int(box_size[1])}}}")
             if obj.get("NSFrame"):
                 del obj["NSFrame"]
-        # Adjust child coordinates for autoresizing when content view size differs from XIB
+        # Adjust child coordinates and sizes for autoresizing when content view size differs from XIB
         x_off = obj.extraContext.get("box_child_x_offset", 0)
         y_off = obj.extraContext.get("box_child_y_offset", 0)
         xib_size = obj.extraContext.get("box_xib_size")
@@ -82,10 +82,13 @@ def parse(ctx: ArchiveContext, elem: Element, parent: XibObject, **kwargs) -> Xi
                         continue
                     cx, cy, cw, ch = child_frame
                     changed = False
+                    if x_off and ar.get("widthSizable"):
+                        cw += x_off
+                        changed = True
                     if x_off and ar.get("flexibleMinX"):
                         if ar.get("flexibleMaxX"):
                             left_margin = cx
-                            right_margin = xib_size[0] - cx - cw
+                            right_margin = xib_size[0] - cx - child_frame[2]
                             total = left_margin + right_margin
                             dx = int(x_off * left_margin / total) if total else 0
                         else:

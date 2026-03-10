@@ -1,4 +1,4 @@
-from ..models import ArchiveContext, NibObject, XibObject
+from ..models import ArchiveContext, NibObject, XibObject, NibString
 from xml.etree.ElementTree import Element
 from .helpers import make_xib_object, _xibparser_common_translate_autoresizing
 from ..parsers_base import parse_children
@@ -12,6 +12,11 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
 
     parse_children(ctx, elem, obj)
     _xibparser_common_translate_autoresizing(ctx, elem, parent, obj)
+    x, y, w, h = obj.frame()
+    if x == 0 and y == 0:
+        obj["NSFrameSize"] = NibString.intern(f"{{{w}, {h}}}")
+    else:
+        obj["NSFrame"] = NibString.intern(f"{{{{{x}, {y}}}, {{{w}, {h}}}}}")
     obj["NSAllowsLogicalLayoutDirection"] = False
     obj["NSEnabled"] = True
     obj["NSControlSendActionMask"] = 4
