@@ -1,6 +1,6 @@
 from ..models import ArchiveContext, NibObject, XibObject, NibString, NibNil
 from xml.etree.ElementTree import Element
-from .helpers import make_xib_object
+from .helpers import make_xib_object, make_image
 from ..parsers_base import parse_children
 from ..constant_objects import MENU_MIXED_IMAGE, MENU_ON_IMAGE
 
@@ -39,14 +39,5 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
         obj["NSIsDisabled"] = True
     obj.setIfNotDefault("NSState", STATES[elem.attrib.get("state")], None)
     if image_name := elem.attrib.get("image"):
-        image = NibObject("NSCustomResource", obj)
-        image["NSResourceName"] = NibString.intern(image_name)
-        image["NSClassName"] = NibString.intern("NSImage")
-        image["IBNamespaceID"] = NibString.intern("system")
-        design_size = NibObject("NSValue", obj)
-        design_size["NS.sizeval"] = NibString.intern("{32, 32}")
-        design_size["NS.special"] = 2
-        image["IBDesignSize"] = design_size
-        image["IBDesignImageConfiguration"] = NibNil()
-        obj["NSImage"] = image
+        obj["NSImage"] = make_image(image_name, obj, ctx)
     return obj

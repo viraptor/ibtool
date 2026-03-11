@@ -55,6 +55,14 @@ def ParseXIBObjects(root: Element, context: Optional[ArchiveContext]=None, resol
         if deployment:
             context.deployment = True
 
+    for res_elem in root.iter("resources"):
+        for img in res_elem.iter("image"):
+            name = img.get("name")
+            w = img.get("width")
+            h = img.get("height")
+            if name and w and h:
+                context.imageResources[name] = (w, h)
+
     for nib_object_element in objects:
         obj = __xibparser_ParseXIBObject(context, nib_object_element, parent)
         if isinstance(obj, XibObject):

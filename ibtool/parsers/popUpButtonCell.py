@@ -54,7 +54,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
 
     if pulls_down:
         obj["NSPullDown"] = True
-        obj["NSContents"] = NibString.intern("")
+        obj["NSContents"] = NibString.intern(elem.attrib.get("title", ""))
         obj["NSPreferredEdge"] = 1
         obj["NSArrowPosition"] = 2
         # Hide the first menu item for pulldown buttons

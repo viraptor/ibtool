@@ -1,7 +1,7 @@
 from ..models import ArchiveContext, NibObject, XibObject, NibNil
 from xml.etree.ElementTree import Element
 from typing import Optional
-from .helpers import __xibparser_cell_options, make_system_image
+from .helpers import __xibparser_cell_options, make_image
 from ..parsers_base import parse_children
 
 def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> XibObject:
@@ -33,7 +33,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
         }[elem.attrib.get("imageScaling", "none")]
         obj["NSStyle"] = 0
         if image_name := elem.attrib.get("image"):
-            obj["NSContents"] = make_system_image(image_name, obj)
+            obj["NSContents"] = make_image(image_name, obj, ctx)
         parent["NSCell"] = obj
 
     elif key == "dataCell":
