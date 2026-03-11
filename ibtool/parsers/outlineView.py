@@ -80,8 +80,8 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
         PropSchema(prop="NSRowHeight", attrib="rowHeight", default="17", filter=float, skip_default=False),
     ])
 
-    # UNKNOWN_4 only when both columnReordering and multipleSelection are YES
-    if elem.attrib.get("columnReordering", "YES") == "YES" and elem.attrib.get("multipleSelection", "YES") == "YES":
+    # UNKNOWN_4 when columnReordering=YES and autosaveColumns is not explicitly "NO"
+    if elem.attrib.get("columnReordering", "YES") == "YES" and "autosaveColumns" not in elem.attrib:
         obj.flagsOr("NSTvFlags", TVFLAGS.UNKNOWN_4)
 
     if cas_val == 1:  # uniform → AUTORESIZE_ALL_COLUMNS_TO_FIT
