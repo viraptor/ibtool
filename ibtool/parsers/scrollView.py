@@ -68,13 +68,15 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
 
     _xibparser_common_translate_autoresizing(ctx, elem, parent, obj)
 
-    # Add COPY_ON_SCROLL for table/outline scroll views when usesPredominantAxisScrolling is active
-    if uses_predominant_axis_scrolling:
+    # Add COPY_ON_SCROLL for table/outline scroll views when usesPredominantAxisScrolling or hasHorizontalScroller is active
+    if uses_predominant_axis_scrolling or has_horizontal_scroller:
         content_cv = obj.get("NSContentView")
         if content_cv:
             dv = content_cv.get("NSDocView")
             if _is_table_or_outline(dv):
                 obj.flagsOr("NSsFlags", sFlagsScrollView.COPY_ON_SCROLL)
+                if has_horizontal_scroller:
+                    dv.flagsOr("NSTvFlags", TVFLAGS.GRID_STYLE_BIT1)
 
     if not obj.extraContext.get("parsed_autoresizing"):
         obj.flagsOr("NSvFlags", vFlags.DEFAULT_VFLAGS_AUTOLAYOUT if ctx.useAutolayout else vFlags.DEFAULT_VFLAGS)
@@ -128,11 +130,11 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     vs_orig_frame = obj["NSVScroller"].extraContext.get("NSFrame")
     vs_offscreen = vs_orig_frame and len(vs_orig_frame) == 4 and vs_orig_frame[0] < 0
     has_header = obj.get("NSHeaderClipView") is not None
-    if _is_table_or_outline(doc_view) and not vs_offscreen and not auto_hiding:
+    if _is_table_or_outline(doc_view) and not vs_offscreen and (has_horizontal_scroller or not auto_hiding):
         scroller_w = 17  # standard scroller width for regular control size
         ics_w = _get_ics_w(doc_view)
         if has_header:
-            expansion = int(scroller_w + ics_w)
+            expansion = int(scroller_w + 3)
         else:
             expansion = int(scroller_w + ics_w * 3)
         # Expand doc view (table/outline) frame width
@@ -162,7 +164,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
 
     # Horizontal scroller gets NSEnabled for table/outline scroll views (not autohiding)
     is_table_sv = _is_table_or_outline(doc_view)
-    if is_table_sv and not auto_hiding:
+    if is_table_sv and (has_horizontal_scroller or not auto_hiding):
         obj["NSHScroller"]["NSEnabled"] = True
     obj["NSSubviews"].addItem(obj["NSHScroller"])
     obj["NSSubviews"].addItem(obj["NSVScroller"])
