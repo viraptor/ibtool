@@ -101,6 +101,8 @@ When given a new xib file with errors to fix up:
 4. The isolate issue is fixed, move the samples/debug/*.[nx]ib files into samples/correct/ to use as a regression test in the future.
 5. Go back to step 1, until all issues are fixed (do not copy the original large xib file into samples/correct/)
 
+Do NOT modity the original xib file in any way.
+
 ## Testing
 
 `test.sh` compiles sample XIB files and compares output against reference NIB files using `--compare`. Sample files are in `samples/`.
