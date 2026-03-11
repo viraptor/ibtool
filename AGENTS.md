@@ -98,3 +98,6 @@ Compare against `parsers/button.py` which uses older imperative style - new code
 Rules for comparison: the structure of objects/keys and their order matters, the types matter. Exceptions: the order of connections and constraints can be ignored because the order seems to be an irrelevant implementation detail in the original tool.
 To fix the implementation, you should do what test.sh does and compare our result nib with the provided one. Never modify the nib or xib files in the samples directory.
 
+## Code
+
+Do NOT include comments which repeat the code itself. Only comment if the reason behind the code segment needs to be explained.
