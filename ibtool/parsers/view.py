@@ -47,7 +47,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: XibObject, **kwargs) -> Xi
                 % (parent.originalclassname())
             )
     elif key is None:
-        pass
+        obj["NSSuperview"] = parent
     else:
         raise Exception(f"view in unknown key {key} (parent {parent.repr()})")
 
