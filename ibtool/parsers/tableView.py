@@ -117,9 +117,18 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
         PropSchema(prop="NSRowHeight", attrib="rowHeight", default="17", filter=float, skip_default=False),
     ])
 
-    # GRID_STYLE_BIT1 when both columnResizing and multipleSelection are YES
-    if elem.attrib.get("columnResizing", "YES") == "YES" and elem.attrib.get("multipleSelection", "YES") == "YES":
-        obj.flagsOr("NSTvFlags", TVFLAGS.GRID_STYLE_BIT1)
+    # GRID_STYLE_BIT1 when multipleSelection=YES AND (columnResizing=YES OR 3+ columns)
+    columns = obj.get("NSTableColumns")
+    num_cols = len(columns) if columns else 0
+    if elem.attrib.get("multipleSelection", "YES") == "YES":
+        if elem.attrib.get("columnResizing", "YES") == "YES" or num_cols >= 3:
+            obj.flagsOr("NSTvFlags", TVFLAGS.GRID_STYLE_BIT1)
+    # Clear BIT0 when columnResizing=NO and any column has resizeWithTable
+    if elem.attrib.get("columnResizing", "YES") == "NO" and columns:
+        for col in columns:
+            if col.get("NSIsResizeable"):
+                obj.flagsAnd("NSTvFlags", ~TVFLAGS.GRID_STYLE_BIT0)
+                break
 
     # UNKNOWN_4 when columnReordering=YES and autosaveColumns is not explicitly "NO"
     if elem.attrib.get("columnReordering", "YES") == "YES" and "autosaveColumns" not in elem.attrib:
