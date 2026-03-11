@@ -43,13 +43,14 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
         obj.flagsOr("NSCellFlags", CellFlags.BEZELED)
 
     obj["NSBezelStyle"] = BEZEL_STYLE_MAP.get(elem.attrib.get("bezelStyle"))
-    # Clear BEZEL from button flags for popup button cells
-    if obj.get("NSButtonFlags") is not None:
-        obj["NSButtonFlags"] = obj["NSButtonFlags"] & ~ButtonFlags.BEZEL
 
-    # Override NSAuxButtonType to 0 for borderAndBezel popup button cells
-    if border_style == "borderAndBezel":
-        obj["NSAuxButtonType"] = 0
+    no_arrow = elem.attrib.get("arrowPosition") == "noArrow"
+
+    if not no_arrow:
+        if obj.get("NSButtonFlags") is not None:
+            obj["NSButtonFlags"] = obj["NSButtonFlags"] & ~ButtonFlags.BEZEL
+        if border_style == "borderAndBezel":
+            obj["NSAuxButtonType"] = 0
 
     if pulls_down:
         obj["NSPullDown"] = True
@@ -81,7 +82,11 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
             obj["NSContents"] = NibString.intern(elem.attrib.get("title", ""))
 
     if arrow_pos := elem.attrib.get("arrowPosition"):
-        obj["NSArrowPosition"] = ARROW_POSITION_MAP[arrow_pos]
+        if arrow_pos == "noArrow":
+            if obj.get("NSArrowPosition") is not None:
+                del obj["NSArrowPosition"]
+        else:
+            obj["NSArrowPosition"] = ARROW_POSITION_MAP[arrow_pos]
 
     # Popup button cells use ROLE_TITLE_BAR_FONT for their font (only for default controlSize)
     if obj.get("NSSupport") is not None and elem.attrib.get("controlSize") is None:
