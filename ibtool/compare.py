@@ -240,7 +240,7 @@ def diff(lhs: Union[NibValue,NibCollection,NibObject], rhs: Union[NibValue,NibCo
 def fixup_layout_constrints(collection, all_objects):
     # We need to order the layout constraints explicitly for comparison. Apple's tool uses random order.
     def find_order(obj, keys):
-        order_tuple = (-200000, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1)
+        order_tuple = (-200000, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, "", "")
         for i, key in enumerate(keys):
             if key is obj:
                 if key.classname == "NSLayoutConstraint":
@@ -248,8 +248,14 @@ def fixup_layout_constrints(collection, all_objects):
                     firstv2 = key.entries.get("NSFirstAttributeV2").value if key.entries.get("NSFirstAttributeV2") is not None else -1
                     second = key.entries.get("NSSecondAttribute").value if key.entries.get("NSSecondAttribute") is not None else -1
                     secondv2 = key.entries.get("NSSecondAttributeV2").value if key.entries.get("NSSecondAttributeV2") is not None else -1
-                    firstitem = keys.index(key.entries.get("NSFirstItem")) if key.entries.get("NSFirstItem") is not None else -1
-                    seconditem = keys.index(key.entries.get("NSSecondItem")) if key.entries.get("NSSecondItem") is not None else -1
+                    def _item_key(item):
+                        if item is None:
+                            return ("", b"")
+                        frame = item.entries.get("NSFrame")
+                        frame_bytes = frame.entries.get("NS.bytes").value if frame is not None and hasattr(frame, "entries") and frame.entries.get("NS.bytes") is not None else b""
+                        return (item.classname, frame_bytes)
+                    firstitem_key = _item_key(key.entries.get("NSFirstItem"))
+                    seconditem_key = _item_key(key.entries.get("NSSecondItem"))
                     priority = key.entries.get("NSPriority").value if key.entries.get("NSPriority") is not None else -1
                     constantval = key.entries.get("NSConstantValue").value if key.entries.get("NSConstantValue") is not None else -1
                     constantvalv2 = key.entries.get("NSConstantValueV2").value if key.entries.get("NSConstantValueV2") is not None else -1
@@ -258,9 +264,9 @@ def fixup_layout_constrints(collection, all_objects):
                     symbolic = key.entries.get("NSSymbolicConstant").entries["NS.bytes"].value if key.entries.get("NSSymbolicConstant") is not None else b""
                     relation = key.entries.get("NSRelation").value if key.entries.get("NSRelation") is not None else -1
 
-                    order_tuple = (first, firstv2, second, secondv2, firstitem, seconditem, priority, constantval, constantvalv2, constant, constantv2, symbolic, relation)
+                    order_tuple = (first, firstv2, second, secondv2, priority, constantval, constantvalv2, constant, constantv2, symbolic, relation, firstitem_key, seconditem_key)
                 else:
-                    order_tuple = (-100000 + i, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1)
+                    order_tuple = (-100000 + i, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, "", "")
         return order_tuple
 
     all_objects = all_objects.copy()
