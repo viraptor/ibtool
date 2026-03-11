@@ -1,4 +1,5 @@
 import math
+import re
 from ..models import ArchiveContext, NibObject, XibObject, NibString, NibMutableList, NibList, NibInlineString, NibFloatToWord
 from xml.etree.ElementTree import Element
 from typing import Optional
@@ -6,6 +7,9 @@ from .helpers import make_xib_object, __handle_view_chain, _xibparser_common_tra
 from ..parsers_base import parse_children
 from ..constants import sFlagsScrollView, vFlags
 from .tableView import TVFLAGS
+
+def _is_table_or_outline(obj):
+    return obj and hasattr(obj, 'originalclassname') and obj.originalclassname() in ("NSTableView", "NSOutlineView")
 
 def _get_ics_w(doc_view):
     ics_w = doc_view.get("NSIntercellSpacingWidth")
@@ -69,7 +73,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
         content_cv = obj.get("NSContentView")
         if content_cv:
             dv = content_cv.get("NSDocView")
-            if dv and dv.originalclassname() in ("NSTableView", "NSOutlineView"):
+            if _is_table_or_outline(dv):
                 obj.flagsOr("NSsFlags", sFlagsScrollView.COPY_ON_SCROLL)
 
     if not obj.extraContext.get("parsed_autoresizing"):
@@ -105,7 +109,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     clip_y = cv_frame[1] if cv_frame and len(cv_frame) == 4 else border
     border_deficit = border - clip_y
     doc_view = cv.get("NSDocView")
-    if border_deficit > 0 and doc_view and doc_view.originalclassname() in ("NSTableView", "NSOutlineView"):
+    if border_deficit > 0 and _is_table_or_outline(doc_view):
         # Height adjustment is handled by heightSizable autoresizing in the table/outline parser.
         # When grid lines are present and clip_y < border, swap GRID_STYLE_BIT0 → BIT1
         # and reduce autoresizable column width by ics * 3
@@ -124,11 +128,9 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     vs_orig_frame = obj["NSVScroller"].extraContext.get("NSFrame")
     vs_offscreen = vs_orig_frame and len(vs_orig_frame) == 4 and vs_orig_frame[0] < 0
     has_header = obj.get("NSHeaderClipView") is not None
-    if doc_view and doc_view.originalclassname() in ("NSTableView", "NSOutlineView") and not vs_offscreen and not auto_hiding:
+    if _is_table_or_outline(doc_view) and not vs_offscreen and not auto_hiding:
         scroller_w = 17  # standard scroller width for regular control size
-        ics_w = doc_view.get("NSIntercellSpacingWidth")
-        if ics_w is None:
-            ics_w = 3.0
+        ics_w = _get_ics_w(doc_view)
         if has_header:
             expansion = int(scroller_w + ics_w)
         else:
@@ -159,7 +161,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
                     header_view["NSFrameSize"] = NibString.intern(f"{{{hv_new_w}, {hv_new_h}}}")
 
     # Horizontal scroller gets NSEnabled for table/outline scroll views (not autohiding)
-    is_table_sv = doc_view and doc_view.originalclassname() in ("NSTableView", "NSOutlineView")
+    is_table_sv = _is_table_or_outline(doc_view)
     if is_table_sv and not auto_hiding:
         obj["NSHScroller"]["NSEnabled"] = True
     obj["NSSubviews"].addItem(obj["NSHScroller"])
@@ -172,7 +174,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     horizontal_page_scroll = 0 if elem.attrib.get("horizontalPageScroll") == "0.0" else int(elem.attrib.get("horizontalPageScroll", "10"))
     vertical_page_scroll = 0 if elem.attrib.get("verticalPageScroll") == "0.0" else int(elem.attrib.get("verticalPageScroll", "10"))
     # For table/outline doc views, line scroll = rowHeight + intercellSpacingHeight
-    if doc_view and doc_view.originalclassname() in ("NSTableView", "NSOutlineView"):
+    if _is_table_or_outline(doc_view):
         row_h = doc_view.get("NSRowHeight")
         if row_h is None:
             row_h = 17.0
@@ -185,17 +187,58 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     if (horizontal_line_scroll, vertical_line_scroll, horizontal_page_scroll, vertical_page_scroll) != (10, 10, 10, 10):
         obj["NSScrollAmts"] = NibInlineString(NibFloatToWord(vertical_page_scroll) + NibFloatToWord(horizontal_page_scroll) + NibFloatToWord(vertical_line_scroll) + NibFloatToWord(horizontal_line_scroll))
 
-    # Recompute vertical scroller frame from scrollView dimensions, but only if
-    # the scroller isn't already positioned off-screen (hidden auto-hiding scrollers)
-    # and there's no header (header scroll views keep raw XIB scroller frames)
-    if not vs_offscreen and not has_header:
+    # Recompute scroller frames for table/outline scroll views
+    hs_orig_frame = obj["NSHScroller"].extraContext.get("NSFrame")
+    hs_offscreen = hs_orig_frame and len(hs_orig_frame) == 4 and hs_orig_frame[0] < 0
+    if not vs_offscreen and is_table_sv:
         insets = obj.extraContext.get("insets", (0, 0))
         border = insets[0] // 2  # total inset / 2 = per-side border
         sv_frame = obj.extraContext.get("NSFrame") or obj.extraContext.get("NSFrameSize")
         if sv_frame is not None:
             sv_w = sv_frame[2] if len(sv_frame) == 4 else sv_frame[0]
             sv_h = sv_frame[3] if len(sv_frame) == 4 else sv_frame[1]
-            vs_w = 17 if is_table_sv else obj["NSVScroller"].extraContext.get("scroller_width", 15)
+            vs_w = 17
+            hs_h = 17
+            # Get header height if present
+            header_h = 0
+            if has_header:
+                header_clip = obj["NSHeaderClipView"]
+                hv = header_clip.get("NSDocView")
+                if hv:
+                    hv_f = hv.extraContext.get("NSFrame") or hv.extraContext.get("NSFrameSize")
+                    if hv_f:
+                        header_h = hv_f[3] if len(hv_f) == 4 else hv_f[1]
+            # Vertical scroller (only for non-autohiding)
+            if not auto_hiding:
+                vs_x = sv_w - border - vs_w
+                vs_y = border + header_h
+                vs_h = sv_h - 2 * border - header_h
+                obj["NSVScroller"]["NSFrame"] = NibString.intern(f"{{{{{vs_x}, {vs_y}}}, {{{vs_w}, {vs_h}}}}}")
+                obj["NSVScroller"].flagsAnd("NSvFlags", ~vFlags.HIDDEN)
+            # Horizontal scroller (only when not offscreen)
+            if not hs_offscreen:
+                hs_x = border
+                hs_y = sv_h - border - hs_h
+                hs_w = sv_w - 2 * border
+                obj["NSHScroller"]["NSFrame"] = NibString.intern(f"{{{{{hs_x}, {hs_y}}}, {{{hs_w}, {hs_h}}}}}")
+                obj["NSHScroller"].flagsAnd("NSvFlags", ~vFlags.HIDDEN)
+                # NSPercent = visible ratio (clip width / table width)
+                clip_w = sv_w - 2 * border
+                dv_frame_str = doc_view.get("NSFrameSize")
+                if dv_frame_str:
+                    m = re.match(r'\{(\d+),', dv_frame_str._text)
+                    if m:
+                        table_w = int(m.group(1))
+                        if table_w > 0:
+                            obj["NSHScroller"]["NSPercent"] = clip_w / table_w
+    elif not vs_offscreen and not has_header and not is_table_sv:
+        insets = obj.extraContext.get("insets", (0, 0))
+        border = insets[0] // 2
+        sv_frame = obj.extraContext.get("NSFrame") or obj.extraContext.get("NSFrameSize")
+        if sv_frame is not None:
+            sv_w = sv_frame[2] if len(sv_frame) == 4 else sv_frame[0]
+            sv_h = sv_frame[3] if len(sv_frame) == 4 else sv_frame[1]
+            vs_w = obj["NSVScroller"].extraContext.get("scroller_width", 15)
             vs_x = sv_w - border - vs_w
             vs_y = border
             vs_h = sv_h - 2 * border
