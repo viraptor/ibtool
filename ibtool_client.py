@@ -8,7 +8,7 @@ import sys
 
 
 def main():
-    addr = os.environ.get("IBTOOL_SOCKET", "IBTOOL_SOCKET=host.docker.internal:9123")
+    addr = os.environ.get("IBTOOL_SOCKET", "host.docker.internal:9123")
     if not addr:
         print("Error: IBTOOL_SOCKET environment variable not set", file=sys.stderr)
         sys.exit(1)
