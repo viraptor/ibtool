@@ -125,11 +125,14 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
             # reduce column widths by scroller_width + ics * 4
             reduction = 17 + _get_ics_w(doc_view) * 4
             _reduce_column_widths(doc_view, reduction)
-    # Expand table/outline view and header view widths for visible vertical scroller
+    # Autohiding scroll views without headers: reduce column widths when VScroller is not offscreen
     doc_view = cv.get("NSDocView")
     vs_orig_frame = obj["NSVScroller"].extraContext.get("NSFrame")
     vs_offscreen = vs_orig_frame and len(vs_orig_frame) == 4 and vs_orig_frame[0] < 0
     has_header = obj.get("NSHeaderClipView") is not None
+    if auto_hiding and not has_header and not vs_offscreen and _is_table_or_outline(doc_view):
+        reduction = 17 + _get_ics_w(doc_view) * 4
+        _reduce_column_widths(doc_view, reduction)
     if _is_table_or_outline(doc_view) and not vs_offscreen and (has_horizontal_scroller or not auto_hiding):
         scroller_w = 17  # standard scroller width for regular control size
         ics_w = _get_ics_w(doc_view)

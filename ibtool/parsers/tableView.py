@@ -102,10 +102,11 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
         "sourceList": 1,
     }
     handle_props(ctx, elem, obj, [
-        PropSchema(prop="NSTvFlags", const=TVFLAGS.ALLOWS_COLUMN_RESIZING | TVFLAGS.UNKNOWN_2 | TVFLAGS.GRID_STYLE_BIT0),
+        PropSchema(prop="NSTvFlags", const=TVFLAGS.UNKNOWN_2 | TVFLAGS.GRID_STYLE_BIT0),
+        PropSchema(prop="NSTvFlags", attrib="columnResizing", default="YES", map=MAP_YES_NO, or_mask=TVFLAGS.ALLOWS_COLUMN_RESIZING),
         PropSchema(prop="NSTvFlags", attrib="alternatingRowBackgroundColors", default="NO", map=MAP_YES_NO, or_mask=TVFLAGS.ALTERNATING_ROW_BACKGROUND_COLORS),
         PropSchema(prop="NSTvFlags", attrib="columnSelection", default="NO", map=MAP_YES_NO, or_mask=TVFLAGS.ALLOWS_COLUMN_SELECTION),
-        PropSchema(prop="NSTvFlags", attrib="multipleSelection", default="YES", map=MAP_YES_NO, or_mask=TVFLAGS.ALLOWS_MULTIPLE_SELECTION | TVFLAGS.GRID_STYLE_BIT1),
+        PropSchema(prop="NSTvFlags", attrib="multipleSelection", default="YES", map=MAP_YES_NO, or_mask=TVFLAGS.ALLOWS_MULTIPLE_SELECTION),
         PropSchema(prop="NSTvFlags", attrib="columnReordering", default="YES", map=MAP_YES_NO, or_mask=TVFLAGS.ALLOWS_COLUMN_REORDERING | TVFLAGS.UNKNOWN_1),
         PropSchema(prop="NSTvFlags", attrib="emptySelection", default="YES", map=MAP_YES_NO, or_mask=TVFLAGS.ALLOWS_EMPTY_SELECTION),
         PropSchema(prop="NSTableViewShouldFloatGroupRows", attrib="floatsGroupRows", default="YES", map=MAP_YES_NO),
@@ -115,6 +116,10 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
         PropSchema(prop="NSAutosaveName", attrib="autosaveName", skip_default=True),
         PropSchema(prop="NSRowHeight", attrib="rowHeight", default="17", filter=float, skip_default=False),
     ])
+
+    # GRID_STYLE_BIT1 when both columnResizing and multipleSelection are YES
+    if elem.attrib.get("columnResizing", "YES") == "YES" and elem.attrib.get("multipleSelection", "YES") == "YES":
+        obj.flagsOr("NSTvFlags", TVFLAGS.GRID_STYLE_BIT1)
 
     # UNKNOWN_4 when columnReordering=YES and autosaveColumns is not explicitly "NO"
     if elem.attrib.get("columnReordering", "YES") == "YES" and "autosaveColumns" not in elem.attrib:
