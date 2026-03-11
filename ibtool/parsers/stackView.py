@@ -19,6 +19,11 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
         obj.flagsOr("NSvFlags", vFlags.DEFAULT_VFLAGS_AUTOLAYOUT if ctx.useAutolayout else vFlags.DEFAULT_VFLAGS)
 
     if obj.get("NSSubviews") is not None:
+        if obj.extraContext.get("NSDoNotTranslateAutoresizingMask"):
+            obj["NSDoNotTranslateAutoresizingMask"] = True
+        for child in obj["NSSubviews"]._items:
+            if hasattr(child, 'extraContext') and child.extraContext.get("NSDoNotTranslateAutoresizingMask"):
+                child["NSDoNotTranslateAutoresizingMask"] = True
         obj["NSStackViewBeginningContainer"] = NibObject("NSStackViewContainer", obj, {
             "IBNSClipsToBounds": 0,
             "IBNSLayoutMarginsGuide": NibNil(),
