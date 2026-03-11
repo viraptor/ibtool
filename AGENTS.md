@@ -92,6 +92,15 @@ Compare against `parsers/button.py` which uses older imperative style - new code
 - **`NibString`** / **`NibData`** - Interned immutable wrappers. Use `NibString.intern("value")`.
 - **`NibMutableList`**, **`NibMutableDictionary`**, etc. - Collection types for NIB serialization.
 
+## Development process
+
+When given a new xib file with errors to fix up:
+1. Run `./test.sh path/to/the/file.xib`
+2. Create a minimal reproduction test for one of the issues in samples/debug/ and compile that file using /usr/bin/ibtool (always use relative paths for xib/nib)
+3. Either implement the fix or go back to step 2 for more tests if the issue is more complex
+4. The isolate issue is fixed, move the debug xib/nib files into samples/correct/ to use as a regression test in the future.
+5. Go back to step 1, until all issues are fixed (do not copy the original large xib file into samples/correct/)
+
 ## Testing
 
 `test.sh` compiles sample XIB files and compares output against reference NIB files using `--compare`. Sample files are in `samples/`.
