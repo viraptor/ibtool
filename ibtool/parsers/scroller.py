@@ -34,10 +34,13 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
         "large": sFlagsScroller.CONTROL_SIZE_LARGE,
         "extraLarge": sFlagsScroller.CONTROL_SIZE_EXTRA_LARGE,
     }.get(elem.attrib.get("controlSize"), 0)
-    # Store the scroller width for scrollView frame computation
+    # Store the scroller width and standard width for scrollView frame computation
     frame = obj.extraContext.get("NSFrame") or obj.extraContext.get("NSFrameSize")
     if frame:
         obj.extraContext["scroller_width"] = frame[2] if len(frame) == 4 else frame[0]
+    obj.extraContext["standard_scroller_width"] = {
+        "small": 15, "mini": 11,
+    }.get(elem.attrib.get("controlSize"), 17)
 
     if elem.attrib["horizontal"] == "YES":
         parent["NSHScroller"] = obj

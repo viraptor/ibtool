@@ -133,8 +133,10 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     if auto_hiding and not has_header and not vs_offscreen and _is_table_or_outline(doc_view):
         reduction = 17 + _get_ics_w(doc_view) * 4
         _reduce_column_widths(doc_view, reduction)
-    if _is_table_or_outline(doc_view) and not vs_offscreen and (has_horizontal_scroller or not auto_hiding):
-        scroller_w = 17  # standard scroller width for regular control size
+    vs_standard_w = obj["NSVScroller"].extraContext.get("standard_scroller_width", 17)
+    is_regular_scroller = vs_standard_w == 17
+    if _is_table_or_outline(doc_view) and not vs_offscreen and is_regular_scroller and (has_horizontal_scroller or not auto_hiding):
+        scroller_w = 17
         ics_w = _get_ics_w(doc_view)
         if has_header:
             expansion = int(scroller_w + 3)
@@ -165,9 +167,9 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
                         hv_new_h = int(hv_frame[1])
                     header_view["NSFrameSize"] = NibString.intern(f"{{{hv_new_w}, {hv_new_h}}}")
 
-    # Horizontal scroller gets NSEnabled for table/outline scroll views (not autohiding)
+    # Horizontal scroller gets NSEnabled for table/outline scroll views (regular size, not autohiding)
     is_table_sv = _is_table_or_outline(doc_view)
-    if is_table_sv and (has_horizontal_scroller or not auto_hiding):
+    if is_table_sv and is_regular_scroller and (has_horizontal_scroller or not auto_hiding):
         obj["NSHScroller"]["NSEnabled"] = True
     obj["NSSubviews"].addItem(obj["NSHScroller"])
     obj["NSSubviews"].addItem(obj["NSVScroller"])
@@ -202,7 +204,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
         if sv_frame is not None:
             sv_w = sv_frame[2] if len(sv_frame) == 4 else sv_frame[0]
             sv_h = sv_frame[3] if len(sv_frame) == 4 else sv_frame[1]
-            vs_w = 17
+            vs_w = vs_standard_w
             hs_h = 17
             # Get header height if present
             header_h = 0
