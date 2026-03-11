@@ -381,6 +381,7 @@ class ArchiveContext:
 
         self.isPrototypeList = False
         self.visibleWindows: list[NibObject] = []
+        self.imageResources: dict[str, tuple[str, str]] = {}  # name -> (width, height)
 
         # What I plan on using after the context revision:
 

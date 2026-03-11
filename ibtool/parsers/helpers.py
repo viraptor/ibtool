@@ -222,6 +222,24 @@ def __handle_view_chain(ctx: ArchiveContext, obj: XibObject):
     else:
         obj["NSFrame"] = NibString.intern(f"{{{{{x}, {y}}}, {{{w}, {h}}}}}")
 
+def make_image(name: str, parent: NibObject, ctx: "ArchiveContext") -> NibObject:
+    obj = NibObject("NSCustomResource", parent)
+    obj["NSResourceName"] = NibString.intern(name)
+    obj["NSClassName"] = NibString.intern("NSImage")
+    res = ctx.imageResources.get(name)
+    if res and not name.startswith("NS"):
+        obj["IBNamespaceID"] = NibNil()
+        size_str = f"{{{res[0]}, {res[1]}}}"
+    else:
+        obj["IBNamespaceID"] = NibString.intern("system")
+        size_str = "{32, 32}"
+    design_size = NibObject("NSValue", obj)
+    design_size["NS.sizeval"] = NibString.intern(size_str)
+    design_size["NS.special"] = 2
+    obj["IBDesignSize"] = design_size
+    obj["IBDesignImageConfiguration"] = NibNil()
+    return obj
+
 def make_system_image(name: str, parent: NibObject) -> NibObject:
     obj = NibObject("NSCustomResource", parent)
     obj["NSResourceName"] = NibString.intern(name)
