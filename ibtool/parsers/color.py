@@ -10,7 +10,7 @@ def _strip_dot_if_int(s: str) -> str:
 
 def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
     assert isinstance(parent, XibObject) or isinstance(parent, NibObject), type(parent)
-    assert elem.attrib["colorSpace"] in ["catalog", "calibratedWhite", "calibratedRGB"], elem.attrib["colorSpace"]
+    assert elem.attrib["colorSpace"] in ["catalog", "calibratedWhite", "calibratedRGB", "deviceRGB"], elem.attrib["colorSpace"]
 
     key = elem.attrib["key"]
 
@@ -106,13 +106,14 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
                 "NSWhite": NibInlineString(white),
             })
         target_obj[target_attribute] = color
-    elif elem.attrib["colorSpace"] == "calibratedRGB":
+    elif elem.attrib["colorSpace"] in ("calibratedRGB", "deviceRGB"):
+        color_space_id = 1 if elem.attrib["colorSpace"] == "calibratedRGB" else 2
         red = _strip_dot_if_int(elem.attrib["red"])
         green = _strip_dot_if_int(elem.attrib["green"])
         blue = _strip_dot_if_int(elem.attrib["blue"])
         alpha = _strip_dot_if_int(elem.attrib["alpha"])
         color = NibObject("NSColor", None, {
-            "NSColorSpace": 1,
+            "NSColorSpace": color_space_id,
             "NSRGB": NibInlineString(f"{red} {green} {blue}\x00") if alpha == "1" else f"{red} {green} {blue} {alpha}\x00",
         })
         target_obj[target_attribute] = color

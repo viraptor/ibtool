@@ -27,6 +27,9 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
     obj["NSControlUsesSingleLineMode"] = False
     obj.setIfEmpty("NSControlLineBreakMode", 0)
     obj["NSControlSendActionMask"] = 4
+    pmlw = elem.attrib.get("preferredMaxLayoutWidth")
+    if pmlw is not None and float(pmlw) != 0:
+        obj["NSPreferredMaxLayoutWidth"] = float(pmlw)
     obj["NSTextFieldAlignmentRectInsetsVersion"] = 2
     obj["NSTextFieldAllowsWritingToolsAffordance"] = False
     obj["NS.resolvesNaturalAlignmentWithBaseWritingDirection"] = False
