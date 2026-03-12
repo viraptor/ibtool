@@ -1,4 +1,4 @@
-from ..models import ArchiveContext, NibObject, XibObject, NibString, XibId
+from ..models import ArchiveContext, NibObject, XibObject, NibString, NibNil, XibId
 from xml.etree.ElementTree import Element
 from typing import Optional
 from .helpers import make_xib_object, __xibparser_cell_options, __xibparser_button_flags
@@ -45,8 +45,9 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     obj["NSBezelStyle"] = BEZEL_STYLE_MAP.get(elem.attrib.get("bezelStyle"))
 
     no_arrow = elem.attrib.get("arrowPosition") == "noArrow"
+    is_textured_rounded = elem.attrib.get("bezelStyle") == "texturedRounded"
 
-    if not no_arrow:
+    if not no_arrow and not is_textured_rounded:
         if obj.get("NSButtonFlags") is not None:
             obj["NSButtonFlags"] = obj["NSButtonFlags"] & ~ButtonFlags.BEZEL
         if border_style == "borderAndBezel":
@@ -66,20 +67,25 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
         obj["NSPreferredEdge"] = PREFERRED_EDGE_MAP.get(elem.attrib.get("preferredEdge"), 1)
         obj["NSArrowPosition"] = 2  # default for popups
 
-        # Set selected item from menu
-        selected_item_id = elem.attrib.get("selectedItem")
-        if selected_item_id and obj.get("NSMenu"):
-            menu_items = obj["NSMenu"]["NSMenuItems"]._items
-            selected_obj = ctx.findObject(XibId(selected_item_id))
-            for i, item in enumerate(menu_items):
-                if item is selected_obj:
-                    obj["NSMenuItem"] = item
-                    if i > 0:
-                        obj["NSSelectedIndex"] = i
-                    obj["NSContents"] = NibString.intern(elem.attrib.get("title", ""))
-                    break
-        if obj.get("NSContents") is None:
+        if is_textured_rounded:
+            obj["NSMenuItem"] = NibNil()
+            obj["NSSelectedIndex"] = -1
             obj["NSContents"] = NibString.intern(elem.attrib.get("title", ""))
+        else:
+            # Set selected item from menu
+            selected_item_id = elem.attrib.get("selectedItem")
+            if selected_item_id and obj.get("NSMenu"):
+                menu_items = obj["NSMenu"]["NSMenuItems"]._items
+                selected_obj = ctx.findObject(XibId(selected_item_id))
+                for i, item in enumerate(menu_items):
+                    if item is selected_obj:
+                        obj["NSMenuItem"] = item
+                        if i > 0:
+                            obj["NSSelectedIndex"] = i
+                        obj["NSContents"] = NibString.intern(elem.attrib.get("title", ""))
+                        break
+            if obj.get("NSContents") is None:
+                obj["NSContents"] = NibString.intern(elem.attrib.get("title", ""))
 
     if arrow_pos := elem.attrib.get("arrowPosition"):
         if arrow_pos == "noArrow":
