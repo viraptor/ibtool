@@ -1,7 +1,7 @@
 from ..models import ArchiveContext, NibObject, XibObject, NibNil, NibString, NibMutableList, NibFloat
 from xml.etree.ElementTree import Element
 from typing import Optional
-from .helpers import make_xib_object, __handle_view_chain, _xibparser_common_translate_autoresizing
+from .helpers import make_xib_object, _xibparser_common_translate_autoresizing
 from ..parsers_base import parse_children
 from ..constants import vFlags
 
@@ -11,8 +11,12 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
 
     obj["NSSuperview"] = obj.xib_parent()
 
-    with __handle_view_chain(ctx, obj):
-        parse_children(ctx, elem, obj)
+    parse_children(ctx, elem, obj)
+    x, y, w, h = obj.frame()
+    if x == 0 and y == 0:
+        obj["NSFrameSize"] = NibString.intern(f"{{{w}, {h}}}")
+    else:
+        obj["NSFrame"] = NibString.intern(f"{{{{{x}, {y}}}, {{{w}, {h}}}}}")
     _xibparser_common_translate_autoresizing(ctx, elem, parent, obj)
     
     if not obj.extraContext.get("parsed_autoresizing"):

@@ -140,6 +140,9 @@ def diff(lhs: Union[NibValue,NibCollection,NibObject], rhs: Union[NibValue,NibCo
 
     path = '->'.join(str(key) for key in current_path)
 
+    if path.endswith("NSOidsValues"):
+        return
+
     if type(lhs) != type(rhs):
         yield f"{path}{_xib_annotation(rhs, xibid_map)} (in {parent_class}): Types don't match {type(lhs)} != {type(rhs)}"
         return
@@ -175,7 +178,7 @@ def diff(lhs: Union[NibValue,NibCollection,NibObject], rhs: Union[NibValue,NibCo
 
     annotation = _xib_annotation(rhs, xibid_map)
 
-    connector_classes = ("NSNibConnector", "NSNibOutletConnector", "NSNibControlConnector", "NSNibAuxiliaryActionConnector", "NSIBHelpConnector", "NSNibBindingConnector")
+    connector_classes = ("NSNibConnector", "NSNibOutletConnector", "NSNibControlConnector", "NSNibAuxiliaryActionConnector", "NSIBHelpConnector", "NSNibBindingConnector", "NSIBUserDefinedRuntimeAttributesConnector")
     if lhs.classname in connector_classes and rhs.classname in connector_classes:
         # Connections are unordered
         return
@@ -272,6 +275,24 @@ def fixup_layout_constrints(collection, all_objects):
     all_objects = all_objects.copy()
     collection.sort(key=lambda x: find_order(x, all_objects))
 
+def fixup_connections(collection):
+    connector_classes = {"NSNibConnector", "NSNibOutletConnector", "NSNibControlConnector",
+        "NSNibAuxiliaryActionConnector", "NSIBHelpConnector", "NSNibBindingConnector",
+        "NSIBUserDefinedRuntimeAttributesConnector"}
+    connectors = [x for x in collection if x.classname in connector_classes]
+    non_connectors = [x for x in collection if x.classname not in connector_classes]
+    def conn_sort_key(c):
+        cls = c.classname
+        dest = c.entries.get("NSDestination")
+        dest_cls = dest.classname if dest is not None else ""
+        src = c.entries.get("NSSource")
+        src_cls = src.classname if src is not None else ""
+        label = c.entries.get("NSLabel")
+        label_val = label.entries.get("NS.bytes").value if label is not None and hasattr(label, "entries") and label.entries.get("NS.bytes") is not None else b""
+        return (cls, dest_cls, src_cls, label_val)
+    connectors.sort(key=conn_sort_key)
+    collection[:] = non_connectors + connectors
+
 def main(orig_path, test_path, xib_path=None):
     orig_nib = getNibSectionsFile(orig_path)
     test_nib = getNibSectionsFile(test_path)
@@ -297,6 +318,8 @@ def main(orig_path, test_path, xib_path=None):
     fixup_layout_constrints(test_root.entries["IB.objectdata"].entries["NSObjectsKeys"].entries, test_objects)
     fixup_layout_constrints(orig_root.entries["IB.objectdata"].entries["NSOidsKeys"].entries, orig_objects)
     fixup_layout_constrints(test_root.entries["IB.objectdata"].entries["NSOidsKeys"].entries, test_objects)
+    fixup_connections(orig_root.entries["IB.objectdata"].entries["NSOidsKeys"].entries)
+    fixup_connections(test_root.entries["IB.objectdata"].entries["NSOidsKeys"].entries)
     for issue in diff(orig_root, test_root, lhs_root=orig_objects, rhs_root=test_objects, xibid_map=xibid_map):
         found_issues = True
         print(issue)

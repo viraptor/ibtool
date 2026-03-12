@@ -1,5 +1,5 @@
 from contextlib import contextmanager
-from ..models import ArchiveContext, XibId, NibObject, NibNil, XibObject, NibMutableSet, NibString, NibInlineString
+from ..models import ArchiveContext, XibId, NibObject, NibNil, XibObject, NibMutableSet, NibString, NibInlineString, NibList, NibNSNumber
 from xml.etree.ElementTree import Element
 from typing import Optional, Any, Callable
 from ..constants import vFlags, CellFlags, CellFlags2, LineBreakMode, CONTROL_SIZE_MAP, CONTROL_SIZE_MAP2, ButtonFlags, ButtonFlags2, BEZEL_STYLE_MAP
@@ -33,6 +33,8 @@ def _xibparser_common_view_attributes(ctx: ArchiveContext, elem: Element, parent
         obj.flagsOr("NSvFlags", vFlags.HIDDEN)
     if elem is None or elem.attrib.get("autoresizesSubviews", "YES") != "NO":
         obj.flagsOr("NSvFlags", vFlags.AUTORESIZES_SUBVIEWS)
+    else:
+        obj.extraContext["no_autoresizes_subviews"] = True
     focus_ring_type = elem.attrib.get("focusRingType") if elem is not None else None
     if focus_ring_type:
         obj.extraContext["focusRingType"] = focus_ring_type
@@ -84,7 +86,7 @@ def __xibparser_cell_flags(elem: Element, obj: NibObject, parent: NibObject) -> 
     textAlignmentMask = {None: CellFlags2.TEXT_ALIGN_NONE, "left": CellFlags2.TEXT_ALIGN_LEFT, "center": CellFlags2.TEXT_ALIGN_CENTER, "right": CellFlags2.TEXT_ALIGN_RIGHT}[textAlignment]
     selectable = (CellFlags.SELECTABLE + 1) if elem.attrib.get("selectable") == "YES" else 0
     state_on = CellFlags.STATE_ON if (elem.attrib.get("state") == "on") else 0
-    text_field_flag = CellFlags.UNKNOWN_TEXT_FIELD if obj.originalclassname() in ["NSTextFieldCell", "NSButtonCell", "NSSearchFieldCell", "NSPopUpButtonCell", "NSTableHeaderCell", "NSSegmentedCell", "NSSliderCell"] else 0
+    text_field_flag = CellFlags.UNKNOWN_TEXT_FIELD if obj.originalclassname() in ["NSTextFieldCell", "NSButtonCell", "NSSearchFieldCell", "NSPopUpButtonCell", "NSTableHeaderCell", "NSSegmentedCell"] else 0
     refuses_first_responder = elem.attrib.get("refusesFirstResponder", "NO") == "YES"
     refuses_first_responder_mask = CellFlags2.REFUSES_FIRST_RESPONDER if refuses_first_responder else 0
     scrollable = CellFlags.SCROLLABLE if elem.attrib.get("scrollable", "NO") == "YES" else 0
@@ -366,6 +368,10 @@ def makeSystemColor(name):
         return systemRGBColorTemplate(name, b'1 0 0 1', b'0.9859541655 0 0.02694000863\x00')
     elif name == 'windowBackgroundColor':
         return systemGrayColorTemplate(name, b'0.5 1', b'0.4246723652\x00')
+    elif name == 'secondaryLabelColor':
+        return systemGrayColorTemplate(name, b'0.3333333333 1', b'0.2637968361\x00')
+    elif name == 'controlAccentColor':
+        return systemRGBColorTemplate(name, b'0 0 1 1', b'0 0 0.9981992245\x00')
     elif name == '_sourceListBackgroundColor':
         return systemCustomGrayColorTemplate(name, 'controlBackgroundColor', '0.6666666667 1', b'0.602715373\x00')
     else:

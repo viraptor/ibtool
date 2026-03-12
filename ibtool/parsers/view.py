@@ -74,36 +74,38 @@ def parse(ctx: ArchiveContext, elem: Element, parent: XibObject, **kwargs) -> Xi
             subviews = obj.get("NSSubviews")
             if subviews:
                 for child in subviews:
-                    ar = child.extraContext.get("parsed_autoresizing") if hasattr(child, 'extraContext') else None
-                    if not ar or not isinstance(ar, dict):
-                        continue
-                    child_frame = child.extraContext.get("NSFrame")
+                    child_frame = child.extraContext.get("NSFrame") if hasattr(child, 'extraContext') else None
                     if not child_frame:
                         continue
                     cx, cy, cw, ch = child_frame
+                    ar = child.extraContext.get("parsed_autoresizing") if hasattr(child, 'extraContext') else None
                     changed = False
-                    if x_off and ar.get("widthSizable"):
-                        cw += x_off
-                        changed = True
-                    if x_off and ar.get("flexibleMinX"):
-                        if ar.get("flexibleMaxX"):
-                            left_margin = cx
-                            right_margin = xib_size[0] - cx - child_frame[2]
-                            total = left_margin + right_margin
-                            dx = int(x_off * left_margin / total) if total else 0
-                        else:
-                            dx = x_off
-                        cx += dx
-                        changed = True
-                    if y_off and ar.get("flexibleMinY"):
-                        if ar.get("flexibleMaxY"):
-                            bot_margin = cy
-                            top_margin = xib_size[1] - cy - ch
-                            total = bot_margin + top_margin
-                            dy = int(y_off * bot_margin / total) if total else 0
-                        else:
-                            dy = y_off
-                        cy += dy
+                    if ar and isinstance(ar, dict):
+                        if x_off and ar.get("widthSizable"):
+                            cw += x_off
+                            changed = True
+                        if x_off and ar.get("flexibleMinX"):
+                            if ar.get("flexibleMaxX"):
+                                left_margin = cx
+                                right_margin = xib_size[0] - cx - child_frame[2]
+                                total = left_margin + right_margin
+                                dx = int(x_off * left_margin / total) if total else 0
+                            else:
+                                dx = x_off
+                            cx += dx
+                            changed = True
+                        if y_off and ar.get("flexibleMinY"):
+                            if ar.get("flexibleMaxY"):
+                                bot_margin = cy
+                                top_margin = xib_size[1] - cy - ch
+                                total = bot_margin + top_margin
+                                dy = int(y_off * bot_margin / total) if total else 0
+                            else:
+                                dy = y_off
+                            cy += dy
+                            changed = True
+                    elif y_off:
+                        cy += y_off
                         changed = True
                     if changed:
                         child["NSFrame"] = NibString.intern(f"{{{{{cx}, {cy}}}, {{{cw}, {ch}}}}}")
