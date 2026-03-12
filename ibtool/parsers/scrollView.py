@@ -157,15 +157,30 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
             expansion = int(scroller_w + 3)
         else:
             expansion = int(scroller_w + ics_w * 3)
+        # Compute clip view computed dimensions to determine if table extends beyond it
+        cv_computed = cv.frame()
+        clip_computed_w = int(cv_computed[2]) if cv_computed else None
+        clip_computed_h = int(cv_computed[3]) if cv_computed else None
+        # Get header height for height correction
+        header_h = 0
+        if has_header:
+            header_clip = obj["NSHeaderClipView"]
+            hv = header_clip.get("NSDocView")
+            if hv:
+                hv_f = hv.extraContext.get("NSFrame") or hv.extraContext.get("NSFrameSize")
+                if hv_f:
+                    header_h = int(hv_f[3]) if len(hv_f) == 4 else int(hv_f[1])
         # Expand doc view (table/outline) frame width
         dv_frame = doc_view.extraContext.get("NSFrame") or doc_view.extraContext.get("NSFrameSize")
         if dv_frame:
-            if len(dv_frame) == 4:
-                new_w = int(dv_frame[2]) + expansion
-                new_h = int(dv_frame[3])
+            raw_w = int(dv_frame[2]) if len(dv_frame) == 4 else int(dv_frame[0])
+            new_h = int(dv_frame[3]) if len(dv_frame) == 4 else int(dv_frame[1])
+            if has_header and not has_horizontal_scroller and clip_computed_w is not None and raw_w <= clip_computed_w:
+                new_w = clip_computed_w
             else:
-                new_w = int(dv_frame[0]) + expansion
-                new_h = int(dv_frame[1])
+                new_w = raw_w + expansion
+            if has_header and clip_computed_h is not None:
+                new_h = clip_computed_h - header_h
             doc_view["NSFrameSize"] = NibString.intern(f"{{{new_w}, {new_h}}}")
         # Expand header view width to match
         if has_header:
@@ -174,18 +189,26 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
             if header_view:
                 hv_frame = header_view.extraContext.get("NSFrame") or header_view.extraContext.get("NSFrameSize")
                 if hv_frame:
-                    if len(hv_frame) == 4:
-                        hv_new_w = int(hv_frame[2]) + expansion
-                        hv_new_h = int(hv_frame[3])
+                    hv_raw_w = int(hv_frame[2]) if len(hv_frame) == 4 else int(hv_frame[0])
+                    hv_new_h = int(hv_frame[3]) if len(hv_frame) == 4 else int(hv_frame[1])
+                    if not has_horizontal_scroller and clip_computed_w is not None and hv_raw_w <= clip_computed_w:
+                        hv_new_w = clip_computed_w
                     else:
-                        hv_new_w = int(hv_frame[0]) + expansion
-                        hv_new_h = int(hv_frame[1])
+                        hv_new_w = hv_raw_w + expansion
                     header_view["NSFrameSize"] = NibString.intern(f"{{{hv_new_w}, {hv_new_h}}}")
 
     # Horizontal scroller gets NSEnabled for table/outline scroll views (regular size, not autohiding)
     is_table_sv = _is_table_or_outline(doc_view)
     if is_table_sv and is_regular_scroller and (has_horizontal_scroller or not auto_hiding):
-        obj["NSHScroller"]["NSEnabled"] = True
+        if has_horizontal_scroller or not has_header:
+            obj["NSHScroller"]["NSEnabled"] = True
+        else:
+            dv_frame = doc_view.extraContext.get("NSFrame") or doc_view.extraContext.get("NSFrameSize")
+            cv_computed = cv.frame()
+            raw_dv_w = (int(dv_frame[2]) if len(dv_frame) == 4 else int(dv_frame[0])) if dv_frame else 0
+            clip_w = int(cv_computed[2]) if cv_computed else 0
+            if raw_dv_w > clip_w:
+                obj["NSHScroller"]["NSEnabled"] = True
 
     # Small scroller handling for table/outline scroll views with offscreen VScroller
     if is_table_sv and vs_offscreen and not is_regular_scroller:
