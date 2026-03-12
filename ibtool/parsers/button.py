@@ -1,4 +1,4 @@
-from ..models import ArchiveContext, NibObject, XibObject, NibNil
+from ..models import ArchiveContext, NibObject, XibObject, NibNil, NibString
 from ..parsers.helpers import make_xib_object
 from ..parsers_base import parse_children
 from .helpers import _xibparser_common_translate_autoresizing
@@ -22,6 +22,13 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     obj["NSControlWritingDirection"] = -1
     obj["NSControlSendActionMask"] = 4
     obj["IBNSShadowedSymbolConfiguration"] = NibNil()
+    h = obj.extraContext.get("horizontalHuggingPriority")
+    v = obj.extraContext.get("verticalHuggingPriority")
+    if h is not None or v is not None:
+        hp = h or "250"
+        vp = v or "250"
+        if hp != "250" or vp != "750":
+            obj["NSHuggingPriority"] = NibString.intern(f"{{{hp}, {vp}}}")
     if not obj.extraContext.get("parsed_autoresizing"):
         obj.flagsOr("NSvFlags", vFlags.DEFAULT_VFLAGS_AUTOLAYOUT if ctx.useAutolayout else vFlags.DEFAULT_VFLAGS)
     return obj

@@ -22,8 +22,14 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
             if o.tag == "integer":
                 data.append(NibString.intern(o.attrib["key"]))
                 data.append(NibNSNumber(int(o.attrib["value"])))
+            elif o.tag == "string":
+                data.append(NibString.intern(o.attrib["key"]))
+                data.append(NibString.intern(o.text or ""))
+            elif o.tag == "bool":
+                data.append(NibString.intern(o.attrib["key"]))
+                data.append(NibNSNumber(o.attrib["value"] == "YES"))
             else:
-                raise Exception(f"unknown tag: {x.tag}")
+                raise Exception(f"unknown tag: {o.tag}")
     if data:
         obj["NSOptions"] = NibMutableDictionary(data)
     ctx.connections.append(obj)

@@ -1,4 +1,4 @@
-from ..models import ArchiveContext, NibObject, NibMutableList, NibString, NibNil
+from ..models import ArchiveContext, NibObject, NibMutableList, NibString, NibNil, NibList, NibNSNumber
 from xml.etree.ElementTree import Element
 from .helpers import make_xib_object, makeSystemColor, _xibparser_common_translate_autoresizing, handle_props, PropSchema
 from ..parsers_base import parse_children
@@ -10,8 +10,10 @@ BOX_TITLE_POSITION_MAP = {
 }
 
 BOX_BORDER_TYPE_MAP = {
-    "separator": 3,
     None: 3,
+    "none": 0,
+    "line": 1,
+    "bezel": 2,
 }
 
 BOX_TYPE_MAP = {
@@ -33,7 +35,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
     handle_props(ctx, elem, obj, [
         PropSchema(prop="NSSuperview", const=obj.xib_parent()),
         PropSchema(prop="NSBoxType", attrib="boxType", default=None, map=BOX_TYPE_MAP, skip_default=False),
-        PropSchema(prop="NSBorderType", attrib="boxType", default=None, map=BOX_BORDER_TYPE_MAP, skip_default=False),
+        PropSchema(prop="NSBorderType", attrib="borderType", default=None, map=BOX_BORDER_TYPE_MAP, skip_default=False),
         PropSchema(prop="IBNSBoxIsUsingDocumentContentView", attrib="boxType", default=None, map=BOX_USING_CONTENT_VIEW_MAP, skip_default=False),
         PropSchema(prop="NSTitlePosition", attrib="titlePosition", default=None, map=BOX_TITLE_POSITION_MAP, skip_default=False),
         PropSchema(prop="NSTransparent", const=False),
@@ -63,6 +65,14 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
         v, h = obj.extraContext.get("verticalHuggingPriority", 250), obj.extraContext.get("horizontalHuggingPriority", 250)
         obj["NSHuggingPriority"] = f"{{{h}, {v}}}"
     if not obj.extraContext.get("parsed_autoresizing"):
-        obj.flagsOr("NSvFlags", vFlags.DEFAULT_VFLAGS_AUTOLAYOUT if ctx.useAutolayout else vFlags.DEFAULT_VFLAGS)
+        flags = vFlags.DEFAULT_VFLAGS_AUTOLAYOUT if ctx.useAutolayout else vFlags.DEFAULT_VFLAGS
+        if obj.extraContext.get("no_autoresizes_subviews"):
+            flags = flags & ~vFlags.AUTORESIZES_SUBVIEWS
+            ctx.connections.append(NibObject("NSIBUserDefinedRuntimeAttributesConnector", None, {
+                "NSObject": obj,
+                "NSValues": NibList([NibNSNumber(False)]),
+                "NSKeyPaths": NibList([NibString.intern("autoresizesSubviews")]),
+            }))
+        obj.flagsOr("NSvFlags", flags)
 
     return obj

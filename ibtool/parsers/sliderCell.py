@@ -1,4 +1,4 @@
-from ..models import ArchiveContext, NibObject, XibObject, NibNil, NibMutableList
+from ..models import ArchiveContext, NibObject, XibObject, NibNil, NibMutableList, NibString
 from xml.etree.ElementTree import Element
 from .helpers import make_xib_object, __xibparser_cell_options, handle_props, PropSchema
 from ..parsers_base import parse_children
@@ -11,18 +11,25 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
 
     __xibparser_cell_options(elem, obj, parent)
 
-    handle_props(ctx, elem, obj, [
-        PropSchema(prop="NSTickMarkPosition", attrib="tickMarkPosition", map={"above": 1}),
-        PropSchema(prop="NSValue", attrib="doubleValue", filter=float),
+    continuous = elem.attrib.get("continuous", "NO") == "YES"
+
+    props = [
+        PropSchema(prop="NSTickMarkPosition", attrib="tickMarkPosition", default="below", map={"above": 1, "below": 0}, skip_default=False),
+        PropSchema(prop="NSValue", attrib="doubleValue", default="0", filter=float, skip_default=False),
         PropSchema(prop="NSMaxValue", attrib="maxValue", filter=float, default=1.0, skip_default=False),
         PropSchema(prop="NSMinValue", attrib="minValue", filter=float, default=0.0, skip_default=False),
         PropSchema(prop="NSVertical", const=False), # TODO
-        PropSchema(prop="NSNumberOfTickMarks", const=0), # TODO
-        PropSchema(prop="NSAllowsTickMarkValuesOnly", const=False), # TODO
-        PropSchema(prop="NSAltIncValue", const=0.0), # TODO
+        PropSchema(prop="NSNumberOfTickMarks", attrib="numberOfTickMarks", default="0", filter=int, skip_default=False),
+        PropSchema(prop="NSAllowsTickMarkValuesOnly", attrib="allowsTickMarkValuesOnly", default="NO", map={"YES": True, "NO": False}, skip_default=False),
+        PropSchema(prop="NSAltIncValue", attrib="altIncrementValue", default="0.0", filter=float, skip_default=False),
         PropSchema(prop="NSControlView", const=parent),
-        PropSchema(prop="NSCellFlags", or_mask=CellFlags.ACTION_ON_MOUSE_DOWN | CellFlags.ACTION_ON_MOUSE_DRAG),
-    ])
+    ]
+    if continuous:
+        props.append(PropSchema(prop="NSCellFlags", or_mask=CellFlags.ACTION_ON_MOUSE_DOWN | CellFlags.ACTION_ON_MOUSE_DRAG))
+    handle_props(ctx, elem, obj, props)
+
+    if identifier := elem.attrib.get("identifier"):
+        obj["NSCellIdentifier"] = NibString.intern(identifier)
 
     parent["NSCell"] = obj
 

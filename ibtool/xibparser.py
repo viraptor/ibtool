@@ -46,7 +46,7 @@ def ParseXIBObjects(root: Element, context: Optional[ArchiveContext]=None, resol
     context = context or ArchiveContext(
         useAutolayout=(root.attrib.get("useAutolayout") == "YES"),
         customObjectInstantitationMethod=root.attrib.get("customObjectInstantitationMethod"),
-        toolsVersion=int(root.attrib.get("toolsVersion", "0")),
+        toolsVersion=int(root.attrib.get("toolsVersion", "0").split(".")[0]),
         )
     
     dependencies = [x for x in root.iter("dependencies")]

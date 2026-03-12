@@ -473,6 +473,9 @@ class ArchiveContext:
     def _resolveConnections_xib(self) -> None:
         result = []
         for con in self.connections:
+            if con.classname() == "NSIBUserDefinedRuntimeAttributesConnector":
+                result.append(con)
+                continue
             dst = cast(Union[XibId, NibProxyObject], con["NSDestination"])
             if isinstance(dst, NibProxyObject):
                 result.append(con)
