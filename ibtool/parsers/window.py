@@ -9,8 +9,8 @@ def calculate_window_rect(struts: dict[str, bool], content_rect: tuple[int, int,
     if screen_rect == (0, 0, 0, 0):
         return content_rect
     res = (
-        content_rect[0] if struts.get("left") else screen_rect[2]/2 - content_rect[2]/2,
-        content_rect[1] if struts.get("bottom") else screen_rect[3]/2 - content_rect[3]/2,
+        content_rect[0] if struts.get("left") or struts.get("right") else screen_rect[2]/2 - content_rect[2]/2,
+        content_rect[1] if struts.get("bottom") or struts.get("top") else screen_rect[3]/2 - content_rect[3]/2,
         content_rect[2],
         content_rect[3],
         )

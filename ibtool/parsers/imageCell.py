@@ -63,8 +63,12 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     elif key == "dataCell":
         __xibparser_cell_flags(elem, obj, parent)
 
-        alignment_value = {None: 4, "left": 0, "center": 1, "right": 2}[elem.attrib.get("alignment")]
-        obj["NSAlign"] = alignment_value
+        image_alignment = elem.attrib.get("imageAlignment")
+        IMAGE_ALIGNMENT_MAP = {
+            None: 0, "center": 0, "top": 1, "topLeft": 2, "topRight": 3,
+            "left": 4, "bottom": 5, "bottomLeft": 6, "bottomRight": 7, "right": 8,
+        }
+        obj["NSAlign"] = IMAGE_ALIGNMENT_MAP.get(image_alignment, 0)
         obj["NSAnimates"] = elem.attrib.get("animates", "NO") == "YES"
         obj["NSContents"] = NibNil()
         table_view = parent.get("NSTableView") if parent.originalclassname() == "NSTableColumn" else parent

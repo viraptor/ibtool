@@ -88,8 +88,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
             dv = content_cv.get("NSDocView")
             if _is_table_or_outline(dv):
                 obj.flagsOr("NSsFlags", sFlagsScrollView.COPY_ON_SCROLL)
-                if has_horizontal_scroller:
-                    dv.flagsOr("NSTvFlags", TVFLAGS.GRID_STYLE_BIT1)
+                dv.flagsOr("NSTvFlags", TVFLAGS.GRID_STYLE_BIT1)
 
     if not obj.extraContext.get("parsed_autoresizing"):
         obj.flagsOr("NSvFlags", vFlags.DEFAULT_VFLAGS_AUTOLAYOUT if ctx.useAutolayout else vFlags.DEFAULT_VFLAGS)
@@ -149,7 +148,8 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
         reduction = 17 + _get_ics_w(doc_view) * 4
         _reduce_column_widths(doc_view, reduction)
     vs_standard_w = obj["NSVScroller"].extraContext.get("standard_scroller_width", 17)
-    is_regular_scroller = vs_standard_w == 17
+    vs_frame_w = obj["NSVScroller"].extraContext.get("scroller_width", 17)
+    is_regular_scroller = vs_standard_w == 17 and vs_frame_w != 16
     if _is_table_or_outline(doc_view) and not vs_offscreen and is_regular_scroller and (has_horizontal_scroller or not auto_hiding):
         scroller_w = 17
         ics_w = _get_ics_w(doc_view)
