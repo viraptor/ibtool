@@ -8,7 +8,8 @@ def parse(_ctx: ArchiveContext, elem: Element, parent: XibObject) -> None:
     resizing_mask = 0
     if elem.attrib.get("resizeWithTable", "NO") == "YES":
         resizing_mask |= 1
-        parent["NSIsResizeable"] = True
     if elem.attrib.get("userResizable", "NO") == "YES":
         resizing_mask |= 2
+    if resizing_mask:
+        parent["NSIsResizeable"] = True
     parent.setIfNotDefault("NSResizingMask", resizing_mask, 0)

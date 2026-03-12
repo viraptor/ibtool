@@ -62,6 +62,21 @@ def ParseXIBObjects(root: Element, context: Optional[ArchiveContext]=None, resol
             h = img.get("height")
             if name and w and h:
                 context.imageResources[name] = (w, h)
+            mutable_data = img.find("mutableData")
+            if name and mutable_data is not None and mutable_data.text:
+                import base64, plistlib
+                raw = mutable_data.text.strip()
+                raw += '=' * ((4 - len(raw) % 4) % 4)
+                plist_data = base64.b64decode(raw)
+                try:
+                    plist = plistlib.loads(plist_data)
+                    plist_objects = plist.get("$objects", [])
+                    for o in plist_objects:
+                        if isinstance(o, bytes) and len(o) > 4 and o[:2] in (b'MM', b'II'):
+                            context.imageData[name] = o
+                            break
+                except Exception:
+                    pass
 
     for nib_object_element in objects:
         obj = __xibparser_ParseXIBObject(context, nib_object_element, parent)
