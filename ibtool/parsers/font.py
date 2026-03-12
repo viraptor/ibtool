@@ -55,7 +55,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> NibObject:
     elif meta_font == 'message':
         item["NSName"] = NibString.intern(".AppleSystemUIFont")
         item["NSSize"] = float(elem.attrib.get("size", 13.0))
-        item["NSfFlags"] = to_flags_val(0x15)
+        item["NSfFlags"] = to_flags_val(0x16)
     else:
         raise Exception(f"missing font {meta_font}")
     
