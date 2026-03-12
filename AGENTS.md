@@ -103,6 +103,13 @@ When given a new xib file with errors to fix up:
 
 Do NOT modity the original xib file in any way.
 
+Order of fixing things:
+- if there are collections with mismatched elements, fix this first, even if with basic stubs (to align comparison responses)
+- if there are type differences, fix those
+- fix simple missing arguments to reduce noise
+- then fix node ordering if needed
+- if any dependencies on toolchain version ranges were added, tighten them using binary search for the precise threshold
+
 ## Testing
 
 `test.sh` compiles sample XIB files and compares output against reference NIB files using `--compare`. Sample files are in `samples/`.
