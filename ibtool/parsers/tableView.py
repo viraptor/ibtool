@@ -149,4 +149,9 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     if focus_ring:
         obj.flagsOr("NSvFlags", focus_ring)
 
+    h = obj.extraContext.get("horizontalHuggingPriority", "250")
+    v = obj.extraContext.get("verticalHuggingPriority", "250")
+    if h != "250" or v != "750":
+        obj["NSHuggingPriority"] = NibString.intern(f"{{{h}, {v}}}")
+
     return obj

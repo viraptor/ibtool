@@ -1,7 +1,14 @@
-from ..models import ArchiveContext, NibObject, NibProxyObject, XibId
+from ..models import ArchiveContext, NibObject, NibString
 from xml.etree.ElementTree import Element
 from typing import Optional
-from ..parsers_base import parse_children
 
-def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> NibProxyObject:
+def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> NibObject:
     assert elem.attrib["key"] == "sortDescriptorPrototype"
+
+    obj = NibObject("NSSortDescriptor", parent)
+    obj["NSKey"] = NibString.intern(elem.attrib["sortKey"])
+    obj["NSAscending"] = elem.attrib.get("ascending", "YES") == "YES"
+    obj["NSSelector"] = NibString.intern(elem.attrib["selector"])
+    obj["NSReverseNullOrder"] = False
+    parent["NSSortDescriptorPrototype"] = obj
+    return obj

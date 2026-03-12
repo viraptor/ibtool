@@ -7,6 +7,7 @@ from ..genlib import CompileNibObjects
 
 def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> XibObject:
     obj = make_xib_object(ctx, "NSTableColumn", elem, parent, view_attributes=False)
+    obj["NSTableView"] = parent
 
     parse_children(ctx, elem, obj)
 
@@ -22,7 +23,6 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
         obj["NSMaxWidth"] = float(max_width)
     if min_width := elem.attrib.get("minWidth"):
         obj["NSMinWidth"] = float(min_width)
-    obj["NSTableView"] = parent
     if width := elem.attrib.get("width"):
         obj["NSWidth"] = float(width)
 
