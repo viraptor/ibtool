@@ -2,6 +2,7 @@ from ..models import ArchiveContext, NibObject, XibObject, XibId, NibString, Nib
 from xml.etree.ElementTree import Element
 import ctypes
 import ctypes.util
+import sys
 
 DATE_STYLE_MAP = {
     "none": 0,
@@ -28,9 +29,12 @@ def _load_icu():
     if _icu_funcs is not None:
         return _icu_funcs
 
-    lib_path = ctypes.util.find_library('icui18n')
+    if sys.platform == 'darwin':
+        lib_path = '/usr/lib/libicucore.dylib'
+    else:
+        lib_path = ctypes.util.find_library('icui18n')
     if not lib_path:
-        return None
+        raise RuntimeError("Could not find ICU library (libicui18n)")
     _icu_lib = ctypes.CDLL(lib_path)
 
     # Detect ICU version suffix (e.g., "_78")
@@ -83,8 +87,8 @@ def _get_format_and_parse(date_style_str: str, time_style_str: str, title: str):
     icu_date = _ICU_STYLE.get(date_style_str, -1)
     icu_time = _ICU_STYLE.get(time_style_str, -1)
 
-    locale = b"C"
-    tz = "UTC"
+    locale = b"en_AU" # no idea why this one matches, it should be overwritten
+    tz = "Etc/UTC"
     tz_buf = (ctypes.c_uint16 * len(tz))(*[ord(c) for c in tz])
 
     status = ctypes.c_int(0)

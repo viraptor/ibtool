@@ -12,6 +12,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
     __xibparser_cell_options(elem, obj, parent)
 
     continuous = elem.attrib.get("continuous", "NO") == "YES"
+    has_font = elem.find("font") is not None
 
     props = [
         PropSchema(prop="NSTickMarkPosition", attrib="tickMarkPosition", default="below", map={"above": 1, "below": 0}, skip_default=False),
@@ -24,6 +25,8 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
         PropSchema(prop="NSAltIncValue", attrib="altIncrementValue", default="0.0", filter=float, skip_default=False),
         PropSchema(prop="NSControlView", const=parent),
     ]
+    if has_font:
+        props.append(PropSchema(prop="NSCellFlags", or_mask=CellFlags.UNKNOWN_TEXT_FIELD))
     if continuous:
         props.append(PropSchema(prop="NSCellFlags", or_mask=CellFlags.ACTION_ON_MOUSE_DOWN | CellFlags.ACTION_ON_MOUSE_DRAG))
     handle_props(ctx, elem, obj, props)
