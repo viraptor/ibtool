@@ -383,6 +383,7 @@ class ArchiveContext:
         self.visibleWindows: list[NibObject] = []
         self.imageResources: dict[str, tuple[str, str]] = {}  # name -> (width, height)
         self.imageData: dict[str, bytes] = {}  # name -> raw TIFF bytes
+        self.imagePlistData: dict[str, dict] = {}  # name -> plist metadata
 
         # What I plan on using after the context revision:
 
@@ -677,7 +678,7 @@ def _xibparser_handle_custom_class(ctx: ArchiveContext, elem: Element, obj: "Xib
                 obj["NSClassName"] = NibString.intern(f"_TtC{len(custom_module)}{custom_module}{len(custom_class)}{custom_class}")
             else:
                 obj["NSClassName"] = NibString.intern(custom_class)
-            if obj.classname() not in ("NSView", "NSCustomView", "NSButton", "NSTextField", "NSOutlineView", "NSScrollView", "NSClipView", "NSColorWell", "NSStackView", "NSTextView", "NSProgressIndicator", "NSTableView", "NSTableHeaderView", "NSPopUpButtonCell", "NSLevelIndicatorCell"):
+            if obj.classname() not in ("NSView", "NSCustomView", "NSButton", "NSTextField", "NSOutlineView", "NSScrollView", "NSClipView", "NSColorWell", "NSStackView", "NSTextView", "NSProgressIndicator", "NSTableView", "NSTableHeaderView", "NSPopUpButtonCell", "NSLevelIndicatorCell", "NSSegmentedControl", "NSSegmentedCell"):
                 obj["NSInitializeWithInit"] = True
             final_original_class = {
                 "NSCustomObject": "NSObject",

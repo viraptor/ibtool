@@ -71,10 +71,16 @@ def ParseXIBObjects(root: Element, context: Optional[ArchiveContext]=None, resol
                 try:
                     plist = plistlib.loads(plist_data)
                     plist_objects = plist.get("$objects", [])
+                    tiff_list = []
                     for o in plist_objects:
                         if isinstance(o, bytes) and len(o) > 4 and o[:2] in (b'MM', b'II'):
-                            context.imageData[name] = o
-                            break
+                            tiff_list.append(o)
+                    if tiff_list:
+                        context.imageData[name] = tiff_list[0]
+                        context.imagePlistData[name] = {
+                            "tiff_reps": tiff_list,
+                            "plist_objects": plist_objects,
+                        }
                 except Exception:
                     pass
 

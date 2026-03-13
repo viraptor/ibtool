@@ -1,5 +1,6 @@
 import math
 import re
+import struct
 from ..models import ArchiveContext, NibObject, XibObject, NibString, NibMutableList, NibList, NibInlineString, NibFloatToWord
 from xml.etree.ElementTree import Element
 from typing import Optional
@@ -184,7 +185,10 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
                 new_w = clip_computed_w
             else:
                 new_w = raw_w + expansion
-            if has_header and clip_computed_h is not None:
+            elastic_h = doc_view.extraContext.get("elastic_row_height")
+            if elastic_h is not None:
+                new_h = elastic_h
+            elif has_header and clip_computed_h is not None:
                 new_h = clip_computed_h - header_h
             doc_view["NSFrameSize"] = NibString.intern(f"{{{new_w}, {new_h}}}")
         # Expand header view width to match
@@ -421,6 +425,19 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
                 vs_h = sv_h - 2 * border - header_h
                 obj["NSVScroller"]["NSFrame"] = NibString.intern(f"{{{{{vs_x}, {vs_y}}}, {{{vs_w}, {vs_h}}}}}")
                 obj["NSVScroller"].flagsAnd("NSvFlags", ~vFlags.HIDDEN)
+            # For elastic tables with content taller than visible area, enable VScroller
+            elastic_h = doc_view.extraContext.get("elastic_row_height")
+            if auto_hiding and elastic_h is not None:
+                visible_h = sv_h - 2 * border - header_h
+                if elastic_h > visible_h:
+                    clip_h = sv_h - 2 * border
+                    obj["NSVScroller"]["NSEnabled"] = True
+                    obj["NSVScroller"]["NSPercent"] = clip_h / (elastic_h + header_h)
+                    # Encode line scroll into NSsFlags upper bits
+                    vline_f32 = struct.pack(">f", float(doc_view.get("NSRowHeight") or 0))
+                    byte1 = vline_f32[1]
+                    byte1_ceil = (byte1 + 0x0F) & 0xF0
+                    obj.flagsOr("NSsFlags", (byte1_ceil << 8) | 0x40)
             # Horizontal scroller (only when not offscreen)
             if not hs_offscreen:
                 hs_x = border

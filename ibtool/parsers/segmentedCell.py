@@ -42,9 +42,13 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
         obj.setIfNotDefault("NSTrackingMode", tracking_mode, 0)
         
         if tracking_mode in (0, 1):
+            found_selected = False
             for i, seg in enumerate(obj["NSSegmentImages"].items()):
                 if seg.get("NSSegmentItemSelected"):
                     obj.setIfNotDefault("NSSelectedSegment", i, 0)
+                    found_selected = True
+            if tracking_mode == 0 and not found_selected:
+                obj["NSSelectedSegment"] = -1
         if tracking_mode not in (0, 1):
             obj.setIfEmpty("NSSelectedSegment", -1)
 
