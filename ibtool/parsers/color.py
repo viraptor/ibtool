@@ -57,7 +57,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
         color = makeSystemColor(colorName)
         target_obj[target_attribute] = color
     elif elem.attrib["colorSpace"] == "calibratedWhite":
-        if ctx.toolsVersion <= 11762:
+        if ctx.toolsVersion <= 14268:
             parent_is_clip_view = parent.originalclassname() == "NSClipView"
             is_window_content_clip_view = parent_is_clip_view and isinstance(parent, XibObject) and parent.extraContext.get("is_window_content_view")
             # Determine if this should be a system color or simple white

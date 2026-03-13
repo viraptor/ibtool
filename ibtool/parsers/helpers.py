@@ -57,7 +57,7 @@ def _xibparser_common_view_attributes(ctx: ArchiveContext, elem: Element, parent
 def _xibparser_common_translate_autoresizing(ctx: ArchiveContext, elem: Element, _parent: Optional[NibObject], obj: XibObject) -> None:
     if elem is not None and elem.attrib.get('translatesAutoresizingMaskIntoConstraints', "YES") == "NO":
         obj.extraContext["NSDoNotTranslateAutoresizingMask"] = True
-        if elem.attrib.get("fixedFrame") != "YES" and ctx.toolsVersion >= 20037:
+        if elem.attrib.get("fixedFrame") != "YES" and _parent is None:
             obj["NSDoNotTranslateAutoresizingMask"] = True
 
 def __xibparser_cell_flags(elem: Element, obj: NibObject, parent: NibObject) -> None:

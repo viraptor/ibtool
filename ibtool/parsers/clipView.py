@@ -50,7 +50,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
         obj.flagsOr("NScvFlags", 0x2)
     if is_main_view:
         obj.flagsOr("NScvFlags", cvFlags.DRAW_BACKGROUND)
-    elif elem.attrib.get("drawsBackground", "YES" if ctx.toolsVersion >= 20037 else "NO") == "YES":
+    elif elem.attrib.get("drawsBackground", "YES" if ctx.toolsVersion >= 14269 else "NO") == "YES":
         obj.flagsOr("NScvFlags", cvFlags.DRAW_BACKGROUND)
     # catalog/System backgroundColor color implies DRAW_BACKGROUND (unless drawsBackground is explicitly NO)
     elif elem.attrib.get("drawsBackground") != "NO" and any(child.tag == "color" and child.attrib.get("key") == "backgroundColor" and child.attrib.get("colorSpace") == "catalog" for child in elem):
