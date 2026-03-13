@@ -41,14 +41,16 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
         obj["NSSubviews"] = NibMutableList([])
         obj["NSTableViewArchivedReusableViewsKey"] = NibMutableDictionary([])
 
+    is_elastic = elem.attrib.get("rowSizeStyle") == "automatic"
     with __handle_view_chain(ctx, obj):
         parse_children(ctx, elem, obj)
         # Table view width is managed by the scroll view, not frame() autoresizing.
         # Keep only heightSizable so the table fills the clip view vertically.
+        # For elastic/automatic row sizing, don't use heightSizable - height is cell-based.
         obj.extraContext["parsed_autoresizing"] = {
             "flexibleMaxX": False, "flexibleMaxY": False,
             "flexibleMinX": False, "flexibleMinY": False,
-            "widthSizable": False, "heightSizable": True,
+            "widthSizable": False, "heightSizable": not is_elastic,
         }
 
     # Update extraContext to match computed frame (used by scrollView.py)
@@ -116,6 +118,25 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
         PropSchema(prop="NSAutosaveName", attrib="autosaveName", skip_default=True),
         PropSchema(prop="NSRowHeight", attrib="rowHeight", default="17", filter=float, skip_default=False),
     ])
+
+    if is_elastic:
+        columns_for_height = obj.get("NSTableColumns")
+        if columns_for_height:
+            max_cell_h = 0
+            for col in columns_for_height:
+                pcv = col.extraContext.get("prototypeCellView")
+                if pcv:
+                    ec = pcv.extraContext.get("NSFrame") or pcv.extraContext.get("NSFrameSize")
+                    if ec:
+                        h = ec[3] if len(ec) == 4 else ec[1]
+                        max_cell_h = max(max_cell_h, h)
+            if max_cell_h > 0:
+                obj["NSRowHeight"] = float(max_cell_h)
+                cur_fs = obj.extraContext.get("NSFrameSize")
+                if cur_fs:
+                    new_h = max(max_cell_h, cur_fs[1])
+                    obj.extraContext["NSFrameSize"] = (cur_fs[0], new_h)
+                    obj.extraContext["elastic_row_height"] = new_h
 
     columns = obj.get("NSTableColumns")
     # Clear BIT0 when columnResizing=NO and any column has resizeWithTable (only with multiple columns)

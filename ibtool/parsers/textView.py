@@ -17,7 +17,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     
     selectable = 0x1 if elem.attrib.get("selectable", "YES") == "YES" else 0
     editable = 0x2 if elem.attrib.get("editable", "YES") == "YES" else 0
-    imports_graphics = 0x8 if elem.attrib.get("importsGraphics") == "YES" else 0
+    imports_graphics = 0x8 if elem.attrib.get("importsGraphics", "YES") != "NO" else 0
     spelling_correction = 0x4000000 if elem.attrib.get("spellingCorrection") == "YES" else 0
     rich_text = 0x4 if elem.attrib.get("richText", "YES") == "YES" else 0
     continuous_spell_checking = 0x80 if elem.attrib.get("continuousSpellChecking") == "YES" else 0

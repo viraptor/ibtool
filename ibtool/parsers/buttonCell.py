@@ -2,6 +2,7 @@ from ..models import ArchiveContext, NibObject, XibObject, NibString, NibNil, Ni
 from xml.etree.ElementTree import Element
 from ..parsers_base import parse_children
 from .helpers import __xibparser_button_flags, __xibparser_cell_options, __xibparser_cell_flags
+from .imageCell import _make_inline_image
 from ..constants import BEZEL_STYLE_MAP
 
 def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
@@ -35,8 +36,8 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
     else:
         obj["NSAlternateContents"] = NibString.intern(elem.attrib.get("alternateTitle", ""))
 
-    if elem.attrib.get("image"):
-        obj["NSNormalImage"] = NibNil() # TODO requires parsing embedded bplist
+    if image_name := elem.attrib.get("image"):
+        obj["NSNormalImage"] = _make_inline_image(image_name, obj, ctx)
 
     if (key_equiv := elem.attrib.get("keyEquivalent")) is not None:
         obj["NSKeyEquivalent"] = NibString.intern(key_equiv)

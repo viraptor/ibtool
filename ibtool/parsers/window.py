@@ -6,7 +6,7 @@ from typing import Union
 import ctypes
 
 def calculate_window_rect(struts: dict[str, bool], content_rect: tuple[int, int, int, int], screen_rect: tuple[int, int, int, int]) -> tuple[Union[int,float], ...]:
-    if screen_rect == (0, 0, 0, 0):
+    if screen_rect == (0, 0, 0, 0) and struts:
         return content_rect
     res = (
         content_rect[0] if struts.get("left") or struts.get("right") else screen_rect[2]/2 - content_rect[2]/2,
