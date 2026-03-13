@@ -22,8 +22,9 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
     ])
 
     h = obj.extraContext.get("horizontalHuggingPriority", "250")
-    v = obj.extraContext.get("verticalHuggingPriority", "250")
-    obj["NSHuggingPriority"] = NibString.intern(f"{{{h}, {v}}}")
+    v = obj.extraContext.get("verticalHuggingPriority", "750")
+    if h != "250" or v != "750":
+        obj["NSHuggingPriority"] = NibString.intern(f"{{{h}, {v}}}")
 
     if identifier := elem.attrib.get("identifier"):
         obj["NSReuseIdentifierKey"] = NibString.intern(identifier)
