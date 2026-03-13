@@ -114,6 +114,16 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
                 if hv_frame:
                     header_h = hv_frame[3] if len(hv_frame) == 4 else hv_frame[1]
             cv["NSBounds"] = NibString.intern(f"{{{{{0}, {-header_h}}}, {{{cv_w}, {cv_h}}}}}")
+    # Compute VScroller offscreen status and scroller size early (needed by border_deficit logic)
+    vs_orig_frame = obj["NSVScroller"].extraContext.get("NSFrame")
+    sv_frame_for_offscreen = obj.extraContext.get("NSFrame") or obj.extraContext.get("NSFrameSize")
+    sv_w_raw = (sv_frame_for_offscreen[2] if len(sv_frame_for_offscreen) == 4 else sv_frame_for_offscreen[0]) if sv_frame_for_offscreen else 0
+    vs_offscreen = vs_orig_frame and len(vs_orig_frame) == 4 and (vs_orig_frame[0] < 0 or vs_orig_frame[0] >= sv_w_raw)
+    vs_standard_w = obj["NSVScroller"].extraContext.get("standard_scroller_width", 17)
+    vs_frame_w = obj["NSVScroller"].extraContext.get("scroller_width", 17)
+    is_regular_scroller = vs_standard_w == 17 and vs_frame_w != 16
+    is_small_offscreen = vs_offscreen and not is_regular_scroller
+
     # Adjust table flags when clip view y doesn't account for border
     insets = obj.extraContext.get("insets", (0, 0))
     border = insets[0] // 2
@@ -131,17 +141,14 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
             doc_view.flagsOr("NSTvFlags", TVFLAGS.GRID_STYLE_BIT1)
             reduction = _get_ics_w(doc_view) * 3
             _reduce_column_widths(doc_view, reduction)
-        elif auto_hiding and obj.get("NSHeaderClipView") is not None:
+        elif auto_hiding and obj.get("NSHeaderClipView") is not None and not is_small_offscreen:
             # Autohiding scroll views with headers and no grid lines:
             # reduce column widths by scroller_width + ics * 4
+            # (skipped for small offscreen scrollers which expand doc view instead)
             reduction = 17 + _get_ics_w(doc_view) * 4
             _reduce_column_widths(doc_view, reduction)
     # Autohiding scroll views without headers: reduce column widths when VScroller is not offscreen
     doc_view = cv.get("NSDocView")
-    vs_orig_frame = obj["NSVScroller"].extraContext.get("NSFrame")
-    sv_frame_for_offscreen = obj.extraContext.get("NSFrame") or obj.extraContext.get("NSFrameSize")
-    sv_w_raw = (sv_frame_for_offscreen[2] if len(sv_frame_for_offscreen) == 4 else sv_frame_for_offscreen[0]) if sv_frame_for_offscreen else 0
-    vs_offscreen = vs_orig_frame and len(vs_orig_frame) == 4 and (vs_orig_frame[0] < 0 or vs_orig_frame[0] >= sv_w_raw)
     # COPY_ON_SCROLL: only when VScroller is not offscreen
     if not vs_offscreen and (uses_predominant_axis_scrolling or has_horizontal_scroller):
         if _is_table_or_outline(doc_view):
@@ -150,9 +157,6 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     if auto_hiding and not has_header and not vs_offscreen and _is_table_or_outline(doc_view):
         reduction = 17 + _get_ics_w(doc_view) * 4
         _reduce_column_widths(doc_view, reduction)
-    vs_standard_w = obj["NSVScroller"].extraContext.get("standard_scroller_width", 17)
-    vs_frame_w = obj["NSVScroller"].extraContext.get("scroller_width", 17)
-    is_regular_scroller = vs_standard_w == 17 and vs_frame_w != 16
     if _is_table_or_outline(doc_view) and not vs_offscreen and is_regular_scroller and (has_horizontal_scroller or not auto_hiding):
         scroller_w = 17
         ics_w = _get_ics_w(doc_view)
@@ -231,7 +235,35 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
             ncols = len(table_columns)
             sum_cols = sum(col["NSWidth"] for col in table_columns)
             natural_w = int(sum_cols + ncols * ics_w + vs_standard_w + hs_frame_h)
-            if hs_is_hidden and natural_w > clip_w_sm:
+            has_grid_lines = doc_view.get("NSGridStyleMask")
+            if hs_is_hidden and not has_grid_lines and has_header:
+                # No grid lines: expand doc view and enable HScroller
+                # Expansion amount depends on border deficit
+                expansion = int(17 + ics_w * 4) if border_deficit > 0 else int(17 + 3)
+                new_w = clip_w_sm + expansion
+                dv_frame = doc_view.extraContext.get("NSFrame") or doc_view.extraContext.get("NSFrameSize")
+                if dv_frame:
+                    new_h = int(dv_frame[3]) if len(dv_frame) == 4 else int(dv_frame[1])
+                    doc_view["NSFrameSize"] = NibString.intern(f"{{{new_w}, {new_h}}}")
+                if has_header:
+                    header_clip = obj["NSHeaderClipView"]
+                    header_view = header_clip.get("NSDocView")
+                    if header_view:
+                        hv_frame = header_view.extraContext.get("NSFrame") or header_view.extraContext.get("NSFrameSize")
+                        if hv_frame:
+                            hv_new_h = int(hv_frame[3]) if len(hv_frame) == 4 else int(hv_frame[1])
+                            header_view["NSFrameSize"] = NibString.intern(f"{{{new_w}, {hv_new_h}}}")
+                hs_standard_h = obj["NSHScroller"].extraContext.get("standard_scroller_width", 17)
+                hs_x = border_sm
+                hs_y = int(sv_h_sm) - border_sm - hs_standard_h
+                hs_w = clip_w_sm
+                obj["NSHScroller"]["NSFrame"] = NibString.intern(f"{{{{{hs_x}, {hs_y}}}, {{{hs_w}, {hs_standard_h}}}}}")
+                obj["NSHScroller"].flagsAnd("NSvFlags", ~vFlags.HIDDEN)
+                obj["NSHScroller"]["NSEnabled"] = True
+                obj["NSHScroller"]["NSPercent"] = clip_w_sm / new_w
+                if has_horizontal_scroller:
+                    obj.flagsOr("NSsFlags", sFlagsScrollView.COPY_ON_SCROLL)
+            elif hs_is_hidden and not has_grid_lines and natural_w > clip_w_sm:
                 dv_frame = doc_view.extraContext.get("NSFrame") or doc_view.extraContext.get("NSFrameSize")
                 if dv_frame:
                     new_h = int(dv_frame[3]) if len(dv_frame) == 4 else int(dv_frame[1])
