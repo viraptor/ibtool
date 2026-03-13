@@ -68,6 +68,9 @@ def main():
         print(f"Usage: {sys.argv[0]} <host:port>", file=sys.stderr)
         sys.exit(1)
 
+    os.environ["LANG"] = "C"
+    os.environ["TZ"] = "UTC"
+
     host, port = sys.argv[1].rsplit(":", 1)
     port = int(port)
 

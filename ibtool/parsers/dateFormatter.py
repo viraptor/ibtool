@@ -83,8 +83,8 @@ def _get_format_and_parse(date_style_str: str, time_style_str: str, title: str):
     icu_date = _ICU_STYLE.get(date_style_str, -1)
     icu_time = _ICU_STYLE.get(time_style_str, -1)
 
-    locale = b"en_AU"
-    tz = "Australia/Melbourne"
+    locale = b"C"
+    tz = "UTC"
     tz_buf = (ctypes.c_uint16 * len(tz))(*[ord(c) for c in tz])
 
     status = ctypes.c_int(0)
