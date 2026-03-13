@@ -13,7 +13,7 @@ def main():
         print("Error: IBTOOL_SOCKET environment variable not set", file=sys.stderr)
         sys.exit(1)
 
-    args = sys.argv[1:]
+    args = sys.argv[:]
 
     host, port = addr.rsplit(":", 1)
     port = int(port)

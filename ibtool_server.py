@@ -24,8 +24,16 @@ def handle_client(conn):
         line, _ = buf.split(b"\n", 1)
         request = json.loads(line)
         args = request.get("args", [])
+        if args[0] == '/usr/bin/ibtool':
+            pass
+        elif args[0] == '/usr/bin/test.sh':
+            args[0] = './test.sh'
+        else:
+            print("wrong tool, refusing")
+            return
 
-        cmd = ["/usr/bin/ibtool"] + args
+        print("running", args)
+        cmd = args
         proc = subprocess.Popen(
             cmd,
             stdin=subprocess.DEVNULL,
@@ -68,8 +76,9 @@ def main():
         print(f"Usage: {sys.argv[0]} <host:port>", file=sys.stderr)
         sys.exit(1)
 
-    os.environ["LANG"] = "C"
-    os.environ["TZ"] = "UTC"
+    os.environ["LANG"] = "en_US"
+    os.environ["LC_ALL"] = "en_US_POSIX"
+    os.environ["TZ"] = "Etc/UTC"
 
     host, port = sys.argv[1].rsplit(":", 1)
     port = int(port)
