@@ -3,7 +3,7 @@ import re
 from ..models import ArchiveContext, NibObject, XibObject, NibString, NibMutableList, NibList, NibInlineString, NibFloatToWord
 from xml.etree.ElementTree import Element
 from typing import Optional
-from .helpers import make_xib_object, __handle_view_chain, _xibparser_common_translate_autoresizing
+from .helpers import make_xib_object, __handle_view_chain
 from ..parsers_base import parse_children
 from ..constants import sFlagsScrollView, vFlags
 from .tableView import TVFLAGS
@@ -78,8 +78,6 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
 
     with __handle_view_chain(ctx, obj):
         parse_children(ctx, elem, obj)
-
-    _xibparser_common_translate_autoresizing(ctx, elem, parent, obj)
 
     # GRID_STYLE_BIT1 for table/outline scroll views when usesPredominantAxisScrolling or hasHorizontalScroller is active
     if uses_predominant_axis_scrolling or has_horizontal_scroller:
