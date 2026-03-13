@@ -81,13 +81,12 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
 
     _xibparser_common_translate_autoresizing(ctx, elem, parent, obj)
 
-    # Add COPY_ON_SCROLL for table/outline scroll views when usesPredominantAxisScrolling or hasHorizontalScroller is active
+    # GRID_STYLE_BIT1 for table/outline scroll views when usesPredominantAxisScrolling or hasHorizontalScroller is active
     if uses_predominant_axis_scrolling or has_horizontal_scroller:
         content_cv = obj.get("NSContentView")
         if content_cv:
             dv = content_cv.get("NSDocView")
             if _is_table_or_outline(dv):
-                obj.flagsOr("NSsFlags", sFlagsScrollView.COPY_ON_SCROLL)
                 dv.flagsOr("NSTvFlags", TVFLAGS.GRID_STYLE_BIT1)
 
     if not obj.extraContext.get("parsed_autoresizing"):
@@ -143,6 +142,10 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     sv_frame_for_offscreen = obj.extraContext.get("NSFrame") or obj.extraContext.get("NSFrameSize")
     sv_w_raw = (sv_frame_for_offscreen[2] if len(sv_frame_for_offscreen) == 4 else sv_frame_for_offscreen[0]) if sv_frame_for_offscreen else 0
     vs_offscreen = vs_orig_frame and len(vs_orig_frame) == 4 and (vs_orig_frame[0] < 0 or vs_orig_frame[0] >= sv_w_raw)
+    # COPY_ON_SCROLL: only when VScroller is not offscreen
+    if not vs_offscreen and (uses_predominant_axis_scrolling or has_horizontal_scroller):
+        if _is_table_or_outline(doc_view):
+            obj.flagsOr("NSsFlags", sFlagsScrollView.COPY_ON_SCROLL)
     has_header = obj.get("NSHeaderClipView") is not None
     if auto_hiding and not has_header and not vs_offscreen and _is_table_or_outline(doc_view):
         reduction = 17 + _get_ics_w(doc_view) * 4
@@ -199,7 +202,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
 
     # Horizontal scroller gets NSEnabled for table/outline scroll views (regular size, not autohiding)
     is_table_sv = _is_table_or_outline(doc_view)
-    if is_table_sv and is_regular_scroller and (has_horizontal_scroller or not auto_hiding):
+    if is_table_sv and is_regular_scroller and not vs_offscreen and (has_horizontal_scroller or not auto_hiding):
         if has_horizontal_scroller or not has_header:
             obj["NSHScroller"]["NSEnabled"] = True
         else:
@@ -211,7 +214,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
                 obj["NSHScroller"]["NSEnabled"] = True
 
     # Small scroller handling for table/outline scroll views with offscreen VScroller
-    if is_table_sv and vs_offscreen and not is_regular_scroller:
+    if is_table_sv and vs_offscreen and not is_regular_scroller and not auto_hiding:
         hs_vflags = obj["NSHScroller"].get("NSvFlags")
         hs_is_hidden = (hs_vflags or 0) & vFlags.HIDDEN
         insets_sm = obj.extraContext.get("insets", (0, 0))
