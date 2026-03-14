@@ -20,6 +20,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
     elif button_type == "check":
         obj["NSAlternateImage"] = NibObject("NSButtonImageSource", None, {"NSImageName": "NSSwitch"})
     elif button_type == "inline" and obj.get("NSSupport"):
+        obj["NSSupport"]["NSName"] = NibString.intern(".AppleSystemUIFontDemi")
         obj["NSSupport"]["NSHasWidth"] = False
         obj["NSSupport"]["NSTextStyleDescriptor"] = NibObject("NSFontDescriptor", None, {
             "NSFontDescriptorOptions": 0x80008404,
