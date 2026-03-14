@@ -1,6 +1,6 @@
 [project]
 name = "ibtool"
-version = "1.0.0"
+version = "1.0.1"
 dependencies = [
     "lxml",
 ]
@@ -15,4 +15,4 @@ license = "MIT"
 ibtool = "ibtool.__main__:run"
 
 [tool.setuptools]
-packages = ["ibtool"]
+packages = ["ibtool", "ibtool.parsers"]
