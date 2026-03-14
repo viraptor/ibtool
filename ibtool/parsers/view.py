@@ -4,6 +4,9 @@ from ..models import ArchiveContext, XibObject, NibString, NibMutableList
 from xml.etree.ElementTree import Element
 from ..constants import vFlags
 
+VIEW_DEFAULT_H_HUG = "250"
+VIEW_DEFAULT_V_HUG = "250"
+
 def parse(ctx: ArchiveContext, elem: Element, parent: XibObject, **kwargs) -> XibObject:
     obj = XibObject(ctx, "NSView", elem, parent)
     ctx.extraNibObjects.append(obj)
@@ -46,7 +49,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: XibObject, **kwargs) -> Xi
                 "Unhandled class '%s' to take NSView with key 'contentView'"
                 % (parent.originalclassname())
             )
-    elif key is None:
+    elif key is None or key == "view":
         obj["NSSuperview"] = parent
     else:
         raise Exception(f"view in unknown key {key} (parent {parent.repr()})")
@@ -121,6 +124,11 @@ def parse(ctx: ArchiveContext, elem: Element, parent: XibObject, **kwargs) -> Xi
 
     if isMainView:
         ctx.isParsingStoryboardView = False
+
+    h = elem.attrib.get("horizontalHuggingPriority", VIEW_DEFAULT_H_HUG)
+    v = elem.attrib.get("verticalHuggingPriority", VIEW_DEFAULT_V_HUG)
+    if h != VIEW_DEFAULT_H_HUG or v != VIEW_DEFAULT_V_HUG:
+        obj["NSHuggingPriority"] = NibString.intern(f"{{{h}, {v}}}")
 
     return obj
 

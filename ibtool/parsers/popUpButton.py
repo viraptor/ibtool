@@ -1,4 +1,4 @@
-from ..models import ArchiveContext, NibObject, XibObject, NibNil
+from ..models import ArchiveContext, NibObject, NibString, XibObject, NibNil
 from xml.etree.ElementTree import Element
 from typing import Optional
 from .helpers import make_xib_object, _xibparser_common_translate_autoresizing
@@ -17,5 +17,10 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     obj["NSEnabled"] = True
     if not obj.extraContext.get("parsed_autoresizing"):
         obj.flagsOr("NSvFlags", vFlags.DEFAULT_VFLAGS_AUTOLAYOUT if ctx.useAutolayout else vFlags.DEFAULT_VFLAGS)
+
+    h = elem.attrib.get("horizontalHuggingPriority", "750")
+    v = elem.attrib.get("verticalHuggingPriority", "750")
+    if h != "750" or v != "750":
+        obj["NSHuggingPriority"] = NibString.intern(f"{{{h}, {v}}}")
 
     return obj

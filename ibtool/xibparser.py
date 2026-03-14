@@ -65,7 +65,10 @@ def ParseXIBObjects(root: Element, context: Optional[ArchiveContext]=None, resol
             mutable_data = img.find("mutableData")
             if name and mutable_data is not None and mutable_data.text:
                 import base64, plistlib
-                raw = mutable_data.text.strip()
+                raw = ''.join(mutable_data.text.split())
+                remainder = len(raw) % 4
+                if remainder == 1:
+                    raw = raw[:-1]
                 raw += '=' * ((4 - len(raw) % 4) % 4)
                 plist_data = base64.b64decode(raw)
                 try:

@@ -22,4 +22,9 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
 
     _xibparser_common_translate_autoresizing(ctx, elem, parent, obj)
 
+    h = elem.attrib.get("horizontalHuggingPriority", "750")
+    v = elem.attrib.get("verticalHuggingPriority", "750")
+    if h != "750" or v != "750":
+        obj["NSHuggingPriority"] = NibString.intern(f"{{{h}, {v}}}")
+
     return obj

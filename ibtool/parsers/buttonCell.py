@@ -39,6 +39,8 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
 
     if image_name := elem.attrib.get("image"):
         obj["NSNormalImage"] = _make_inline_image(image_name, obj, ctx)
+    if alt_image_name := elem.attrib.get("alternateImage"):
+        obj["NSAlternateImage"] = _make_inline_image(alt_image_name, obj, ctx)
 
     if (key_equiv := elem.attrib.get("keyEquivalent")) is not None:
         obj["NSKeyEquivalent"] = NibString.intern(key_equiv)

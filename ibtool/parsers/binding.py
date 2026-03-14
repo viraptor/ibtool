@@ -25,6 +25,9 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
             elif o.tag == "string":
                 data.append(NibString.intern(o.attrib["key"]))
                 data.append(NibString.intern(o.text or ""))
+            elif o.tag == "real":
+                data.append(NibString.intern(o.attrib["key"]))
+                data.append(NibNSNumber(float(o.attrib["value"])))
             elif o.tag == "bool":
                 data.append(NibString.intern(o.attrib["key"]))
                 data.append(NibNSNumber(o.attrib["value"] == "YES"))

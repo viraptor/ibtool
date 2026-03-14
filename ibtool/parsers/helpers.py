@@ -149,6 +149,7 @@ def __xibparser_button_flags(elem: Element, obj: XibObject, parent: NibObject) -
         "check": ButtonFlags.TYPE_CHECK,
         "roundRect": ButtonFlags.TYPE_ROUND_RECT,
         "square": 0,
+        "squareTextured": 0,
         "disclosureTriangle": 0,
         "help": 0,
         "smallSquare": 0,
@@ -163,6 +164,7 @@ def __xibparser_button_flags(elem: Element, obj: XibObject, parent: NibObject) -
         "push": 0x1,
         "check": 0x2,
         "square": 0x2|0x4,
+        "squareTextured": 0x2|0x4,
         "disclosureTriangle": 0x1|0x4,
         "help": 0x1|0x20,
         "smallSquare": 0x2|0x20,
@@ -176,7 +178,7 @@ def __xibparser_button_flags(elem: Element, obj: XibObject, parent: NibObject) -
     borderStyle = elem.attrib.get("borderStyle")
     borderStyleMask = {None: 0, "border": ButtonFlags.BORDERED, "bezel": ButtonFlags.BEZEL, "borderAndBezel": ButtonFlags.BORDERED | ButtonFlags.BEZEL}[borderStyle]
     imageScaling = elem.attrib.get("imageScaling")
-    imageScalingMask = {None: 0, "proportionallyDown": ButtonFlags2.IMAGE_SCALING_PROPORTIONALLY_DOWN}[imageScaling]
+    imageScalingMask = {None: 0, "proportionallyDown": ButtonFlags2.IMAGE_SCALING_PROPORTIONALLY_DOWN, "proportionallyUpOrDown": 0x40}[imageScaling]
     imagePosition = elem.attrib.get("imagePosition")
     imagePositionMask = {None: 0, "left": ButtonFlags.IMAGE_LEFT, "right": ButtonFlags.IMAGE_RIGHT, "above": ButtonFlags.IMAGE_ABOVE, "below": ButtonFlags.IMAGE_BELOW, "only": ButtonFlags.IMAGE_ONLY}[imagePosition]
 
@@ -189,6 +191,7 @@ def __xibparser_button_flags(elem: Element, obj: XibObject, parent: NibObject) -
         "check": 3,
         "roundRect": 7,
         "square": 7,
+        "squareTextured": 7,
         "disclosureTriangle": 2,
         "help": 7,
         "smallSquare": 7,
@@ -372,6 +375,8 @@ def makeSystemColor(name):
         return systemGrayColorTemplate(name, b'0.3333333333 1', b'0.2637968361\x00')
     elif name == 'controlAccentColor':
         return systemRGBColorTemplate(name, b'0 0 1 1', b'0 0 0.9981992245\x00')
+    elif name == 'disabledControlTextColor':
+        return systemGrayColorTemplate(name, b'0.3333333333 1', b'0.2637968361\x00')
     elif name == '_sourceListBackgroundColor':
         return systemCustomGrayColorTemplate(name, 'controlBackgroundColor', '0.6666666667 1', b'0.602715373\x00')
     else:

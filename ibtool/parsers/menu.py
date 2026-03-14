@@ -25,7 +25,9 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
         parent["NSSubmenu"] = obj
     elif parent and parent.originalclassname() == "NSPopUpButtonCell":
         parent["NSMenu"] = obj
-        parent["NSMenuItem"] = obj["NSMenuItems"]._items[0]
+        obj.setIfEmpty("NSMenuItems", NibMutableList())
+        if obj["NSMenuItems"]._items:
+            parent["NSMenuItem"] = obj["NSMenuItems"]._items[0]
         parent["NSUsesItemFromMenu"] = True
         for item in obj["NSMenuItems"]._items:
             item["NSAction"] = NibString.intern("_popUpItemAction:")

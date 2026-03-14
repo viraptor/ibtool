@@ -1,14 +1,12 @@
-from ..models import ArchiveContext, NibObject, XibObject, NibNil, NibString
+from ..models import ArchiveContext, NibObject, XibObject, NibString, NibNil
 from xml.etree.ElementTree import Element
 from .helpers import make_xib_object, _xibparser_common_translate_autoresizing
 from ..parsers_base import parse_children
 from ..constants import vFlags
 
 def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
-    obj = make_xib_object(ctx, "NSTextField", elem, parent)
+    obj = make_xib_object(ctx, "NSSecureTextField", elem, parent)
 
-    if elem.attrib.get("allowsCharacterPickerTouchBarItem") == "YES":
-        obj.extraContext["allowsCharacterPickerTouchBarItem"] = True
     obj["NSSuperview"] = obj.xib_parent()
     obj["NSNextResponder"] = obj.xib_parent()
     parse_children(ctx, elem, obj)
@@ -33,8 +31,6 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
     obj["NSTextFieldAlignmentRectInsetsVersion"] = 2
     obj["NSTextFieldAllowsWritingToolsAffordance"] = False
     obj["NS.resolvesNaturalAlignmentWithBaseWritingDirection"] = False
-    if elem.attrib.get("textCompletion") == "NO":
-        obj["NSCell"]["NSAutomaticTextCompletionDisabled"] = True
     h = obj.extraContext.get("horizontalHuggingPriority", "250")
     v = obj.extraContext.get("verticalHuggingPriority", "750")
     if h != "250" or v != "750":

@@ -84,9 +84,11 @@ class CompilationContext:
                     out_values.append(vtuple_obj)
                 elif isinstance(v, XibId):
                     key_idx = idx_of_key(k)
-                    id_target = [o for o in self.object_list if isinstance(o, NibObject) and getattr(o, "xibid", None) == v][0]
-                    vtuple_obj = (key_idx, nibencoding.NIB_TYPE_OBJECT, id_target.nibidx(), id_target)
-                    out_values.append(vtuple_obj)
+                    matches = [o for o in self.object_list if isinstance(o, NibObject) and getattr(o, "xibid", None) == v]
+                    if matches:
+                        id_target = matches[0]
+                        vtuple_obj = (key_idx, nibencoding.NIB_TYPE_OBJECT, id_target.nibidx(), id_target)
+                        out_values.append(vtuple_obj)
                 elif isinstance(v, str) or isinstance(v, bytearray) or isinstance(v, bytes):
                     key_idx = idx_of_key(k)
                     vtuple_str = (key_idx, nibencoding.NIB_TYPE_STRING, v)

@@ -135,14 +135,18 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
     if obj.xibid:
         ctx.addObject(obj.xibid, obj)
 
-    # NS.attributes dictionary: dateStyle, formatterBehavior, timeStyle
     date_style_num = NibNSNumber(date_style_val)
     time_style_num = date_style_num if date_style_val == time_style_val else NibNSNumber(time_style_val)
-    attrs = NibMutableDictionary([
+    attrs_items = [
         NibString.intern("dateStyle"), date_style_num,
+    ]
+    if elem.attrib.get("doesRelativeDateFormatting") == "YES":
+        attrs_items.extend([NibString.intern("doesRelativeDateFormatting"), NibNSNumber(True)])
+    attrs_items.extend([
         NibString.intern("formatterBehavior"), NibNSNumber(1040),
         NibString.intern("timeStyle"), time_style_num,
     ])
+    attrs = NibMutableDictionary(attrs_items)
 
     # Get format pattern from ICU
     title = parent.get("NSContents")

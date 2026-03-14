@@ -454,6 +454,8 @@ class ArchiveContext:
 
         if isinstance(target, XibId):
             target = self.getObject(target)
+        if target is None:
+            return
         if target.extraContext.get("NSDoNotTranslateAutoresizingMask"):
             target["NSDoNotTranslateAutoresizingMask"] = True
 

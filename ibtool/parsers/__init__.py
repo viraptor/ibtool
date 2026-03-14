@@ -18,11 +18,17 @@ from . import customFormatter
 from . import customObject
 from . import customSpacing
 from . import customView
+from . import date
 from . import dateFormatter
+from . import datePicker
+from . import datePickerCell
+from . import datePickerElements
 from . import drawer
+from . import edgeInsets
 from . import font
 from . import holdingPriorities
 from . import imageCell
+from . import imageReference
 from . import imageView
 from . import items
 from . import levelIndicator
@@ -32,18 +38,23 @@ from . import menu
 from . import menuItem
 from . import modifierMask
 from . import nil
+from . import numberFormatter
 from . import outlet
 from . import outlineView
 from . import placeholder
+from . import allowedInputSourceLocales
 from . import pdfView
 from . import point
 from . import popUpButton
 from . import popUpButtonCell
+from . import predicateEditor
 from . import progressIndicator
 from . import prototypeCellViews
 from . import rect
 from . import scrollView
 from . import scroller
+from . import secureTextField
+from . import secureTextFieldCell
 from . import searchField
 from . import searchFieldCell
 from . import segment
@@ -66,6 +77,9 @@ from . import tableColumns
 from . import tableFieldCell
 from . import tableHeaderCell
 from . import tableHeaderView
+from . import tabView
+from . import tabViewItem
+from . import tabViewItems
 from . import tableView
 from . import tableViewGridLines
 from . import textField
@@ -74,6 +88,7 @@ from . import textView
 from . import userDefaultsController
 from . import value
 from . import view
+from . import viewLayoutGuide
 from . import visibilityPriorities
 from . import webPreferences
 from . import webView
@@ -84,6 +99,7 @@ from . import windowStyleMask
 
 all = {
     "accessibility": accessibility,
+    "allowedInputSourceLocales": allowedInputSourceLocales,
     "action": action,
     "autoresizingMask": autoresizingMask,
     "behavior": behavior,
@@ -103,11 +119,17 @@ all = {
     "customObject": customObject,
     "customSpacing": customSpacing,
     "customView": customView,
+    "date": date,
     "dateFormatter": dateFormatter,
+    "datePicker": datePicker,
+    "datePickerCell": datePickerCell,
+    "datePickerElements": datePickerElements,
     "drawer": drawer,
+    "edgeInsets": edgeInsets,
     "font": font,
     "holdingPriorities": holdingPriorities,
     "imageCell": imageCell,
+    "imageReference": imageReference,
     "imageView": imageView,
     "items": items,
     "levelIndicator": levelIndicator,
@@ -117,6 +139,7 @@ all = {
     "menuItem": menuItem,
     "modifierMask": modifierMask,
     "nil": nil,
+    "numberFormatter": numberFormatter,
     "outlet": outlet,
     "outlineView": outlineView,
     "placeholder": placeholder,
@@ -124,11 +147,14 @@ all = {
     "point": point,
     "popUpButton": popUpButton,
     "popUpButtonCell": popUpButtonCell,
+    "predicateEditor": predicateEditor,
     "progressIndicator": progressIndicator,
     "prototypeCellViews": prototypeCellViews,
     "rect": rect,
     "scrollView": scrollView,
     "scroller": scroller,
+    "secureTextField": secureTextField,
+    "secureTextFieldCell": secureTextFieldCell,
     "searchField": searchField,
     "searchFieldCell": searchFieldCell,
     "segment": segment,
@@ -151,6 +177,9 @@ all = {
     "tableFieldCell": tableFieldCell,
     "tableHeaderCell": tableHeaderCell,
     "tableHeaderView": tableHeaderView,
+    "tabView": tabView,
+    "tabViewItem": tabViewItem,
+    "tabViewItems": tabViewItems,
     "tableView": tableView,
     "tableViewGridLines": tableViewGridLines,
     "textField": textField,
@@ -159,6 +188,7 @@ all = {
     "userDefaultsController": userDefaultsController,
     "value": value,
     "view": view,
+    "viewLayoutGuide": viewLayoutGuide,
     "visibilityPriorities": visibilityPriorities,
     "webPreferences": webPreferences,
     "webView": webView,

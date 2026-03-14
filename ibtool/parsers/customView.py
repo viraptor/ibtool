@@ -1,4 +1,4 @@
-from ..models import ArchiveContext, NibObject, XibObject
+from ..models import ArchiveContext, NibObject, NibString, XibObject
 from xml.etree.ElementTree import Element
 from typing import Optional
 from ..constants import vFlags
@@ -34,6 +34,11 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
 
     if elem.attrib.get("clipsToBounds") == "YES":
         obj["NSViewClipsToBoundsKeyName"] = True
+
+    h = elem.attrib.get("horizontalHuggingPriority", "250")
+    v = elem.attrib.get("verticalHuggingPriority", "250")
+    if h != "250" or v != "250":
+        obj["NSHuggingPriority"] = NibString.intern(f"{{{h}, {v}}}")
 
     return obj
 

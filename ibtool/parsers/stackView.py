@@ -43,6 +43,11 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
             "NSViewWantsBestResolutionOpenGLSurface": True,
             "NSvFlags": vFlags.AUTORESIZES_SUBVIEWS,
         })
+    h = elem.attrib.get("horizontalHuggingPriority", "250")
+    v = elem.attrib.get("verticalHuggingPriority", "250")
+    if h != "250" or v != "250":
+        obj["NSHuggingPriority"] = NibString.intern(f"{{{h}, {v}}}")
+
     obj["NSStackViewDetachesHiddenViews"] = elem.attrib.get("detachesHiddenViews", "NO") == "YES"
     obj["NSStackViewEdgeInsets.bottom"] = NibFloat(0.0)
     obj["NSStackViewEdgeInsets.left"] = NibFloat(0.0)
