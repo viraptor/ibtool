@@ -108,13 +108,12 @@ class CompilationContext:
             obj_values_start = len(out_values)
             kvpairs = obj.getKeyValuePairs()
             for k, v in kvpairs:
-                # Ordered by frequency: int > NibObject > bool > NibNil > str/bytes > ...
-                if isinstance(v, int):
-                    if v is True:
-                        out_values.append((idx_of_key(k), TRUE))
-                    elif v is False:
-                        out_values.append((idx_of_key(k), FALSE))
-                    elif v < 0:
+                if v is True:
+                    out_values.append((idx_of_key(k), TRUE))
+                elif v is False:
+                    out_values.append((idx_of_key(k), FALSE))
+                elif isinstance(v, int):
+                    if v < 0:
                         out_values.append((idx_of_key(k), LLONG, v))
                     elif v <= 0x7f:
                         out_values.append((idx_of_key(k), BYTE, v))
