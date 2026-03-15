@@ -10,6 +10,7 @@ class CompilationContext:
         # a set of serial numbers for objects that have been added to the object list.
         self.serial_set = set()
         self.object_list = []
+        self._number_by_value: dict[tuple, NibNSNumber] = {}
 
     def addBinObject(self, obj):
         pass
@@ -28,6 +29,16 @@ class CompilationContext:
         if serial in self.serial_set:
             return
         self.serial_set.add(serial)
+
+        if isinstance(obj, NibNSNumber):
+            val = obj.value()
+            if isinstance(val, (int, float)) and not isinstance(val, bool):
+                dedup_key = (type(val).__name__, float(val))
+                existing = self._number_by_value.get(dedup_key)
+                if existing is not None:
+                    obj._nibidx = existing._nibidx
+                    return
+                self._number_by_value[dedup_key] = obj
 
         cls = obj.classname()
         if cls not in self.class_set:

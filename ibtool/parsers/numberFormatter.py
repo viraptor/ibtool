@@ -3,7 +3,7 @@ from xml.etree.ElementTree import Element
 
 
 def _build_format_string(min_int_digits, max_int_digits, min_frac_digits, max_frac_digits):
-    min_int = max(min_int_digits, 1)
+    min_int = min_int_digits
     capped_max = min(max_int_digits, 42)
     hash_count = max(capped_max - min_int, 0)
     fmt = '#' * hash_count + '0' * min_int
@@ -66,7 +66,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
         NibString.intern("maximumIntegerDigits"), NibNSNumber(max_int_digits),
         NibString.intern("minimum"), minimum,
         NibString.intern("minimumFractionDigits"), NibNSNumber(min_frac_digits),
-        NibString.intern("minimumIntegerDigits"), NibNSNumber(max(min_int_digits, 1)),
+        NibString.intern("minimumIntegerDigits"), NibNSNumber(min_int_digits),
     ]
 
     if not has_nil_neg_infinity:
@@ -131,5 +131,6 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
 
     parent["NSFormatter"] = obj
     if parent.extraContext.get("key") == "cell":
-        flags2 = (parent.get("NSCellFlags2") or 0) | 0x80000000
-        parent["NSCellFlags2"] = flags2 - 0x100000000 if flags2 >= 0x80000000 else flags2
+        contents = parent.get("NSContents")
+        if isinstance(contents, NibString) and contents._text == "":
+            del parent["NSContents"]
