@@ -34,4 +34,5 @@ def parse(ctx: ArchiveContext, elem: Element, parent: XibObject) -> NibObject:
         })
     if (tag := elem.attrib.get("tag")):
         obj["NSSegmentItemTag"] = int(tag)
+    obj.setIfNotDefault("NSSegmentItemDisabled", elem.attrib.get("enabled", "YES") == "NO", False)
     return obj

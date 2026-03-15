@@ -482,6 +482,21 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
             vs_h = sv_h - 2 * border
             obj["NSVScroller"]["NSFrame"] = NibString.intern(f"{{{{{vs_x}, {vs_y}}}, {{{vs_w}, {vs_h}}}}}")
 
+    # Expand text view doc views to fill the clip view width
+    if not is_table_sv and doc_view and doc_view.originalclassname() == "NSTextView":
+        auto_resizing = doc_view.extraContext.get("parsed_autoresizing")
+        if auto_resizing and auto_resizing.get("widthSizable"):
+            cv_computed = cv.frame()
+            if cv_computed:
+                clip_w = int(cv_computed[2])
+                dv_frame = doc_view.extraContext.get("NSFrame") or doc_view.extraContext.get("NSFrameSize")
+                if dv_frame:
+                    dv_h = int(dv_frame[3]) if len(dv_frame) == 4 else int(dv_frame[1])
+                    doc_view["NSFrameSize"] = NibString.intern(f"{{{clip_w}, {dv_h}}}")
+                    tc = doc_view.get("NSTextContainer")
+                    if tc:
+                        tc["NSWidth"] = float(clip_w)
+
     h = obj.extraContext.get("horizontalHuggingPriority", "250")
     v = obj.extraContext.get("verticalHuggingPriority", "250")
     if h != "250" or v != "250":

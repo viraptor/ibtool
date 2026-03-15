@@ -10,23 +10,31 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
 
     parse_children(ctx, elem, obj)
 
-    # Stepper cell flags: CONTINUOUS (if set) | ACTION_ON_MOUSE_DOWN | DONT_ACT_ON_MOUSE_UP
-    cell_flags = CellFlags.ACTION_ON_MOUSE_DOWN | CellFlags.DONT_ACT_ON_MOUSE_UP
-    if elem.attrib.get("continuous", "NO") == "YES":
-        cell_flags |= CellFlags.CONTINUOUS
-        obj.extraContext["continuous"] = True
-    obj["NSCellFlags"] = cell_flags
+    autorepeat = elem.attrib.get("autorepeat", "YES") == "YES"
+    obj.extraContext["autorepeat"] = autorepeat
+
+    if autorepeat:
+        cell_flags = CellFlags.ACTION_ON_MOUSE_DOWN | CellFlags.DONT_ACT_ON_MOUSE_UP
+        continuous = elem.attrib.get("continuous", "YES") != "NO"
+        if continuous:
+            cell_flags |= CellFlags.CONTINUOUS
+            obj.extraContext["continuous"] = True
+        obj["NSCellFlags"] = cell_flags
+    else:
+        obj["NSCellFlags"] = 0
     obj["NSCellFlags2"] = 0
 
     obj["NSControlView"] = parent
 
-    # Value properties
-    obj["NSValue"] = float(elem.attrib.get("doubleValue", "0"))
-    obj["NSMinValue"] = float(elem.attrib.get("minValue", "0"))
-    obj["NSMaxValue"] = float(elem.attrib.get("maxValue", "100"))
+    obj.setIfNotDefault("NSValue", float(elem.attrib.get("doubleValue", "0")), 0.0)
+    obj.setIfNotDefault("NSMinValue", float(elem.attrib.get("minValue", "0")), 0.0)
+    obj.setIfNotDefault("NSMaxValue", float(elem.attrib.get("maxValue", "100")), 0.0)
     obj["NSIncrement"] = float(elem.attrib.get("increment", "1"))
-    obj["NSValueWraps"] = elem.attrib.get("valueWraps", "YES") == "YES"
-    obj["NSAutorepeat"] = elem.attrib.get("autorepeat", "YES") == "YES"
+
+    if autorepeat:
+        if "valueWraps" in elem.attrib:
+            obj["NSValueWraps"] = elem.attrib["valueWraps"] == "YES"
+        obj["NSAutorepeat"] = True
 
     parent["NSCell"] = obj
 

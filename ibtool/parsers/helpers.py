@@ -105,9 +105,10 @@ def __xibparser_cell_flags(elem: Element, obj: NibObject, parent: NibObject) -> 
     }[elem.attrib.get("controlSize")]
     allows_mixed_state = CellFlags2.ALLOWS_MIXED_STATE if elem.attrib.get("allowsMixedState") == "YES" else 0
     focus_ring_none = 0x8000 if elem.attrib.get("focusRingType") == "none" else 0
+    truncates_last_visible = CellFlags2.TRUNCATES_LAST_VISIBLE_LINE if elem.attrib.get("truncatesLastVisibleLine") == "YES" else 0
 
     obj.flagsOr("NSCellFlags", lineBreakModeMask | text_field_flag | selectable | state_on | scrollable | disabled | editable | bezeled | border)
-    obj.flagsOr("NSCellFlags2", textAlignmentMask | sendsActionMask | lineBreakModeMask2 | refuses_first_responder_mask | size_flag | allows_mixed_state | allows_undo | uses_single_line_mode | focus_ring_none)
+    obj.flagsOr("NSCellFlags2", textAlignmentMask | sendsActionMask | lineBreakModeMask2 | refuses_first_responder_mask | size_flag | allows_mixed_state | allows_undo | uses_single_line_mode | focus_ring_none | truncates_last_visible)
 
     if parent.originalclassname() == "NSTableColumn" and editable:
         parent["NSIsEditable"] = True

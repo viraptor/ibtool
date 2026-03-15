@@ -49,11 +49,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
     if elem.attrib["colorSpace"] == "catalog":
         assert elem.attrib["catalog"] == "System", elem.attrib["catalog"]
 
-        # hack - does it generalize to other types of cells?
-        if parent.originalclassname() == "NSTextFieldCell" and elem.attrib["name"] == "textColor" and parent["NSCellFlags"] & CellFlags.EDITABLE:
-            colorName = 'controlTextColor'
-        else:
-            colorName = elem.attrib["name"]
+        colorName = elem.attrib["name"]
         color = makeSystemColor(colorName)
         target_obj[target_attribute] = color
     elif elem.attrib["colorSpace"] == "calibratedWhite":
