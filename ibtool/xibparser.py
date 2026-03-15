@@ -62,6 +62,9 @@ def ParseXIBObjects(root: Element, context: Optional[ArchiveContext]=None, resol
             h = img.get("height")
             if name and w and h:
                 context.imageResources[name] = (w, h)
+            catalog = img.get("catalog")
+            if name and catalog:
+                context.imageCatalog[name] = catalog
             mutable_data = img.find("mutableData")
             if name and mutable_data is not None and mutable_data.text:
                 import base64, plistlib

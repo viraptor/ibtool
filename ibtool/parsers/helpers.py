@@ -232,14 +232,18 @@ def make_image(name: str, parent: NibObject, ctx: "ArchiveContext") -> NibObject
     obj["NSResourceName"] = NibString.intern(name)
     obj["NSClassName"] = NibString.intern("NSImage")
     res = ctx.imageResources.get(name)
-    if name.startswith("NS"):
+    catalog = ctx.imageCatalog.get(name)
+    is_system = name.startswith("NS") or catalog == "system"
+    if catalog:
+        obj["NSCatalogName"] = NibString.intern(catalog)
+    if is_system:
         obj["IBNamespaceID"] = NibString.intern("system")
     else:
         obj["IBNamespaceID"] = NibNil()
-    if res:
-        w = min(int(float(res[0])), 32) if name.startswith("NS") else res[0]
-        h = min(int(float(res[1])), 32) if name.startswith("NS") else res[1]
-        size_str = f"{{{w}, {h}}}"
+    if is_system:
+        size_str = "{32, 32}"
+    elif res:
+        size_str = f"{{{res[0]}, {res[1]}}}"
     else:
         size_str = "{32, 32}"
     design_size = NibObject("NSValue", obj)

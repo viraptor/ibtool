@@ -382,6 +382,7 @@ class ArchiveContext:
         self.isPrototypeList = False
         self.visibleWindows: list[NibObject] = []
         self.imageResources: dict[str, tuple[str, str]] = {}  # name -> (width, height)
+        self.imageCatalog: dict[str, str] = {}  # name -> catalog (e.g. "system")
         self.imageData: dict[str, bytes] = {}  # name -> raw TIFF bytes
         self.imagePlistData: dict[str, dict] = {}  # name -> plist metadata
 
