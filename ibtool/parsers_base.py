@@ -6,7 +6,7 @@ import importlib
 
 def __xibparser_ParseXIBObject(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject], all_parsers={}) -> NibObject:
     if not all_parsers:
-        all_parsers = importlib.import_module(".parsers", __package__).all
+        all_parsers.update(importlib.import_module(".parsers", __package__).all)
 
     tag = elem.tag
     parsefn = all_parsers[tag].parse

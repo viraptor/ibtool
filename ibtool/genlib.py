@@ -56,77 +56,91 @@ class CompilationContext:
         out_values: list[Union[tuple[int,int],tuple[int,int,Union[int,str,bytearray,float]],tuple[int,int,int,PropValue]]] = []
         out_classes: list[str] = []
 
+        class_index: dict[str, int] = {}
+
         def idx_of_class(cls: str) -> int:
-            if cls in out_classes:
-                return out_classes.index(cls)
+            idx = class_index.get(cls)
+            if idx is not None:
+                return idx
             if cls == "NSNibAuxiliaryActionConnector":
                 current_class_len = len(out_classes)
                 out_classes.append((cls, current_class_len + 1))
+                class_index[cls] = current_class_len
                 out_classes.append("NSNibConnector")
+                class_index["NSNibConnector"] = current_class_len + 1
                 return current_class_len
             else:
+                idx = len(out_classes)
                 out_classes.append(cls)
-                return len(out_classes) - 1
+                class_index[cls] = idx
+                return idx
+
+        key_index: dict[str, int] = {}
 
         def idx_of_key(key: str) -> int:
-            if key in out_keys:
-                return out_keys.index(key)
+            idx = key_index.get(key)
+            if idx is not None:
+                return idx
+            idx = len(out_keys)
             out_keys.append(key)
-            return len(out_keys) - 1
+            key_index[key] = idx
+            return idx
+
+        xibid_index: dict = {}
+        for o in self.object_list:
+            xid = getattr(o, "xibid", None)
+            if xid is not None:
+                xibid_index.setdefault(xid, o)
+
+        OBJ = nibencoding.NIB_TYPE_OBJECT
+        STR = nibencoding.NIB_TYPE_STRING
+        BYTE = nibencoding.NIB_TYPE_BYTE
+        SHORT = nibencoding.NIB_TYPE_SHORT
+        LONG = nibencoding.NIB_TYPE_LONG
+        LLONG = nibencoding.NIB_TYPE_LONG_LONG
+        TRUE = nibencoding.NIB_TYPE_TRUE
+        FALSE = nibencoding.NIB_TYPE_FALSE
+        TNIL = nibencoding.NIB_TYPE_NIL
+        FLOAT = nibencoding.NIB_TYPE_FLOAT
+        DOUBLE = nibencoding.NIB_TYPE_DOUBLE
 
         for obj in self.object_list:
             obj_values_start = len(out_values)
             kvpairs = obj.getKeyValuePairs()
             for k, v in kvpairs:
-                if isinstance(v, NibObject):
-                    key_idx = idx_of_key(k)
-                    vtuple_obj = (key_idx, nibencoding.NIB_TYPE_OBJECT, v.nibidx(), v)
-                    out_values.append(vtuple_obj)
-                elif isinstance(v, XibId):
-                    key_idx = idx_of_key(k)
-                    matches = [o for o in self.object_list if isinstance(o, NibObject) and getattr(o, "xibid", None) == v]
-                    if matches:
-                        id_target = matches[0]
-                        vtuple_obj = (key_idx, nibencoding.NIB_TYPE_OBJECT, id_target.nibidx(), id_target)
-                        out_values.append(vtuple_obj)
-                elif isinstance(v, str) or isinstance(v, bytearray) or isinstance(v, bytes):
-                    key_idx = idx_of_key(k)
-                    vtuple_str = (key_idx, nibencoding.NIB_TYPE_STRING, v)
-                    out_values.append(vtuple_str)
-                elif isinstance(v, NibInlineString):
-                    key_idx = idx_of_key(k)
-                    vtuple_inline = (key_idx, nibencoding.NIB_TYPE_STRING, v.text())
-                    out_values.append(vtuple_inline)
-                elif isinstance(v, NibByte):
-                    out_values.append(
-                        (idx_of_key(k), nibencoding.NIB_TYPE_BYTE, v.val())
-                    )
-                elif isinstance(v, NibFloat):
-                    out_values.append(
-                        (idx_of_key(k), nibencoding.NIB_TYPE_FLOAT, v.val())
-                    )
-                elif v is True:
-                    out_values.append((idx_of_key(k), nibencoding.NIB_TYPE_TRUE))
+                if v is True:
+                    out_values.append((idx_of_key(k), TRUE))
                 elif v is False:
-                    out_values.append((idx_of_key(k), nibencoding.NIB_TYPE_FALSE))
-                elif isinstance(v, NibNil):
-                    out_values.append((idx_of_key(k), nibencoding.NIB_TYPE_NIL))
-                elif isinstance(v, float):
-                    out_values.append((idx_of_key(k), nibencoding.NIB_TYPE_DOUBLE, v))
+                    out_values.append((idx_of_key(k), FALSE))
                 elif isinstance(v, int):
                     if v < 0:
-                        out_values.append(
-                            (idx_of_key(k), nibencoding.NIB_TYPE_LONG_LONG, v)
-                        )
+                        out_values.append((idx_of_key(k), LLONG, v))
                     elif v <= 0x7f:
-                        out_values.append((idx_of_key(k), nibencoding.NIB_TYPE_BYTE, v))
+                        out_values.append((idx_of_key(k), BYTE, v))
                     elif v <= 0x7fff:
-                        out_values.append((idx_of_key(k), nibencoding.NIB_TYPE_SHORT, v))
+                        out_values.append((idx_of_key(k), SHORT, v))
                     elif v <= 0x7fffffff:
-                        out_values.append((idx_of_key(k), nibencoding.NIB_TYPE_LONG, v))
+                        out_values.append((idx_of_key(k), LONG, v))
                     else:
-                        out_values.append((idx_of_key(k), nibencoding.NIB_TYPE_LONG_LONG, v))
-
+                        out_values.append((idx_of_key(k), LLONG, v))
+                elif isinstance(v, NibObject):
+                    out_values.append((idx_of_key(k), OBJ, v.nibidx(), v))
+                elif isinstance(v, NibNil):
+                    out_values.append((idx_of_key(k), TNIL))
+                elif isinstance(v, (str, bytearray, bytes)):
+                    out_values.append((idx_of_key(k), STR, v))
+                elif isinstance(v, NibInlineString):
+                    out_values.append((idx_of_key(k), STR, v.text()))
+                elif isinstance(v, NibByte):
+                    out_values.append((idx_of_key(k), BYTE, v.val()))
+                elif isinstance(v, NibFloat):
+                    out_values.append((idx_of_key(k), FLOAT, v.val()))
+                elif isinstance(v, float):
+                    out_values.append((idx_of_key(k), DOUBLE, v))
+                elif isinstance(v, XibId):
+                    id_target = xibid_index.get(v)
+                    if id_target is not None:
+                        out_values.append((idx_of_key(k), OBJ, id_target.nibidx(), id_target))
                 elif isinstance(v, tuple):
                     for el in v:
                         if not isinstance(el, float):
@@ -137,9 +151,7 @@ class CompilationContext:
                     data = bytearray()
                     data.append(0x07)
                     data.extend(struct.pack("<" + "d" * len(v), *v))
-                    out_values.append(
-                        (idx_of_key(k), nibencoding.NIB_TYPE_STRING, data)
-                    )
+                    out_values.append((idx_of_key(k), STR, data))
                 else:
                     raise Exception(f"Unknown type: {type(v)} in key {k} of {obj.classname()}")
 
