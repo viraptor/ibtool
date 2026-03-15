@@ -56,7 +56,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
         "NSBackgroundColor": makeSystemColor("textBackgroundColor"),
         "NSCellFlags": CellFlags.UNKNOWN_TEXT_FIELD,
         "NSCellFlags2": CellFlags2.TEXT_ALIGN_CENTER,
-        "NSContents": NibString.intern(elem.attrib.get("title", "Title")),
+        "NSContents": NibString.intern(elem.attrib.get("title", "" if elem.attrib.get("titlePosition") == "noTitle" else "Title")),
         "NSControlView": NibNil(),
         "NSSupport": font,
         "NSTextColor": makeSystemColor("labelColor"),

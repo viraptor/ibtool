@@ -84,6 +84,9 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
                             obj["NSSelectedIndex"] = i
                         obj["NSContents"] = NibString.intern(elem.attrib.get("title", ""))
                         break
+            if not selected_item_id:
+                obj["NSMenuItem"] = NibNil()
+                obj["NSSelectedIndex"] = -1
             if obj.get("NSContents") is None:
                 obj["NSContents"] = NibString.intern(elem.attrib.get("title", ""))
 

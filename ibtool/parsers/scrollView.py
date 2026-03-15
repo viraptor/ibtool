@@ -122,6 +122,8 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     vs_frame_w = obj["NSVScroller"].extraContext.get("scroller_width", 17)
     is_regular_scroller = vs_standard_w == 17 and vs_frame_w != 16
     is_small_offscreen = vs_offscreen and not is_regular_scroller
+    hs_orig_frame_early = obj["NSHScroller"].extraContext.get("NSFrame")
+    hs_offscreen = hs_orig_frame_early and len(hs_orig_frame_early) == 4 and hs_orig_frame_early[0] < 0
 
     # Adjust table flags when clip view y doesn't account for border
     insets = obj.extraContext.get("insets", (0, 0))
@@ -181,8 +183,11 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
         if dv_frame:
             raw_w = int(dv_frame[2]) if len(dv_frame) == 4 else int(dv_frame[0])
             new_h = int(dv_frame[3]) if len(dv_frame) == 4 else int(dv_frame[1])
-            if has_header and not has_horizontal_scroller and clip_computed_w is not None and raw_w <= clip_computed_w:
+            if not has_horizontal_scroller and clip_computed_w is not None and raw_w <= clip_computed_w and (clip_computed_w - raw_w) >= vs_standard_w:
                 new_w = clip_computed_w
+                col_expansion = new_w - raw_w
+                if col_expansion > 0:
+                    _reduce_resizable_column_widths(doc_view, -col_expansion)
             else:
                 new_w = raw_w + expansion
             elastic_h = doc_view.extraContext.get("elastic_row_height")
@@ -209,9 +214,19 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     # Horizontal scroller gets NSEnabled for table/outline scroll views (regular size, not autohiding)
     is_table_sv = _is_table_or_outline(doc_view)
     if is_table_sv and is_regular_scroller and not vs_offscreen and (has_horizontal_scroller or not auto_hiding):
-        if has_horizontal_scroller or not has_header:
+        # Check if doc view was expanded beyond clip width (meaning horizontal scrolling is needed)
+        dv_frame_check = doc_view.get("NSFrameSize")
+        cv_computed_check = cv.frame()
+        dv_expanded_w = 0
+        if dv_frame_check:
+            m_check = re.match(r'\{(\d+),', dv_frame_check._text)
+            if m_check:
+                dv_expanded_w = int(m_check.group(1))
+        clip_check_w = int(cv_computed_check[2]) if cv_computed_check else 0
+        needs_h_scroll = dv_expanded_w > clip_check_w
+        if needs_h_scroll and (has_horizontal_scroller or not has_header):
             obj["NSHScroller"]["NSEnabled"] = True
-        else:
+        elif needs_h_scroll:
             dv_frame = doc_view.extraContext.get("NSFrame") or doc_view.extraContext.get("NSFrameSize")
             cv_computed = cv.frame()
             raw_dv_w = (int(dv_frame[2]) if len(dv_frame) == 4 else int(dv_frame[0])) if dv_frame else 0
