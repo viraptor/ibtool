@@ -125,6 +125,15 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     hs_orig_frame_early = obj["NSHScroller"].extraContext.get("NSFrame")
     hs_offscreen = hs_orig_frame_early and len(hs_orig_frame_early) == 4 and hs_orig_frame_early[0] < 0
 
+    # For non-regular scrollers: check if clip view already accounts for scroller
+    content_cv = obj.get("NSContentView")
+    cv_raw_frame = content_cv.extraContext.get("NSFrame") if content_cv else None
+    insets_check = obj.extraContext.get("insets", (0, 0))
+    sv_inner_w = (sv_w_raw - insets_check[0]) if sv_w_raw else 0
+    cv_already_accounts_for_scroller = cv_raw_frame and len(cv_raw_frame) == 4 and cv_raw_frame[2] < sv_inner_w
+    if not vs_offscreen and not is_regular_scroller and cv_already_accounts_for_scroller and content_cv:
+        content_cv["NSFrame"] = NibString.intern(f"{{{{{cv_raw_frame[0]}, {cv_raw_frame[1]}}}, {{{cv_raw_frame[2]}, {cv_raw_frame[3]}}}}}")
+
     # Adjust table flags when clip view y doesn't account for border
     insets = obj.extraContext.get("insets", (0, 0))
     border = insets[0] // 2
@@ -415,7 +424,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     # Recompute scroller frames for table/outline scroll views
     hs_orig_frame = obj["NSHScroller"].extraContext.get("NSFrame")
     hs_offscreen = hs_orig_frame and len(hs_orig_frame) == 4 and hs_orig_frame[0] < 0
-    if not vs_offscreen and is_table_sv:
+    if not vs_offscreen and is_table_sv and (is_regular_scroller or not cv_already_accounts_for_scroller):
         insets = obj.extraContext.get("insets", (0, 0))
         border = insets[0] // 2  # total inset / 2 = per-side border
         sv_frame = obj.extraContext.get("NSFrame") or obj.extraContext.get("NSFrameSize")

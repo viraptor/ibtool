@@ -10,6 +10,13 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     obj = make_xib_object(ctx, "NSOutlineView", elem, parent)
     obj["NSSuperview"] = obj.xib_parent()
 
+    if elem.attrib.get("viewBased") == "YES":
+        obj["NSSubviews"] = NibMutableList([])
+        obj["NSTableViewArchivedReusableViewsKey"] = NibMutableDictionary([])
+
+    if outline_col_id := elem.attrib.get("outlineTableColumn"):
+        obj.extraContext["outlineTableColumnId"] = outline_col_id
+
     with __handle_view_chain(ctx, obj):
         parse_children(ctx, elem, obj)
         # Outline view width is managed by the scroll view, not frame() autoresizing.

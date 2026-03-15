@@ -5,11 +5,27 @@ from .helpers import make_xib_object, makeSystemColor
 from ..parsers_base import parse_children
 from ..genlib import CompileNibObjects
 
+def _is_outline_column(column_elem, table_view):
+    if table_view.originalclassname() != "NSOutlineView":
+        return False
+    return table_view.extraContext.get("outlineTableColumnId") == column_elem.attrib.get("id")
+
 def _compile_prototype_cell_view(ctx, nested_ctx, column_elem, column_obj, table_view, nib_view):
     ics_w = table_view.get("NSIntercellSpacingWidth")
     if ics_w is None:
         ics_w = 3.0
-    x_offset = int((ics_w + 3) // 2)
+    is_outline_col = _is_outline_column(column_elem, table_view)
+    if is_outline_col:
+        x_offset = int(ics_w) // 2 + 9
+        col_w = column_obj.get("NSWidth")
+        if col_w is not None:
+            w_reduction = int(ics_w) * 5 // 2 + 8
+            target_w = int(col_w - w_reduction)
+        else:
+            target_w = None
+    else:
+        x_offset = int((ics_w + 3) // 2)
+        target_w = None
 
     nib_appl_parent = XibObject(nested_ctx, "NSCustomObject", None, None)
     nib_appl_parent["NSClassName"] = "NSObject"
@@ -45,8 +61,18 @@ def _compile_prototype_cell_view(ctx, nested_ctx, column_elem, column_obj, table
     ec_frame = nib_view.extraContext.get("NSFrame")
     if ec_frame and len(ec_frame) == 4 and x_offset > 0:
         new_x = ec_frame[0] + x_offset
-        nib_view["NSFrame"] = NibString.intern(f"{{{{{new_x}, {ec_frame[1]}}}, {{{ec_frame[2]}, {ec_frame[3]}}}}}")
-        nib_view.extraContext["NSFrame"] = (new_x, ec_frame[1], ec_frame[2], ec_frame[3])
+        new_w = target_w if target_w is not None else ec_frame[2]
+        nib_view["NSFrame"] = NibString.intern(f"{{{{{new_x}, {ec_frame[1]}}}, {{{new_w}, {ec_frame[3]}}}}}")
+        nib_view.extraContext["NSFrame"] = (new_x, ec_frame[1], new_w, ec_frame[3])
+        # Update subview widths to match cell view width
+        if target_w is not None and new_w != ec_frame[2]:
+            subviews = nib_view.get("NSSubviews")
+            if subviews:
+                for sv in subviews:
+                    sv_frame = sv.extraContext.get("NSFrame")
+                    if sv_frame and len(sv_frame) == 4:
+                        sv["NSFrame"] = NibString.intern(f"{{{{{sv_frame[0]}, {sv_frame[1]}}}, {{{new_w}, {sv_frame[3]}}}}}")
+                        sv.extraContext["NSFrame"] = (sv_frame[0], sv_frame[1], new_w, sv_frame[3])
 
     nib_data = CompileNibObjects([make_basic_nib(objects, root=nib_appl_parent, connections=connections)])
 
@@ -87,7 +113,8 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
 
     if parent.originalclassname() in ("NSTableView", "NSOutlineView"):
         nested_ctx = ctx.nested_context()
-        if parent.get("NSTableViewArchivedReusableViewsKey") is not None:
+        has_cell_views = obj.extraContext.get("prototypeCellViews") or obj.extraContext.get("prototypeCellView")
+        if has_cell_views and parent.get("NSTableViewArchivedReusableViewsKey") is not None:
             parent["NSTableViewArchivedReusableViewsKey"].addItem(NibString.intern(elem.attrib.get("identifier", "")))
         nib_views = obj.extraContext.get("prototypeCellViews")
         if nib_views:
@@ -99,7 +126,18 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
             ics_w = parent.get("NSIntercellSpacingWidth")
             if ics_w is None:
                 ics_w = 3.0
-            x_offset = int((ics_w + 3) // 2)
+            is_outline_col = _is_outline_column(elem, parent)
+            if is_outline_col:
+                x_offset = int(ics_w) // 2 + 9
+                col_w = obj.get("NSWidth")
+                if col_w is not None:
+                    w_reduction = int(ics_w) * 5 // 2 + 8
+                    target_w = int(col_w - w_reduction)
+                else:
+                    target_w = None
+            else:
+                x_offset = int((ics_w + 3) // 2)
+                target_w = None
 
             # Create sub-nib scaffold objects
             nib_appl_parent = XibObject(nested_ctx, "NSCustomObject", None, None)
@@ -126,8 +164,14 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
             ec_frame = nib_view.extraContext.get("NSFrame")
             if ec_frame and len(ec_frame) == 4 and x_offset > 0:
                 new_x = ec_frame[0] + x_offset
-                nib_view["NSFrame"] = NibString.intern(f"{{{{{new_x}, {ec_frame[1]}}}, {{{ec_frame[2]}, {ec_frame[3]}}}}}")
-                nib_view.extraContext["NSFrame"] = (new_x, ec_frame[1], ec_frame[2], ec_frame[3])
+                new_w = target_w if target_w is not None else ec_frame[2]
+                nib_view["NSFrame"] = NibString.intern(f"{{{{{new_x}, {ec_frame[1]}}}, {{{new_w}, {ec_frame[3]}}}}}")
+                nib_view.extraContext["NSFrame"] = (new_x, ec_frame[1], new_w, ec_frame[3])
+                if target_w is not None and new_w != ec_frame[2]:
+                    nib_sub_frame = nib_sub.extraContext.get("NSFrame")
+                    if nib_sub_frame and len(nib_sub_frame) == 4:
+                        nib_sub["NSFrame"] = NibString.intern(f"{{{{{nib_sub_frame[0]}, {nib_sub_frame[1]}}}, {{{new_w}, {nib_sub_frame[3]}}}}}")
+                        nib_sub.extraContext["NSFrame"] = (nib_sub_frame[0], nib_sub_frame[1], new_w, nib_sub_frame[3])
 
             # Compile sub-nib
             objects = [nib_appl_parent, nib_view, nib_sub, nib_sub_cell, nib_appl, nib_outlet]
