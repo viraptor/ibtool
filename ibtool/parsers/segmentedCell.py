@@ -47,7 +47,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
                 if seg.get("NSSegmentItemSelected"):
                     obj.setIfNotDefault("NSSelectedSegment", i, 0)
                     found_selected = True
-            if tracking_mode == 0 and not found_selected:
+            if not found_selected:
                 obj["NSSelectedSegment"] = -1
         if tracking_mode not in (0, 1):
             obj.setIfEmpty("NSSelectedSegment", -1)
@@ -56,7 +56,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
             "fit": 0,
             "fill": 1,
             "fillEqually": 2,
-            "fillProportionally": 2,
+            "fillProportionally": 3,
         }[elem.attrib.get("segmentDistribution", "fit")]
         obj.setIfNotDefault("NSSegmentDistribution", distribution, None)
         parent["NSCell"] = obj

@@ -21,10 +21,12 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     obj["NSImageViewPlaceholderPrecedence"] = 0
     obj["NSControlSendActionMask"] = 4
     obj.setIfEmpty("NSSubviews", NibMutableList([]))
+    if elem.attrib.get("clipsToBounds") == "YES":
+        obj["NSViewClipsToBoundsKeyName"] = True
     h = obj.extraContext.get("horizontalHuggingPriority")
     v = obj.extraContext.get("verticalHuggingPriority")
     if h is not None or v is not None:
-        obj["NSHuggingPriority"] = NibString.intern(f"{{{h or '750'}, {v or '750'}}}")
+        obj["NSHuggingPriority"] = NibString.intern(f"{{{h or '250'}, {v or '750'}}}")
     if not obj.extraContext.get("parsed_autoresizing"):
         obj.flagsOr("NSvFlags", vFlags.DEFAULT_VFLAGS_AUTOLAYOUT if ctx.useAutolayout else vFlags.DEFAULT_VFLAGS)
     return obj

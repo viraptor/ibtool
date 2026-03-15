@@ -22,6 +22,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     rich_text = 0x4 if elem.attrib.get("richText", "YES") == "YES" else 0
     continuous_spell_checking = 0x80 if elem.attrib.get("continuousSpellChecking") == "YES" else 0
     smart_insert_delete = 0x200 if elem.attrib.get("smartInsertDelete") == "YES" else 0
+    link_detection = 0x40000 if elem.attrib.get("linkDetection") == "YES" else 0
     horizontally_resizable = TVFlags.HORIZONTALLY_RESIZABLE if elem.attrib.get("horizontallyResizable") == "YES" else 0
     vertically_resizable = TVFlags.VERTICALLY_RESIZABLE if elem.attrib.get("verticallyResizable", "YES" if 11169 <= ctx.toolsVersion < 13087 else "NO") == "YES" else 0
     uses_font_panel = 0x20 if elem.attrib.get("usesFontPanel", "NO") == "YES" else 0
@@ -45,7 +46,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     shared_data["NSAutomaticTextCompletionDisabled"] = False
     shared_data["NSBackgroundColor"] = NibNil()
     shared_data["NSDefaultParagraphStyle"] = NibNil()
-    shared_data["NSFlags"] = unknown_0x100 | draws_background | spelling_correction | editable | imports_graphics | rich_text | continuous_spell_checking | smart_insert_delete | preferred_find_style_flag | uses_font_panel | allows_document_background_change | uses_ruler | selectable | allows_undo
+    shared_data["NSFlags"] = unknown_0x100 | draws_background | spelling_correction | editable | imports_graphics | rich_text | continuous_spell_checking | smart_insert_delete | link_detection | preferred_find_style_flag | uses_font_panel | allows_document_background_change | uses_ruler | selectable | allows_undo
     shared_data["NSInsertionColor"] = makeSystemColor('textInsertionPointColor')
     shared_data["NSLinkAttributes"] = NibDictionary([
         NibString.intern("NSColor"),
