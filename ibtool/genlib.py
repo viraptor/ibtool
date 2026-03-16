@@ -91,6 +91,11 @@ class CompilationContext:
             out_keys.append(key)
             return len(out_keys) - 1
 
+        xibid_index: dict[XibId, NibObject] = {}
+        for o in self.object_list:
+            if isinstance(o, NibObject) and hasattr(o, "xibid") and o.xibid not in xibid_index:
+                xibid_index[o.xibid] = o
+
         for obj in self.object_list:
             obj_values_start = len(out_values)
             kvpairs = obj.getKeyValuePairs()
@@ -100,10 +105,9 @@ class CompilationContext:
                     vtuple_obj = (key_idx, nibencoding.NIB_TYPE_OBJECT, v.nibidx(), v)
                     out_values.append(vtuple_obj)
                 elif isinstance(v, XibId):
-                    key_idx = idx_of_key(k)
-                    matches = [o for o in self.object_list if isinstance(o, NibObject) and getattr(o, "xibid", None) == v]
-                    if matches:
-                        id_target = matches[0]
+                    id_target = xibid_index.get(v)
+                    if id_target is not None:
+                        key_idx = idx_of_key(k)
                         vtuple_obj = (key_idx, nibencoding.NIB_TYPE_OBJECT, id_target.nibidx(), id_target)
                         out_values.append(vtuple_obj)
                 elif isinstance(v, str) or isinstance(v, bytearray) or isinstance(v, bytes):
