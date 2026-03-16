@@ -51,11 +51,59 @@ def _compile_prototype_cell_view(ctx, nested_ctx, column_elem, column_obj, table
     connections = []
 
     if subviews and len(subviews) > 0:
+        # Set NSDoNotTranslateAutoresizingMask on subviews for sub-nib compilation
+        translate_restore = []
+        def _set_translate_flags(view):
+            svs = view.get("NSSubviews")
+            if not svs:
+                return
+            for sv in svs:
+                if hasattr(sv, 'extraContext') and sv.extraContext.get("NSDoNotTranslateAutoresizingMask"):
+                    if sv.get("NSDoNotTranslateAutoresizingMask") is None:
+                        sv["NSDoNotTranslateAutoresizingMask"] = True
+                        translate_restore.append(sv)
+                _set_translate_flags(sv)
+        _set_translate_flags(nib_view)
+
+        # Collect all objects for sub-nib in the order matching Apple's ibtool:
+        # For each subview: view, cell, then that view's constraints
+        # Then cell view constraints, then NSApplication
+        seen = {id(nib_view)}
+
+        def _collect_view_group(view):
+            """Collect a view, its cell, and its constraints in order."""
+            svs = view.get("NSSubviews")
+            if not svs:
+                return
+            for sv in svs:
+                if id(sv) not in seen:
+                    seen.add(id(sv))
+                    objects.append(sv)
+                cell = sv.get("NSCell")
+                if cell and id(cell) not in seen:
+                    seen.add(id(cell))
+                    objects.append(cell)
+                # Add this subview's own constraints
+                sv_constraints = sv.get("NSViewConstraints")
+                if sv_constraints and hasattr(sv_constraints, '_items'):
+                    for c in sv_constraints._items:
+                        if isinstance(c, NibObject) and id(c) not in seen:
+                            seen.add(id(c))
+                            objects.append(c)
+                # Recurse into nested subviews
+                _collect_view_group(sv)
+
+        _collect_view_group(nib_view)
+
+        # Cell view's own constraints last
+        cv_constraints = nib_view.get("NSViewConstraints")
+        if cv_constraints and hasattr(cv_constraints, '_items'):
+            for c in cv_constraints._items:
+                if isinstance(c, NibObject) and id(c) not in seen:
+                    seen.add(id(c))
+                    objects.append(c)
+
         nib_sub = subviews[0]
-        objects.append(nib_sub)
-        nib_sub_cell = nib_sub.get("NSCell")
-        if nib_sub_cell:
-            objects.append(nib_sub_cell)
         nib_outlet = XibObject(nested_ctx, "NSNibOutletConnector", None, None)
         nib_outlet["NSSource"] = nib_view
         nib_outlet["NSDestination"] = nib_sub
@@ -68,6 +116,10 @@ def _compile_prototype_cell_view(ctx, nested_ctx, column_elem, column_obj, table
         objects.append(nib_appl)
 
     nib_data = CompileNibObjects([make_basic_nib(objects, root=nib_appl_parent, connections=connections)])
+
+    # Restore NSDoNotTranslateAutoresizingMask flags
+    for sv in translate_restore:
+        del sv["NSDoNotTranslateAutoresizingMask"]
 
     nib_view._parent = column_obj
 

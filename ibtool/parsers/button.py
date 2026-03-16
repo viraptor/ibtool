@@ -31,7 +31,14 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
         cell = obj.get("NSCell")
         bezel = cell.get("NSBezelStyle") if cell and not isinstance(cell, NibNil) else None
         default_hp, default_vp = ("750", "750") if bezel in (5, 9, 14) else ("250", "750")
-        if hp != default_hp or vp != default_vp:
+        in_cell_view = False
+        p = obj.xib_parent()
+        while p is not None:
+            if hasattr(p, 'originalclassname') and p.originalclassname() == "NSTableCellView":
+                in_cell_view = True
+                break
+            p = p.xib_parent() if hasattr(p, 'xib_parent') else None
+        if hp != default_hp or vp != default_vp or in_cell_view:
             obj["NSHuggingPriority"] = NibString.intern(f"{{{hp}, {vp}}}")
     if not obj.extraContext.get("parsed_autoresizing"):
         obj.flagsOr("NSvFlags", vFlags.DEFAULT_VFLAGS_AUTOLAYOUT if ctx.useAutolayout else vFlags.DEFAULT_VFLAGS)

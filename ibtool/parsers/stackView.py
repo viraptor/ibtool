@@ -49,10 +49,10 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
         obj["NSHuggingPriority"] = NibString.intern(f"{{{h}, {v}}}")
 
     obj["NSStackViewDetachesHiddenViews"] = elem.attrib.get("detachesHiddenViews", "NO") == "YES"
-    obj["NSStackViewEdgeInsets.bottom"] = NibFloat(0.0)
-    obj["NSStackViewEdgeInsets.left"] = NibFloat(0.0)
-    obj["NSStackViewEdgeInsets.right"] = NibFloat(0.0)
-    obj["NSStackViewEdgeInsets.top"] = NibFloat(0.0)
+    obj.setIfEmpty("NSStackViewEdgeInsets.bottom", NibFloat(0.0))
+    obj.setIfEmpty("NSStackViewEdgeInsets.left", NibFloat(0.0))
+    obj.setIfEmpty("NSStackViewEdgeInsets.right", NibFloat(0.0))
+    obj.setIfEmpty("NSStackViewEdgeInsets.top", NibFloat(0.0))
     obj["NSStackViewHasFlatViewHierarchy"] = True
     obj["NSStackViewHorizontalClippingResistance"] = NibFloat(float(elem.attrib.get("horizontalClippingResistancePriority", "1000")))
     obj["NSStackViewHorizontalHugging"] = NibFloat(float(elem.attrib.get("horizontalStackHuggingPriority", 0)))
