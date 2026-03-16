@@ -71,9 +71,9 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
                 attr_white = attr_white * 0.602715373
             if attr_white.is_integer():
                 attr_white = int(attr_white)
-                white = f'{attr_white} {elem.attrib["alpha"]:.12}\x00' if 'alpha' in elem.attrib and elem.attrib["alpha"] != "1" else f'{attr_white}\x00'
+                white = f'{attr_white} {float(elem.attrib["alpha"]):.10}\x00' if 'alpha' in elem.attrib and elem.attrib["alpha"] != "1" else f'{attr_white}\x00'
             else:
-                white = f'{attr_white:.12} {elem.attrib["alpha"]:.12}\x00' if 'alpha' in elem.attrib and elem.attrib["alpha"] != "1" else f'{attr_white:.12}\x00'
+                white = f'{attr_white:.10} {float(elem.attrib["alpha"]):.10}\x00' if 'alpha' in elem.attrib and elem.attrib["alpha"] != "1" else f'{attr_white:.10}\x00'
             if not use_system_color:
                 color = NibObject("NSColor", None, {
                     "NSColorSpace": 3,
