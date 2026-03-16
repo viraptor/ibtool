@@ -34,6 +34,14 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> No
             config["IBHierarchicalColors"] = NibList([])
             config["IBLocale"] = NibNil()
             img["IBDesignImageConfiguration"] = config
+            # Override design size with resource dimensions when symbolScale is specified
+            res = ctx.imageResources.get(image_name)
+            if res:
+                w = int(float(res[0])) + 1
+                h = int(float(res[1]))
+                design_size = img.get("IBDesignSize")
+                if design_size:
+                    design_size["NS.sizeval"] = NibString.intern(f"{{{w}, {h}}}")
 
         if key == "image":
             parent["NSImage"] = img

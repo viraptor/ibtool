@@ -51,9 +51,10 @@ def _compile_prototype_cell_view(ctx, nested_ctx, column_elem, column_obj, table
     connections = []
 
     if subviews and len(subviews) > 0:
-        # Set NSDoNotTranslateAutoresizingMask on subviews for sub-nib compilation
-        translate_restore = []
-        def _set_translate_flags(view):
+        # Set sub-nib specific properties on subviews
+        subnib_restore = []  # (obj, key, old_value_or_sentinel)
+        _SENTINEL = object()
+        def _set_subnib_flags(view):
             svs = view.get("NSSubviews")
             if not svs:
                 return
@@ -61,9 +62,15 @@ def _compile_prototype_cell_view(ctx, nested_ctx, column_elem, column_obj, table
                 if hasattr(sv, 'extraContext') and sv.extraContext.get("NSDoNotTranslateAutoresizingMask"):
                     if sv.get("NSDoNotTranslateAutoresizingMask") is None:
                         sv["NSDoNotTranslateAutoresizingMask"] = True
-                        translate_restore.append(sv)
-                _set_translate_flags(sv)
-        _set_translate_flags(nib_view)
+                        subnib_restore.append((sv, "NSDoNotTranslateAutoresizingMask", _SENTINEL))
+                cell = sv.get("NSCell")
+                if cell and hasattr(cell, 'originalclassname') and cell.originalclassname() == "NSImageCell":
+                    old_val = cell.get("NSAnimates")
+                    if old_val is not True:
+                        subnib_restore.append((cell, "NSAnimates", old_val))
+                        cell["NSAnimates"] = True
+                _set_subnib_flags(sv)
+        _set_subnib_flags(nib_view)
 
         # Collect all objects for sub-nib in the order matching Apple's ibtool:
         # For each subview: view, cell, then that view's constraints
@@ -117,9 +124,12 @@ def _compile_prototype_cell_view(ctx, nested_ctx, column_elem, column_obj, table
 
     nib_data = CompileNibObjects([make_basic_nib(objects, root=nib_appl_parent, connections=connections)])
 
-    # Restore NSDoNotTranslateAutoresizingMask flags
-    for sv in translate_restore:
-        del sv["NSDoNotTranslateAutoresizingMask"]
+    # Restore sub-nib specific properties
+    for obj_ref, key, old_val in subnib_restore:
+        if old_val is _SENTINEL:
+            del obj_ref[key]
+        else:
+            obj_ref[key] = old_val
 
     nib_view._parent = column_obj
 
@@ -184,13 +194,11 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
                 x_offset = int((ics_w + 3) // 2)
                 target_w = None
 
-            # Create sub-nib scaffold objects
             nib_appl_parent = XibObject(nested_ctx, "NSCustomObject", None, None)
             nib_appl_parent["NSClassName"] = "NSObject"
             nib_appl = XibObject(nested_ctx, "NSCustomObject", None, nib_appl_parent)
             nib_appl["NSClassName"] = "NSApplication"
 
-            # Cell view parent in sub-nib is NSObject (not NSApplication)
             nib_view._parent = nib_appl_parent
             nib_view["NSNextResponder"] = NibNil()
             nib_view["NSReuseIdentifierKey"] = NibString.intern(elem.attrib.get("identifier", ""))
@@ -198,14 +206,12 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
             nib_sub = nib_view["NSSubviews"][0]
             nib_sub_cell = nib_sub["NSCell"]
 
-            # Create outlet connector for sub-nib (textField → first subview)
             nib_outlet = XibObject(nested_ctx, "NSNibOutletConnector", None, None)
             nib_outlet["NSSource"] = nib_view
             nib_outlet["NSDestination"] = nib_sub
             nib_outlet["NSLabel"] = NibString.intern("textField")
             nib_outlet["NSChildControllerCreationSelectorName"] = NibNil()
 
-            # Shift cell view x based on intercell spacing (applies to both sub-nib and top-level)
             ec_frame = nib_view.extraContext.get("NSFrame")
             if ec_frame and len(ec_frame) == 4 and x_offset > 0:
                 new_x = ec_frame[0] + x_offset
@@ -218,11 +224,9 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
                         nib_sub["NSFrame"] = NibString.intern(f"{{{{{nib_sub_frame[0]}, {nib_sub_frame[1]}}}, {{{new_w}, {nib_sub_frame[3]}}}}}")
                         nib_sub.extraContext["NSFrame"] = (nib_sub_frame[0], nib_sub_frame[1], new_w, nib_sub_frame[3])
 
-            # Compile sub-nib
             objects = [nib_appl_parent, nib_view, nib_sub, nib_sub_cell, nib_appl, nib_outlet]
             nib_data = CompileNibObjects([make_basic_nib(objects, root=nib_appl_parent, connections=[nib_outlet])])
 
-            # Restore top-level parent to table column and remove sub-nib-only key
             nib_view._parent = obj
             del nib_view["NSReuseIdentifierKey"]
 
@@ -240,7 +244,29 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     return obj
 
 def make_basic_nib(objects: list[NibObject], root=None, connections=None):
-    oids_keys = [o for o in objects if isinstance(o, XibObject) and (o.xibid is None or not o.xibid.is_negative_id())]
+    # Collect ALL reachable XibObjects for NSOidsKeys (not just explicit objects)
+    seen_ids = set()
+    oids_keys = []
+    def _collect_oids(obj):
+        obj_id = id(obj)
+        if obj_id in seen_ids:
+            return
+        seen_ids.add(obj_id)
+        if isinstance(obj, XibObject) and (obj.xibid is None or not obj.xibid.is_negative_id()):
+            oids_keys.append(obj)
+        if isinstance(obj, NibObject):
+            for _, v in obj.getKeyValuePairs():
+                if isinstance(v, NibObject):
+                    _collect_oids(v)
+                elif hasattr(v, '_items'):
+                    for item in v._items:
+                        if isinstance(item, NibObject):
+                            _collect_oids(item)
+    for obj in objects:
+        _collect_oids(obj)
+    if connections:
+        for conn in connections:
+            _collect_oids(conn)
     oids_values = [NibNSNumber(x+1) for x in range(len(oids_keys))]
     return NibObject("NSObject", None, {
         "IB.objectdata": NibObject("NSIBObjectData", None, {
