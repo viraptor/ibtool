@@ -243,10 +243,13 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
 
     return obj
 
+_SUBNIB_OID_CLASSES = frozenset(["NSCustomResource", "NSValue", "NSStackViewContainer"])
+
 def make_basic_nib(objects: list[NibObject], root=None, connections=None):
-    # Collect ALL reachable XibObjects for NSOidsKeys (not just explicit objects)
+    # Collect ALL reachable objects for NSOidsKeys: XibObjects first, then NibOnly auxiliary objects
     seen_ids = set()
     oids_keys = []
+    extra_oids = []
     def _collect_oids(obj):
         obj_id = id(obj)
         if obj_id in seen_ids:
@@ -254,6 +257,8 @@ def make_basic_nib(objects: list[NibObject], root=None, connections=None):
         seen_ids.add(obj_id)
         if isinstance(obj, XibObject) and (obj.xibid is None or not obj.xibid.is_negative_id()):
             oids_keys.append(obj)
+        elif isinstance(obj, NibObject) and obj.classname() in _SUBNIB_OID_CLASSES and obj.parent() is not None:
+            extra_oids.append(obj)
         if isinstance(obj, NibObject):
             for _, v in obj.getKeyValuePairs():
                 if isinstance(v, NibObject):
@@ -267,6 +272,7 @@ def make_basic_nib(objects: list[NibObject], root=None, connections=None):
     if connections:
         for conn in connections:
             _collect_oids(conn)
+    oids_keys.extend(extra_oids)
     oids_values = [NibNSNumber(x+1) for x in range(len(oids_keys))]
     return NibObject("NSObject", None, {
         "IB.objectdata": NibObject("NSIBObjectData", None, {
