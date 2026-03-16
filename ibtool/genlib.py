@@ -39,10 +39,7 @@ class CompilationContext:
                     dedup_key = float(val)
                     existing = self._number_by_value.get(dedup_key)
                     if existing is not None:
-                        idx = existing._nibidx
-                        obj._nibidx = idx
-                        self.object_list[idx] = obj
-                        self._number_by_value[dedup_key] = obj
+                        obj._nibidx = existing._nibidx
                         return
                     self._number_by_value[dedup_key] = obj
 
@@ -60,7 +57,15 @@ class CompilationContext:
             self.addObjects(obj._items)
 
         else:
-            self.addObjects(obj.properties.values())
+            back_refs = []
+            forward_refs = []
+            for k, v in obj.properties.items():
+                if k in ('NSNextResponder', 'NSSuperview'):
+                    back_refs.append(v)
+                else:
+                    forward_refs.append(v)
+            self.addObjects(forward_refs)
+            self.addObjects(back_refs)
 
     def makeTuples(self) -> tuple[
             list[tuple[int,int,int]],

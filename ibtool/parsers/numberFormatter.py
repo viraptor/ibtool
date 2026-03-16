@@ -88,7 +88,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
         NibString.intern("maximumIntegerDigits"), NibNSNumber(max_int_digits),
         NibString.intern("minimum"), minimum,
         NibString.intern("minimumFractionDigits"), NibNSNumber(min_frac_digits),
-        NibString.intern("minimumIntegerDigits"), NibNSNumber(float(min_int_digits)),
+        NibString.intern("minimumIntegerDigits"), NibNSNumber(min_int_digits),
     ])
 
     if negative_format is not None:
