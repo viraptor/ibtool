@@ -44,6 +44,12 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     is_elastic = elem.attrib.get("rowSizeStyle") == "automatic"
     with __handle_view_chain(ctx, obj):
         parse_children(ctx, elem, obj)
+        # Sort reusable views dictionary by identifier to match Apple's ordering
+        reusable = obj.get("NSTableViewArchivedReusableViewsKey")
+        if reusable and len(reusable._items) >= 2:
+            pairs = [(reusable._items[i], reusable._items[i+1]) for i in range(0, len(reusable._items), 2)]
+            pairs.sort(key=lambda p: p[0]._text if hasattr(p[0], '_text') else str(p[0]))
+            reusable._items = [item for pair in pairs for item in pair]
         # Table view width is managed by the scroll view, not frame() autoresizing.
         # Keep only heightSizable so the table fills the clip view vertically.
         # For elastic/automatic row sizing, don't use heightSizable - height is cell-based.
