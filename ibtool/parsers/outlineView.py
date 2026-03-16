@@ -17,6 +17,23 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     if outline_col_id := elem.attrib.get("outlineTableColumn"):
         obj.extraContext["outlineTableColumnId"] = outline_col_id
 
+    # Pre-compute expected column expansion for cell view width calculation
+    # Expansion happens when parent doesn't use autolayout and scroller is small
+    clip_view = obj.xib_parent()
+    if clip_view and clip_view.extraContext.get("scrollview_size"):
+        sv_parent = clip_view.xib_parent()  # scrollView
+        if sv_parent:
+            sv_parent_parent = sv_parent.xib_parent()  # parent of scrollView
+            parent_autolayout = sv_parent_parent and sv_parent_parent.extraContext.get("NSDoNotTranslateAutoresizingMask")
+            if not parent_autolayout:
+                cv_frame = clip_view.frame()
+                rect_elem = elem.find("rect[@key='frame']")
+                if cv_frame and rect_elem is not None:
+                    raw_w = int(rect_elem.attrib.get("width", "0"))
+                    clip_w = int(cv_frame[2])
+                    if clip_w > raw_w:
+                        obj.extraContext["expected_column_expansion"] = clip_w - raw_w
+
     with __handle_view_chain(ctx, obj):
         parse_children(ctx, elem, obj)
         # Outline view width is managed by the scroll view, not frame() autoresizing.

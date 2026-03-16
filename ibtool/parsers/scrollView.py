@@ -131,7 +131,13 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     insets_check = obj.extraContext.get("insets", (0, 0))
     sv_inner_w = (sv_w_raw - insets_check[0]) if sv_w_raw else 0
     cv_already_accounts_for_scroller = cv_raw_frame and len(cv_raw_frame) == 4 and cv_raw_frame[2] < sv_inner_w
-    if not vs_offscreen and not is_regular_scroller and cv_already_accounts_for_scroller and content_cv:
+    # Parent using autolayout suppresses small-scroller expansion
+    sv_parent = obj.xib_parent()
+    parent_uses_autolayout = sv_parent and sv_parent.extraContext.get("NSDoNotTranslateAutoresizingMask")
+    small_scroller_should_expand = (not vs_offscreen and not is_regular_scroller
+                                     and not auto_hiding and not parent_uses_autolayout
+                                     and _is_table_or_outline(content_cv.get("NSDocView") if content_cv else None))
+    if not small_scroller_should_expand and not vs_offscreen and not is_regular_scroller and cv_already_accounts_for_scroller and content_cv:
         content_cv["NSFrame"] = NibString.intern(f"{{{{{cv_raw_frame[0]}, {cv_raw_frame[1]}}}, {{{cv_raw_frame[2]}, {cv_raw_frame[3]}}}}}")
 
     # Adjust table flags when clip view y doesn't account for border
@@ -167,6 +173,20 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     if auto_hiding and not has_header and not vs_offscreen and _is_table_or_outline(doc_view):
         reduction = 17 + _get_ics_w(doc_view) * 4
         _reduce_column_widths(doc_view, reduction)
+    # Small-scroller expansion: expand doc view to clip computed width
+    if small_scroller_should_expand:
+        cv_computed = cv.frame()
+        clip_computed_w = int(cv_computed[2]) if cv_computed else None
+        dv_frame = doc_view.extraContext.get("NSFrame") or doc_view.extraContext.get("NSFrameSize")
+        if dv_frame and clip_computed_w is not None:
+            raw_w = int(dv_frame[2]) if len(dv_frame) == 4 else int(dv_frame[0])
+            new_h = int(dv_frame[3]) if len(dv_frame) == 4 else int(dv_frame[1])
+            if raw_w < clip_computed_w:
+                col_expansion = clip_computed_w - raw_w
+                _reduce_resizable_column_widths(doc_view, -col_expansion)
+                doc_view["NSFrameSize"] = NibString.intern(f"{{{clip_computed_w}, {new_h}}}")
+                doc_view.extraContext["NSFrameSize"] = (clip_computed_w, new_h)
+                doc_view.extraContext.pop("NSFrame", None)
     if _is_table_or_outline(doc_view) and not vs_offscreen and is_regular_scroller and (has_horizontal_scroller or not auto_hiding):
         scroller_w = 17
         ics_w = _get_ics_w(doc_view)
@@ -424,7 +444,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     # Recompute scroller frames for table/outline scroll views
     hs_orig_frame = obj["NSHScroller"].extraContext.get("NSFrame")
     hs_offscreen = hs_orig_frame and len(hs_orig_frame) == 4 and hs_orig_frame[0] < 0
-    if not vs_offscreen and is_table_sv and (is_regular_scroller or not cv_already_accounts_for_scroller):
+    if not vs_offscreen and is_table_sv and (is_regular_scroller or small_scroller_should_expand or not cv_already_accounts_for_scroller):
         insets = obj.extraContext.get("insets", (0, 0))
         border = insets[0] // 2  # total inset / 2 = per-side border
         sv_frame = obj.extraContext.get("NSFrame") or obj.extraContext.get("NSFrameSize")

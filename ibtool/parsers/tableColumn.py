@@ -10,6 +10,15 @@ def _is_outline_column(column_elem, table_view):
         return False
     return table_view.extraContext.get("outlineTableColumnId") == column_elem.attrib.get("id")
 
+def _get_effective_col_width(column_obj, table_view):
+    col_w = column_obj.get("NSWidth")
+    if col_w is None:
+        return None
+    expansion = table_view.extraContext.get("expected_column_expansion", 0)
+    if expansion > 0 and (column_obj.get("NSResizingMask") or 0) & 1:
+        col_w = col_w + expansion
+    return col_w
+
 def _compile_prototype_cell_view(ctx, nested_ctx, column_elem, column_obj, table_view, nib_view):
     ics_w = table_view.get("NSIntercellSpacingWidth")
     if ics_w is None:
@@ -17,7 +26,7 @@ def _compile_prototype_cell_view(ctx, nested_ctx, column_elem, column_obj, table
     is_outline_col = _is_outline_column(column_elem, table_view)
     if is_outline_col:
         x_offset = int(ics_w) // 2 + 9
-        col_w = column_obj.get("NSWidth")
+        col_w = _get_effective_col_width(column_obj, table_view)
         if col_w is not None:
             w_reduction = int(ics_w) * 5 // 2 + 8
             target_w = int(col_w - w_reduction)
@@ -129,7 +138,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
             is_outline_col = _is_outline_column(elem, parent)
             if is_outline_col:
                 x_offset = int(ics_w) // 2 + 9
-                col_w = obj.get("NSWidth")
+                col_w = _get_effective_col_width(obj, parent)
                 if col_w is not None:
                     w_reduction = int(ics_w) * 5 // 2 + 8
                     target_w = int(col_w - w_reduction)
