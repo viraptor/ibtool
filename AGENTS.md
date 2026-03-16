@@ -96,7 +96,7 @@ Compare against `parsers/button.py` which uses older imperative style - new code
 
 When given a new xib file with errors to fix up:
 1. Run `./test.py path/to/the/file.xib` (supports multiple)
-2. Create a minimal reproduction test for one of the issues in samples/debug/ and compile that file using /usr/bin/ibtool (always use relative paths for xib/nib)
+2. Create a minimal reproduction test for one of the issues in samples/debug/ and compile that file using /usr/bin/ibtool (only use it with directories below current - /tmp and other paths can't be accessed)
 3. Either implement the fix or go back to step 2 for more tests if the issue is more complex
 4. The isolate issue is fixed, move the samples/debug/*.[nx]ib files into samples/correct/ to use as a regression test in the future.
 5. Go back to step 1, until all issues are fixed (do not copy the original large xib file into samples/correct/)
