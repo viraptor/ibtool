@@ -22,7 +22,7 @@ unimplemented views, scenes, layout constraints, or size classes may fail to com
 or result in NIBs that are missing functionality.
 
 ## Development
-This project includes samples of xib/nib pairs which compile correctly and can be run using `./test.sh`. To submit new code, ideally: 
+This project includes samples of xib/nib pairs which compile correctly and can be run using `./test.py`. To submit new code, ideally: 
 - existing files still pass
 - a new sample which previously failed is added
 
@@ -40,4 +40,4 @@ What we don't care about:
 - order of objects in the file - those don't depend on the IDs and have their own order in the top level object anyway
 
 ### Adding new functionality
-If the current version doesn't compile something correctly, the best way to approach it is to create a minimal example for it in the interface builder. Then put that for in the samples directory and compile a corresponding `nib` file using upstream `ibtool --compile foo.nib foo.xib`. After that you can use `./test.sh samples/foo.xib` to see the mismatched values.
+If the current version doesn't compile something correctly, the best way to approach it is to create a minimal example for it in the interface builder. Then put that for in the samples directory and compile a corresponding `nib` file using upstream `ibtool --compile foo.nib foo.xib`. After that you can use `./test.py samples/foo.xib` to see the mismatched values.

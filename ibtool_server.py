@@ -26,8 +26,8 @@ def handle_client(conn):
         args = request.get("args", [])
         if args[0] == '/usr/bin/ibtool':
             pass
-        elif args[0] == '/usr/bin/test.sh':
-            args[0] = './test.sh'
+        elif args[0] == '/usr/bin/test.py':
+            args[0] = './test.py'
         else:
             print("wrong tool, refusing")
             return
