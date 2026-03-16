@@ -44,6 +44,10 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
         from ..parsers_base import _TabView_parse_children
         _TabView_parse_children(ctx, elem, obj, skip_tags={"tabViewItems"})
 
+    # Auto-generate NSNextKeyView chain for each tab view item
+    for _item_elem, tab_item in tab_item_objects:
+        _build_key_view_loop(tab_item, obj)
+
     obj["NSTabViewItems"] = tab_view_items
     if selected_item:
         obj["NSSelectedTabViewItem"] = selected_item
@@ -63,6 +67,65 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
         obj.flagsOr("NSvFlags", vFlags.DEFAULT_VFLAGS_AUTOLAYOUT if ctx.useAutolayout else vFlags.DEFAULT_VFLAGS)
 
     return obj
+
+
+def _collect_leaf_views(view):
+    """Collect interactive leaf views from a view hierarchy with their positions."""
+    leaves = []
+    subviews = view.get("NSSubviews")
+    if not subviews:
+        return leaves
+    for sv in subviews:
+        cls = sv.originalclassname()
+        if cls in ("NSCustomView",):
+            leaves.extend(_collect_leaf_views(sv))
+        elif cls in ("NSButton", "NSTextField", "NSPopUpButton", "NSSecureTextField",
+                      "NSComboBox", "NSDatePicker", "NSSlider", "NSColorWell",
+                      "NSStepper", "NSSegmentedControl", "NSSearchField",
+                      "NSClassSwapper"):
+            frame = sv.extraContext.get("NSFrame") or sv.extraContext.get("NSFrameSize")
+            if frame:
+                x = frame[0] if len(frame) == 4 else 0
+                y = frame[1] if len(frame) == 4 else 0
+            else:
+                x, y = 0, 0
+            leaves.append((sv, x, y))
+    return leaves
+
+
+def _build_key_view_loop(tab_item, tab_view):
+    """Build auto-generated NSNextKeyView chain for a tab view item."""
+    item_view = tab_item.get("NSView")
+    if not item_view:
+        return
+
+    # Find the content container (first subview, usually a customView)
+    container = None
+    subviews = item_view.get("NSSubviews")
+    if subviews and len(subviews) > 0:
+        container = subviews[0] if len(subviews) == 1 else None
+
+    if container is None:
+        return
+
+    leaves = _collect_leaf_views(container)
+    if not leaves:
+        return
+
+    # Skip if any leaf already has NSNextKeyView from explicit connections
+    if any(v[0].get("NSNextKeyView") for v in leaves):
+        return
+
+    # Sort: Y-descending, X-ascending (top-to-bottom, left-to-right in standard coords)
+    leaves.sort(key=lambda v: (-v[2], v[1]))
+
+    # Build chain: tabView → item_view → container → first → ... → last → tabView
+    tab_view["NSNextKeyView"] = item_view
+    item_view["NSNextKeyView"] = container
+    container["NSNextKeyView"] = leaves[0][0]
+    for i in range(len(leaves) - 1):
+        leaves[i][0]["NSNextKeyView"] = leaves[i + 1][0]
+    leaves[-1][0]["NSNextKeyView"] = tab_view
 
 
 def _parse_tab_view_item(ctx, elem, tab_view):
