@@ -1,6 +1,6 @@
 from ..models import ArchiveContext, NibObject, XibObject, NibString, NibNil
 from xml.etree.ElementTree import Element
-from .helpers import __xibparser_cell_flags, __xibparser_cell_options, handle_props, PropSchema, MAP_YES_NO
+from .helpers import __xibparser_cell_flags, __xibparser_cell_options, handle_props, PropSchema, MAP_YES_NO, makeSystemColor
 from ..parsers_base import parse_children
 
 def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
@@ -25,6 +25,13 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
         if elem.attrib.get("drawsBackground") == "YES":
             obj["NSDrawsBackground"] = True
         parse_children(ctx, elem, obj)
+
+        text_color = obj.get("NSTextColor")
+        bg_color = obj.get("NSBackgroundColor")
+        if (elem.attrib.get("editable") == "YES"
+                and text_color is not None and text_color.get("NSColorName") == NibString.intern("textColor")
+                and bg_color is not None and bg_color.get("NSColorName") == NibString.intern("textBackgroundColor")):
+            obj["NSTextColor"] = makeSystemColor("controlTextColor")
 
         parent["NSCell"] = obj
 

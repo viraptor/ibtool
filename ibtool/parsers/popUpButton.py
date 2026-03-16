@@ -21,6 +21,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     if ctx.toolsVersion >= 21000:
         h = elem.attrib.get("horizontalHuggingPriority", "250")
         v = elem.attrib.get("verticalHuggingPriority", "250")
-        obj["NSHuggingPriority"] = NibString.intern(f"{{{h}, {v}}}")
+        if h != "250" or v != "750":
+            obj["NSHuggingPriority"] = NibString.intern(f"{{{h}, {v}}}")
 
     return obj

@@ -185,13 +185,12 @@ def __xibparser_button_flags(elem: Element, obj: XibObject, parent: NibObject) -
 
     obj.flagsOr("NSButtonFlags", inset | buttonTypeMask | borderStyleMask | imagePositionMask)
     obj.flagsOr("NSButtonFlags2", imageScalingMask | button_type_id)
-    obj["NSAuxButtonType"] = {
+    aux_type_map = {
         "push": 7,
         "radio": 4,
         "recessed": 1,
         "check": 3,
         "roundRect": 7,
-        "square": 7,
         "squareTextured": 7,
         "disclosureTriangle": 2,
         "help": 7,
@@ -200,7 +199,17 @@ def __xibparser_button_flags(elem: Element, obj: XibObject, parent: NibObject) -
         "disclosure": 6,
         "inline": 7,
         "bevel": 7,
-    }[buttonType]
+    }
+    if buttonType == "square":
+        behavior_elem = elem.find("behavior")
+        if behavior_elem is not None and behavior_elem.attrib.get("lightByContents") == "YES" and behavior_elem.attrib.get("pushIn") != "YES":
+            obj["NSAuxButtonType"] = 5
+        elif behavior_elem is not None and behavior_elem.attrib.get("pushIn") == "YES":
+            obj["NSAuxButtonType"] = 7
+        else:
+            obj["NSAuxButtonType"] = 0
+    else:
+        obj["NSAuxButtonType"] = aux_type_map[buttonType]
 
 def __xibparser_set_compression_priority(_ctx: ArchiveContext, obj: XibObject, elem: Element) -> None:
     horizontal_compression_prio = None if elem is None else elem.attrib.get('horizontalCompressionResistancePriority')

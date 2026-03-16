@@ -12,7 +12,8 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     parse_children(ctx, elem, obj)
     _xibparser_common_translate_autoresizing(ctx, elem, parent, obj)
     obj["NSNextResponder"] = obj.xib_parent()
-    obj.setIfEmpty("NSFrame", NibNil())
+    if obj.get("NSFrameSize") is None:
+        obj.setIfEmpty("NSFrame", NibNil())
     obj["NSEnabled"] = True
     obj.setIfEmpty("NSCell", NibNil())
     obj["NSAllowsLogicalLayoutDirection"] = False
