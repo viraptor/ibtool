@@ -67,26 +67,9 @@ def _compile_prototype_cell_view(ctx, nested_ctx, column_elem, column_obj, table
     else:
         objects.append(nib_appl)
 
-    ec_frame = nib_view.extraContext.get("NSFrame")
-    if ec_frame and len(ec_frame) == 4 and x_offset > 0:
-        new_x = ec_frame[0] + x_offset
-        new_w = target_w if target_w is not None else ec_frame[2]
-        nib_view["NSFrame"] = NibString.intern(f"{{{{{new_x}, {ec_frame[1]}}}, {{{new_w}, {ec_frame[3]}}}}}")
-        nib_view.extraContext["NSFrame"] = (new_x, ec_frame[1], new_w, ec_frame[3])
-        # Update subview widths to match cell view width
-        if target_w is not None and new_w != ec_frame[2]:
-            subviews = nib_view.get("NSSubviews")
-            if subviews:
-                for sv in subviews:
-                    sv_frame = sv.extraContext.get("NSFrame")
-                    if sv_frame and len(sv_frame) == 4:
-                        sv["NSFrame"] = NibString.intern(f"{{{{{sv_frame[0]}, {sv_frame[1]}}}, {{{new_w}, {sv_frame[3]}}}}}")
-                        sv.extraContext["NSFrame"] = (sv_frame[0], sv_frame[1], new_w, sv_frame[3])
-
     nib_data = CompileNibObjects([make_basic_nib(objects, root=nib_appl_parent, connections=connections)])
 
     nib_view._parent = column_obj
-    del nib_view["NSReuseIdentifierKey"]
 
     if table_view.get("NSTableViewArchivedReusableViewsKey") is not None:
         table_view["NSTableViewArchivedReusableViewsKey"].addItem(NibString.intern(identifier))
@@ -123,14 +106,15 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     if parent.originalclassname() in ("NSTableView", "NSOutlineView"):
         nested_ctx = ctx.nested_context()
         has_cell_views = obj.extraContext.get("prototypeCellViews") or obj.extraContext.get("prototypeCellView")
-        if has_cell_views and parent.get("NSTableViewArchivedReusableViewsKey") is not None:
-            parent["NSTableViewArchivedReusableViewsKey"].addItem(NibString.intern(elem.attrib.get("identifier", "")))
         nib_views = obj.extraContext.get("prototypeCellViews")
         if nib_views:
-            for nib_view in nib_views:
+            sorted_views = sorted(nib_views, key=lambda v: v.extraContext.get("identifier", ""))
+            for nib_view in sorted_views:
                 _compile_prototype_cell_view(ctx, nested_ctx, elem, obj, parent, nib_view)
         nib_view = obj.extraContext.get("prototypeCellView")
         if nib_view:
+            if parent.get("NSTableViewArchivedReusableViewsKey") is not None:
+                parent["NSTableViewArchivedReusableViewsKey"].addItem(NibString.intern(elem.attrib.get("identifier", "")))
             # Compute cell view x offset from intercell spacing
             ics_w = parent.get("NSIntercellSpacingWidth")
             if ics_w is None:

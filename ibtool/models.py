@@ -457,7 +457,7 @@ class ArchiveContext:
             target = self.getObject(target)
         if target is None:
             return
-        if target.extraContext.get("NSDoNotTranslateAutoresizingMask"):
+        if hasattr(target, 'extraContext') and target.extraContext.get("NSDoNotTranslateAutoresizingMask"):
             target["NSDoNotTranslateAutoresizingMask"] = True
 
     def processConstraints(self) -> None:
@@ -675,13 +675,13 @@ def _xibparser_handle_custom_class(ctx: ArchiveContext, elem: Element, obj: "Xib
             obj["IBClassReference"] = make_class_reference(custom_class or "NSApplication", None, None)
     elif custom_class:
         #print(obj.xibid, obj.originalclassname(), obj.classname(), custom_class)
-        if ctx.customObjectInstantitationMethod == "direct" and not (obj.originalclassname() in ("NSCustomObject", "NSWindowTemplate") and not custom_module) or obj.originalclassname() in ("NSView", "NSOutlineView", "NSButton", "NSTextField", "NSTextView", "NSProgressIndicator", "NSTableView", "NSTableHeaderView", "NSPopUpButtonCell", "NSScrollView", "NSLevelIndicatorCell", "NSImageView"):
+        if ctx.customObjectInstantitationMethod == "direct" and not (obj.originalclassname() in ("NSCustomObject", "NSWindowTemplate") and not custom_module) or obj.originalclassname() in ("NSView", "NSOutlineView", "NSButton", "NSTextField", "NSTextView", "NSProgressIndicator", "NSTableView", "NSTableHeaderView", "NSPopUpButtonCell", "NSScrollView", "NSLevelIndicatorCell", "NSImageView", "NSTableCellView"):
             #print("direct")
             if custom_module:
                 obj["NSClassName"] = NibString.intern(f"_TtC{len(custom_module)}{custom_module}{len(custom_class)}{custom_class}")
             else:
                 obj["NSClassName"] = NibString.intern(custom_class)
-            if obj.classname() not in ("NSView", "NSCustomView", "NSButton", "NSTextField", "NSOutlineView", "NSScrollView", "NSClipView", "NSColorWell", "NSStackView", "NSTextView", "NSProgressIndicator", "NSTableView", "NSTableHeaderView", "NSPopUpButtonCell", "NSLevelIndicatorCell", "NSSegmentedControl", "NSSegmentedCell", "NSImageView"):
+            if obj.classname() not in ("NSView", "NSCustomView", "NSButton", "NSTextField", "NSOutlineView", "NSScrollView", "NSClipView", "NSColorWell", "NSStackView", "NSTextView", "NSProgressIndicator", "NSTableView", "NSTableHeaderView", "NSPopUpButtonCell", "NSLevelIndicatorCell", "NSSegmentedControl", "NSSegmentedCell", "NSImageView", "NSTableCellView"):
                 obj["NSInitializeWithInit"] = True
             final_original_class = {
                 "NSCustomObject": "NSObject",

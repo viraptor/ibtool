@@ -40,4 +40,12 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
     obj.setIfNotDefault("NSState", STATES[elem.attrib.get("state")], None)
     if image_name := elem.attrib.get("image"):
         obj["NSImage"] = make_image(image_name, obj, ctx)
+    if secondary_image := elem.attrib.get("secondaryImage"):
+        catalog = elem.attrib.get("catalog")
+        if catalog:
+            ctx.imageCatalog.setdefault(secondary_image, catalog)
+        obj["NSActionImage"] = make_image(secondary_image, obj, ctx)
+        obj["NSHasActionImage"] = True
+    if elem.attrib.get("alternate") == "YES":
+        obj["NSIsAlternate"] = True
     return obj

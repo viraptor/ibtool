@@ -12,7 +12,9 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
     h = elem.attrib['height']
     # NSMinSize/NSMaxSize include the title bar; content variants don't
     style_mask = parent.get("NSWindowStyleMask") or 0
-    if style_mask & 0x10:  # utility
+    if style_mask & 0x8000:  # fullSizeContentView
+        title_bar_offset = 0
+    elif style_mask & 0x10:  # utility
         title_bar_offset = UTILITY_TITLE_BAR_HEIGHT
     elif style_mask & 1:  # titled
         title_bar_offset = TITLE_BAR_HEIGHT

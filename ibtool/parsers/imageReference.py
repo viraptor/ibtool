@@ -1,6 +1,7 @@
 from ..models import ArchiveContext, NibObject, NibString, NibNil
 from xml.etree.ElementTree import Element
 from typing import Optional
+from .helpers import make_image
 
 
 def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> None:
@@ -9,14 +10,12 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> No
     catalog = elem.attrib.get("catalog", "")
 
     if key and parent is not None and catalog == "system":
-        img = NibObject("NSCustomResource")
-        img["NSClassName"] = NibString.intern("NSImage")
-        img["NSResourceName"] = NibString.intern(image_name)
-        img["NSCatalogName"] = NibString.intern("system")
+        if catalog:
+            ctx.imageCatalog.setdefault(image_name, catalog)
+        img = make_image(image_name, parent, ctx)
 
-        prop_name = {
-            "image": "NSImage",
-            "secondaryImage": "NSAlternateImage",
-        }.get(key)
-        if prop_name:
-            parent[prop_name] = img
+        if key == "image":
+            parent["NSImage"] = img
+        elif key == "secondaryImage":
+            parent["NSActionImage"] = img
+            parent["NSHasActionImage"] = True

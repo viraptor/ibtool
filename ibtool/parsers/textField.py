@@ -30,6 +30,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
     pmlw = elem.attrib.get("preferredMaxLayoutWidth")
     if pmlw is not None and float(pmlw) != 0:
         obj["NSPreferredMaxLayoutWidth"] = float(pmlw)
+    obj.setIfNotDefault("NSControlAllowsExpansionToolTips", elem.attrib.get("allowsExpansionToolTips") == "YES", False)
     obj["NSTextFieldAlignmentRectInsetsVersion"] = 2
     obj["NSTextFieldAllowsWritingToolsAffordance"] = False
     obj["NS.resolvesNaturalAlignmentWithBaseWritingDirection"] = False

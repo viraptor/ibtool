@@ -88,6 +88,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
         obj["NSOutlineViewAutoresizesOutlineColumnKey"] = False
     indent = elem.attrib.get("indentationPerLevel")
     obj["NSOutlineViewIndentationPerLevelKey"] = NibFloat(float(indent) if indent else 0.0)
+    obj.setIfNotDefault("NSOutlineViewIndentationMarkerFollowsCellKey", elem.attrib.get("indentationMarkerFollowsCell", "YES") == "YES", True)
     obj["NSTableViewDraggingDestinationStyle"] = 0
     obj["NSTableViewGroupRowStyle"] = 1
 
@@ -111,11 +112,12 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     if elem.attrib.get("multipleSelection", "YES") == "YES":
         if elem.attrib.get("columnResizing", "YES") == "YES" or num_cols >= 3:
             obj.flagsOr("NSTvFlags", TVFLAGS.GRID_STYLE_BIT1)
-    # Clear BIT0 when columnResizing=NO and any column has resizeWithTable
+    # Swap BIT0 → BIT1 when columnResizing=NO and any column has resizeWithTable
     if elem.attrib.get("columnResizing", "YES") == "NO" and columns:
         for col in columns:
             if col.get("NSIsResizeable"):
                 obj.flagsAnd("NSTvFlags", ~TVFLAGS.GRID_STYLE_BIT0)
+                obj.flagsOr("NSTvFlags", TVFLAGS.GRID_STYLE_BIT1)
                 break
 
     # UNKNOWN_4 when columnReordering=YES and autosaveColumns is not explicitly "NO"

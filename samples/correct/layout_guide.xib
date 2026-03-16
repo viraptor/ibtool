@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="24506" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES">
+    <dependencies>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="24506"/>
+    </dependencies>
+    <objects>
+        <customObject id="-2" userLabel="File's Owner" customClass="NSApplication"/>
+        <customObject id="-1" userLabel="First Responder" customClass="FirstResponder"/>
+        <customObject id="-3" userLabel="Application" customClass="NSObject"/>
+        <window title="Window" allowsToolTipsWhenApplicationIsInactive="NO" autorecalculatesKeyViewLoop="YES" releasedWhenClosed="NO" animationBehavior="default" id="1">
+            <windowStyleMask key="styleMask" titled="YES" closable="YES" miniaturizable="YES" resizable="YES"/>
+            <rect key="contentRect" x="335" y="390" width="480" height="270"/>
+            <rect key="screenRect" x="0.0" y="0.0" width="1440" height="900"/>
+            <view key="contentView" id="2">
+                <rect key="frame" x="0.0" y="0.0" width="480" height="270"/>
+                <autoresizingMask key="autoresizingMask"/>
+                <subviews>
+                    <customView translatesAutoresizingMaskIntoConstraints="NO" id="cv1">
+                        <rect key="frame" x="0" y="0" width="480" height="270"/>
+                    </customView>
+                </subviews>
+                <constraints>
+                    <constraint firstItem="cv1" firstAttribute="leading" secondItem="sg1" secondAttribute="leading" id="c1"/>
+                    <constraint firstItem="cv1" firstAttribute="trailing" secondItem="sg1" secondAttribute="trailing" id="c2"/>
+                    <constraint firstItem="cv1" firstAttribute="top" secondItem="sg1" secondAttribute="top" id="c3"/>
+                </constraints>
+                <viewLayoutGuide key="safeArea" id="sg1"/>
+                <viewLayoutGuide key="layoutMargins" id="mg1"/>
+            </view>
+        </window>
+    </objects>
+</document>

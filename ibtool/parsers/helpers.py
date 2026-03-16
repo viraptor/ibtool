@@ -26,8 +26,8 @@ def make_xib_object(ctx: ArchiveContext, classname: str, elem: Element, parent: 
     return obj
 
 def _xibparser_common_view_attributes(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject], obj: XibObject, topLevelView: bool = False) -> None:
-    obj["IBNSSafeAreaLayoutGuide"] = NibNil()
-    obj["IBNSLayoutMarginsGuide"] = NibNil()
+    obj.setIfEmpty("IBNSSafeAreaLayoutGuide", NibNil())
+    obj.setIfEmpty("IBNSLayoutMarginsGuide", NibNil())
     obj["IBNSClipsToBounds"] = int(0 if elem is None else elem.attrib.get("clipsToBounds") == "YES")
     if elem is not None and elem.attrib.get("hidden", "NO") == "YES":
         obj.flagsOr("NSvFlags", vFlags.HIDDEN)
@@ -165,7 +165,7 @@ def __xibparser_button_flags(elem: Element, obj: XibObject, parent: NibObject) -
         "push": 0x1,
         "check": 0x2,
         "square": 0x2|0x4,
-        "squareTextured": 0x2|0x4,
+        "squareTextured": 0x20,
         "disclosureTriangle": 0x1|0x4,
         "help": 0x1|0x20,
         "smallSquare": 0x2|0x20,
@@ -200,12 +200,12 @@ def __xibparser_button_flags(elem: Element, obj: XibObject, parent: NibObject) -
         "inline": 7,
         "bevel": 7,
     }
-    if buttonType == "square":
+    if buttonType in ("square", "squareTextured"):
         behavior_elem = elem.find("behavior")
         if behavior_elem is not None and behavior_elem.attrib.get("lightByContents") == "YES" and behavior_elem.attrib.get("pushIn") != "YES":
             obj["NSAuxButtonType"] = 5
         elif behavior_elem is not None and behavior_elem.attrib.get("pushIn") == "YES":
-            obj["NSAuxButtonType"] = 7
+            obj["NSAuxButtonType"] = 7 if buttonType == "square" else 2
         else:
             obj["NSAuxButtonType"] = 0
     else:
@@ -250,8 +250,12 @@ def make_image(name: str, parent: NibObject, ctx: "ArchiveContext") -> NibObject
         obj["IBNamespaceID"] = NibString.intern("system")
     else:
         obj["IBNamespaceID"] = NibNil()
-    if is_system:
+    if catalog == "system":
         size_str = "{32, 32}"
+    elif res and is_system:
+        w = min(int(float(res[0])), 32)
+        h = min(int(float(res[1])), 32)
+        size_str = f"{{{w}, {h}}}"
     elif res:
         size_str = f"{{{res[0]}, {res[1]}}}"
     else:

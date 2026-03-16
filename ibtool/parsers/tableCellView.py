@@ -14,4 +14,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     with __handle_view_chain(ctx, obj):
         parse_children(ctx, elem, obj)
 
+    if obj.get("NSNextKeyView") is not None:
+        del obj["NSNextKeyView"]
+
     return obj

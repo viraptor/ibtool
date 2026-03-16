@@ -110,6 +110,8 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
 
     elif key == "dataCell":
         __xibparser_cell_flags(elem, obj, parent)
+        from ..constants import CellFlags
+        obj.flagsOr("NSCellFlags", CellFlags.UNKNOWN_TEXT_FIELD)
 
         image_alignment = elem.attrib.get("imageAlignment")
         IMAGE_ALIGNMENT_MAP = {

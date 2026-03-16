@@ -120,7 +120,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     vs_offscreen = vs_orig_frame and len(vs_orig_frame) == 4 and (vs_orig_frame[0] < 0 or vs_orig_frame[0] >= sv_w_raw)
     vs_standard_w = obj["NSVScroller"].extraContext.get("standard_scroller_width", 17)
     vs_frame_w = obj["NSVScroller"].extraContext.get("scroller_width", 17)
-    is_regular_scroller = vs_standard_w == 17 and vs_frame_w != 16
+    is_regular_scroller = vs_standard_w == 17 and (vs_frame_w != 16 or vs_offscreen)
     is_small_offscreen = vs_offscreen and not is_regular_scroller
     hs_orig_frame_early = obj["NSHScroller"].extraContext.get("NSFrame")
     hs_offscreen = hs_orig_frame_early and len(hs_orig_frame_early) == 4 and hs_orig_frame_early[0] < 0

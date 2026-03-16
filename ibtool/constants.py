@@ -208,6 +208,7 @@ BEZEL_STYLE_MAP = {
     "recessed": 13,
     "roundedDisclosure": 14,
     "inline": 15,
+    "texturedSquare": 8,
 }
 
 ATTRIBUTE_MAP = {
