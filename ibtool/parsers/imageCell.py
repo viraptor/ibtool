@@ -110,7 +110,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
 
     elif key == "dataCell":
         __xibparser_cell_flags(elem, obj, parent)
-        if ctx.toolsVersion > 22503:
+        if obj.get("NSSupport") is not None:
             from ..constants import CellFlags
             obj.flagsOr("NSCellFlags", CellFlags.UNKNOWN_TEXT_FIELD)
 
