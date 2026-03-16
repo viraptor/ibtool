@@ -18,6 +18,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
         obj["NSFrame"] = NibString.intern(f"{{{{{x}, {y}}}, {{{w}, {h}}}}}")
     obj["NSEnabled"] = True
     obj.setIfEmpty("NSCell", NibNil())
+    obj["presentsCalendarOverlay"] = False
     obj["NSAllowsLogicalLayoutDirection"] = False
     obj.setIfEmpty("NSControlRefusesFirstResponder", elem.attrib.get("refusesFirstResponder", "NO") == "YES")
     obj["NSControlUsesSingleLineMode"] = False

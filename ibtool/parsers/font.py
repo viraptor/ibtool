@@ -61,6 +61,8 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> NibObject:
     
     if key == "titleFont":
         parent.extraContext["titleFont"] = item
+    elif parent.originalclassname() == "NSTabView":
+        parent["NSFont"] = item
     else:
         parent["NSSupport"] = item
     return item

@@ -86,7 +86,7 @@ def __xibparser_cell_flags(elem: Element, obj: NibObject, parent: NibObject) -> 
     textAlignmentMask = {None: CellFlags2.TEXT_ALIGN_NONE, "left": CellFlags2.TEXT_ALIGN_LEFT, "center": CellFlags2.TEXT_ALIGN_CENTER, "right": CellFlags2.TEXT_ALIGN_RIGHT}[textAlignment]
     selectable = (CellFlags.SELECTABLE + 1) if elem.attrib.get("selectable") == "YES" else 0
     state_on = CellFlags.STATE_ON if (elem.attrib.get("state") == "on") else 0
-    text_field_flag = CellFlags.UNKNOWN_TEXT_FIELD if obj.originalclassname() in ["NSTextFieldCell", "NSButtonCell", "NSSearchFieldCell", "NSPopUpButtonCell", "NSTableHeaderCell", "NSSegmentedCell"] else 0
+    text_field_flag = CellFlags.UNKNOWN_TEXT_FIELD if obj.originalclassname() in ["NSTextFieldCell", "NSButtonCell", "NSSearchFieldCell", "NSPopUpButtonCell", "NSTableHeaderCell", "NSSegmentedCell", "NSDatePickerCell", "NSSecureTextFieldCell"] else 0
     refuses_first_responder = elem.attrib.get("refusesFirstResponder", "NO") == "YES"
     refuses_first_responder_mask = CellFlags2.REFUSES_FIRST_RESPONDER if refuses_first_responder else 0
     scrollable = CellFlags.SCROLLABLE if elem.attrib.get("scrollable", "NO") == "YES" else 0
@@ -126,7 +126,7 @@ def __xibparser_cell_options(elem: Element, obj: NibObject, parent: NibObject) -
         "truncatingTail": LineBreakMode.BY_TRUNCATING_TAIL,
         "truncatingMiddle": LineBreakMode.BY_TRUNCATING_MIDDLE,
     }[elem.attrib.get("lineBreakMode")].value
-    if obj.originalclassname() in ['NSButtonCell', 'NSTextFieldCell', 'NSImageCell', 'NSSearchFieldCell', 'NSPopUpButtonCell', 'NSSegmentedCell', 'NSColorWellCell', 'NSSliderCell']:
+    if obj.originalclassname() in ['NSButtonCell', 'NSTextFieldCell', 'NSImageCell', 'NSSearchFieldCell', 'NSPopUpButtonCell', 'NSSegmentedCell', 'NSColorWellCell', 'NSSliderCell', 'NSSecureTextFieldCell']:
         textAlignmentValue = {None: 4, "left": 0, "center": 1, "right": 2}[elem.attrib.get("alignment")]
         parent["NSControlTextAlignment"] = textAlignmentValue
         direction = {'natural': -1, "leftToRight": 0, "rightToLeft": 1}[elem.attrib.get("baseWritingDirection=", "natural")]

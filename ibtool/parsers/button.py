@@ -38,7 +38,8 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
                 in_cell_view = True
                 break
             p = p.xib_parent() if hasattr(p, 'xib_parent') else None
-        if hp != default_hp or vp != default_vp or in_cell_view:
+        is_check_or_radio = obj.extraContext.get("button_type") in ("check", "radio")
+        if hp != default_hp or vp != default_vp or in_cell_view or is_check_or_radio:
             obj["NSHuggingPriority"] = NibString.intern(f"{{{hp}, {vp}}}")
     if not obj.extraContext.get("parsed_autoresizing"):
         obj.flagsOr("NSvFlags", vFlags.DEFAULT_VFLAGS_AUTOLAYOUT if ctx.useAutolayout else vFlags.DEFAULT_VFLAGS)

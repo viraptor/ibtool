@@ -124,14 +124,14 @@ def createTopLevel(toplevelObjects: list["XibObject"], context) -> NibObject:
         [conn for conn in context.connections if conn.classname() == "NSNibOutletConnector"] +
         [conn for conn in context.connections if conn.classname() != "NSNibOutletConnector"]
         )
-    rootData["NSObjectsKeys"] = NibList([applicationObject] + context.extraNibObjects)
+    rootData["NSObjectsKeys"] = NibList(context.extraNibObjects)
     # parents of XibObjects should be listed here with filesOwner as the highest parent
 
-    parent_objects = [(o.xib_parent() or filesOwner) for o in context.extraNibObjects if o.xibid is None or not o.xibid.is_negative_id()]
-    rootData["NSObjectsValues"] = NibList([filesOwner] + parent_objects)
+    parent_objects = [(o.xib_parent() or filesOwner) for o in context.extraNibObjects]
+    rootData["NSObjectsValues"] = NibList(parent_objects)
 
-    oid_objects = [filesOwner, applicationObject] + \
-        [o for o in context.extraNibObjects if o.xibid is None or not o.xibid.is_negative_id()] + \
+    oid_objects = [filesOwner] + \
+        [o for o in context.extraNibObjects] + \
         [o for o in context.connections if o.classname() == "NSNibOutletConnector"] + \
         [o for o in context.connections if o.classname() != "NSNibOutletConnector"]
     rootData["NSOidsKeys"] = NibList(oid_objects)

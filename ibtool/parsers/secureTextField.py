@@ -7,6 +7,8 @@ from ..constants import vFlags
 def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
     obj = make_xib_object(ctx, "NSSecureTextField", elem, parent)
 
+    if elem.attrib.get("allowsCharacterPickerTouchBarItem") == "YES":
+        obj.extraContext["allowsCharacterPickerTouchBarItem"] = True
     obj["NSSuperview"] = obj.xib_parent()
     obj["NSNextResponder"] = obj.xib_parent()
     parse_children(ctx, elem, obj)
@@ -19,7 +21,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
     obj["NSViewWantsBestResolutionOpenGLSurface"] = True
     obj["NSEnabled"] = True
     obj.setIfEmpty("NSCell", NibNil())
-    obj["NSAllowsWritingTools"] = True
+    obj["NSAllowsWritingTools"] = False
     obj["NSAllowsLogicalLayoutDirection"] = False
     obj.setIfEmpty("NSControlRefusesFirstResponder", elem.attrib.get("refusesFirstResponder", "NO") == "YES")
     obj["NSControlUsesSingleLineMode"] = obj.extraContext.get("usesSingleLineMode", False)

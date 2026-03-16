@@ -15,6 +15,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
     else:
         obj["NSContents"] = NibString.intern('')
     button_type = elem.attrib.get("type", "push")
+    parent.extraContext["button_type"] = button_type
     if button_type == "radio":
         obj["NSAlternateImage"] = NibObject("NSButtonImageSource", None, {"NSImageName": "NSRadioButton"})
     elif button_type == "check":

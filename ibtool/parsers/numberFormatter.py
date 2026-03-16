@@ -53,21 +53,48 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
 
     format_str = _build_format_string(min_int_digits, max_int_digits, min_frac_digits, max_frac_digits)
 
+    currency_symbol = elem.attrib.get("currencySymbol")
+    intl_currency_symbol = elem.attrib.get("internationalCurrencySymbol")
+    positive_format = elem.attrib.get("positiveFormat")
+    negative_format = elem.attrib.get("negativeFormat")
+    lenient = elem.attrib.get("lenient", "NO") == "YES"
+
     attrs_items = [
         NibString.intern("allowsFloats"), NibNSNumber(allows_floats),
         NibString.intern("alwaysShowsDecimalSeparator"), NibNSNumber(False),
+    ]
+
+    if currency_symbol is not None:
+        attrs_items.extend([
+            NibString.intern("currencySymbol"), NibString.intern(currency_symbol),
+        ])
+
+    attrs_items.extend([
         NibString.intern("formatWidth"), NibNSNumber(0),
         NibString.intern("formatterBehavior"), NibNSNumber(1040),
         NibString.intern("generatesDecimalNumbers"), NibNSNumber(False),
         NibString.intern("groupingSize"), NibNSNumber(grouping_size),
-        NibString.intern("lenient"), NibNSNumber(False),
+    ])
+
+    if intl_currency_symbol is not None:
+        attrs_items.extend([
+            NibString.intern("internationalCurrencySymbol"), NibString.intern(intl_currency_symbol),
+        ])
+
+    attrs_items.extend([
+        NibString.intern("lenient"), NibNSNumber(lenient),
         NibString.intern("maximum"), maximum,
         NibString.intern("maximumFractionDigits"), NibNSNumber(max_frac_digits),
         NibString.intern("maximumIntegerDigits"), NibNSNumber(max_int_digits),
         NibString.intern("minimum"), minimum,
         NibString.intern("minimumFractionDigits"), NibNSNumber(min_frac_digits),
-        NibString.intern("minimumIntegerDigits"), NibNSNumber(min_int_digits),
-    ]
+        NibString.intern("minimumIntegerDigits"), NibNSNumber(float(min_int_digits)),
+    ])
+
+    if negative_format is not None:
+        attrs_items.extend([
+            NibString.intern("negativeFormat"), NibString.intern(negative_format),
+        ])
 
     if not has_nil_neg_infinity:
         attrs_items.extend([
@@ -78,6 +105,11 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
         NibString.intern("nilSymbol"), NibString.intern(""),
         NibString.intern("paddingPosition"), NibNSNumber(0),
     ])
+
+    if positive_format is not None:
+        attrs_items.extend([
+            NibString.intern("positiveFormat"), NibString.intern(positive_format),
+        ])
 
     if not has_nil_pos_infinity:
         attrs_items.extend([
@@ -110,7 +142,8 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
     rounding["NS.raise.overflow"] = True
     rounding["NS.raise.dividebyzero"] = True
 
-    format_nib_str = NibString.intern(format_str)
+    pos_format_str = positive_format if positive_format is not None else format_str
+    neg_format_str = negative_format if negative_format is not None else format_str
 
     obj["NS.allowsfloats"] = allows_floats
     obj["NS.attributes"] = attrs
@@ -121,10 +154,10 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
     obj["NS.min"] = minimum
     obj["NS.nan"] = nan_str
     obj["NS.negativeattrs"] = NibNil()
-    obj["NS.negativeformat"] = format_nib_str
+    obj["NS.negativeformat"] = NibString.intern(neg_format_str)
     obj["NS.nil"] = nil_str
     obj["NS.positiveattrs"] = NibNil()
-    obj["NS.positiveformat"] = format_nib_str
+    obj["NS.positiveformat"] = NibString.intern(pos_format_str)
     obj["NS.rounding"] = rounding
     obj["NS.thousand"] = NibString.intern(",")
     obj["NS.zero"] = NibNil()

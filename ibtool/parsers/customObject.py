@@ -6,7 +6,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
     obj = XibObject(ctx, "NSCustomObject", elem, parent)
     if obj.xibid is not None:
         ctx.addObject(obj.xibid, obj)
-    if not obj.xibid.is_negative_id():
+    if not obj.xibid.is_negative_id() or obj.xibid == XibId("-3"):
         ctx.extraNibObjects.append(obj)
     
     if elem.attrib.get("customClass"):

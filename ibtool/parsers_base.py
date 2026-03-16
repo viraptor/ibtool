@@ -21,6 +21,15 @@ def __xibparser_ParseXIBObject(ctx: ArchiveContext, elem: Element, parent: Optio
     else:
         raise Exception(f"Unknown type {tag}")
 
+def _TabView_parse_children(ctx: ArchiveContext, elem: Element, obj: Optional[NibObject], skip_tags: set = set()) -> list[NibObject]:
+    assert obj is not None
+    children = [
+        __xibparser_ParseXIBObject(ctx, child_element, obj) for child_element in elem if child_element.tag != "constraints" and child_element.tag not in skip_tags
+    ] + [
+        __xibparser_ParseXIBObject(ctx, child_element, obj) for child_element in elem if child_element.tag == "constraints" and child_element.tag not in skip_tags
+    ]
+    return [c for c in children if c]
+
 def parse_children(ctx: ArchiveContext, elem: Element, obj: Optional[NibObject]) -> list[NibObject]:
     assert obj is not None
     # Constraints are always added after other elements. It may not matter, but that's what Apple's tool does and it helps in comparisons

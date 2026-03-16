@@ -9,4 +9,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> No
         time_interval = float(elem.attrib.get("timeIntervalSinceReferenceDate", "0"))
         date_obj = NibObject("NSDate")
         date_obj["NS.time"] = time_interval
-        parent["NSDate"] = date_obj
+        if parent.classname() == "NSDatePickerCell":
+            parent["NSContents"] = date_obj
+        else:
+            parent["NSDate"] = date_obj
