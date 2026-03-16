@@ -47,10 +47,12 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     no_arrow = elem.attrib.get("arrowPosition") == "noArrow"
     is_textured_rounded = elem.attrib.get("bezelStyle") == "texturedRounded"
 
+    is_rounded_rect = elem.attrib.get("bezelStyle") == "roundedRect"
+
     if not no_arrow and not is_textured_rounded:
         if obj.get("NSButtonFlags") is not None:
             obj["NSButtonFlags"] = obj["NSButtonFlags"] & ~ButtonFlags.BEZEL
-        if border_style == "borderAndBezel":
+        if border_style == "borderAndBezel" and not is_rounded_rect:
             obj["NSAuxButtonType"] = 0
 
     if pulls_down:
