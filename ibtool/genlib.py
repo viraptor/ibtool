@@ -10,7 +10,8 @@ class CompilationContext:
         # a set of serial numbers for objects that have been added to the object list.
         self.serial_set = set()
         self.object_list = []
-        self._number_by_value: dict[tuple, NibNSNumber] = {}
+        self._number_by_value: dict[float, NibNSNumber] = {}
+        self._oid_ids: set[int] = set()
 
     def addBinObject(self, obj):
         pass
@@ -33,12 +34,17 @@ class CompilationContext:
         if isinstance(obj, NibNSNumber):
             val = obj.value()
             if isinstance(val, (int, float)) and not isinstance(val, bool):
-                dedup_key = (type(val).__name__, float(val))
-                existing = self._number_by_value.get(dedup_key)
-                if existing is not None:
-                    obj._nibidx = existing._nibidx
-                    return
-                self._number_by_value[dedup_key] = obj
+                is_oid = id(obj) in self._oid_ids
+                if not is_oid:
+                    dedup_key = float(val)
+                    existing = self._number_by_value.get(dedup_key)
+                    if existing is not None:
+                        idx = existing._nibidx
+                        obj._nibidx = idx
+                        self.object_list[idx] = obj
+                        self._number_by_value[dedup_key] = obj
+                        return
+                    self._number_by_value[dedup_key] = obj
 
         cls = obj.classname()
         if cls not in self.class_set:
@@ -172,6 +178,15 @@ This really has (at least) two phases.
 
 def CompileNibObjects(objects: list[NibObject]) -> bytes:
     ctx = CompilationContext()
+
+    # Collect OID NSNumber ids before compilation so cross-type dedup skips them
+    root_data = objects[0].properties.get("IB.objectdata") if objects else None
+    oids_values = root_data.properties.get("NSOidsValues") if isinstance(root_data, NibObject) else None
+    if isinstance(oids_values, ArrayLike):
+        for item in oids_values._items:
+            if isinstance(item, NibNSNumber):
+                ctx._oid_ids.add(id(item))
+
     ctx.addObjects(objects)
 
     # Deduplicate OID value NSNumbers: Apple's ibtool reuses existing NSNumber
