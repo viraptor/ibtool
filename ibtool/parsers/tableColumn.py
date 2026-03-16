@@ -110,15 +110,25 @@ def _compile_prototype_cell_view(ctx, nested_ctx, column_elem, column_obj, table
                     seen.add(id(c))
                     objects.append(c)
 
-        nib_sub = subviews[0]
-        nib_outlet = XibObject(nested_ctx, "NSNibOutletConnector", None, None)
-        nib_outlet["NSSource"] = nib_view
-        nib_outlet["NSDestination"] = nib_sub
-        nib_outlet["NSLabel"] = NibString.intern("textField")
-        nib_outlet["NSChildControllerCreationSelectorName"] = NibNil()
         objects.append(nib_appl)
-        objects.append(nib_outlet)
-        connections.append(nib_outlet)
+
+        # Collect outlet connections belonging to this cell view hierarchy from the main context
+        subnib_obj_ids = set(id(o) for o in objects)
+        cell_connections = [c for c in ctx.connections
+                           if c.classname() == "NSNibOutletConnector"
+                           and (id(c.get("NSSource")) in subnib_obj_ids
+                                or id(c.get("NSDestination")) in subnib_obj_ids)]
+        if cell_connections:
+            for conn in cell_connections:
+                connections.append(conn)
+        else:
+            nib_sub = subviews[0]
+            nib_outlet = XibObject(nested_ctx, "NSNibOutletConnector", None, None)
+            nib_outlet["NSSource"] = nib_view
+            nib_outlet["NSDestination"] = nib_sub
+            nib_outlet["NSLabel"] = NibString.intern("textField")
+            nib_outlet["NSChildControllerCreationSelectorName"] = NibNil()
+            connections.append(nib_outlet)
     else:
         objects.append(nib_appl)
 
@@ -243,13 +253,9 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
 
     return obj
 
-_SUBNIB_OID_CLASSES = frozenset(["NSCustomResource", "NSValue", "NSStackViewContainer"])
-
 def make_basic_nib(objects: list[NibObject], root=None, connections=None):
-    # Collect ALL reachable objects for NSOidsKeys: XibObjects first, then NibOnly auxiliary objects
     seen_ids = set()
     oids_keys = []
-    extra_oids = []
     def _collect_oids(obj):
         obj_id = id(obj)
         if obj_id in seen_ids:
@@ -257,22 +263,11 @@ def make_basic_nib(objects: list[NibObject], root=None, connections=None):
         seen_ids.add(obj_id)
         if isinstance(obj, XibObject) and (obj.xibid is None or not obj.xibid.is_negative_id()):
             oids_keys.append(obj)
-        elif isinstance(obj, NibObject) and obj.classname() in _SUBNIB_OID_CLASSES and obj.parent() is not None:
-            extra_oids.append(obj)
-        if isinstance(obj, NibObject):
-            for _, v in obj.getKeyValuePairs():
-                if isinstance(v, NibObject):
-                    _collect_oids(v)
-                elif hasattr(v, '_items'):
-                    for item in v._items:
-                        if isinstance(item, NibObject):
-                            _collect_oids(item)
     for obj in objects:
         _collect_oids(obj)
     if connections:
         for conn in connections:
             _collect_oids(conn)
-    oids_keys.extend(extra_oids)
     oids_values = [NibNSNumber(x+1) for x in range(len(oids_keys))]
     return NibObject("NSObject", None, {
         "IB.objectdata": NibObject("NSIBObjectData", None, {

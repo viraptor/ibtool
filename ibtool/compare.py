@@ -143,9 +143,6 @@ def diff(lhs: Union[NibValue,NibCollection,NibObject], rhs: Union[NibValue,NibCo
     if path.endswith("NSOidsValues"):
         return
 
-    if "->nib->" in path and path.endswith("NSOidsKeys"):
-        return
-
     if type(lhs) != type(rhs):
         yield f"{path}{_xib_annotation(rhs, xibid_map)} (in {parent_class}): Types don't match {type(lhs)} != {type(rhs)}"
         return
@@ -167,6 +164,12 @@ def diff(lhs: Union[NibValue,NibCollection,NibObject], rhs: Union[NibValue,NibCo
             nib_right_objects = nib_right_root.entries["IB.objectdata"].entries["NSObjectsKeys"].entries
             fixup_layout_constrints(nib_left_objects, nib_left_objects)
             fixup_layout_constrints(nib_right_objects, nib_right_objects)
+            nib_left_oids = nib_left_root.entries["IB.objectdata"].entries.get("NSOidsKeys")
+            nib_right_oids = nib_right_root.entries["IB.objectdata"].entries.get("NSOidsKeys")
+            if nib_left_oids is not None:
+                fixup_layout_constrints(nib_left_oids.entries, nib_left_objects)
+            if nib_right_oids is not None:
+                fixup_layout_constrints(nib_right_oids.entries, nib_right_objects)
             yield from diff(nib_left_root, nib_right_root, nib_left_objects, nib_right_objects, current_path + ["nib"], [], [], xibid_map=xibid_map)
 
         elif type(lhs.value) in [int, str, float, bytes, type(None)]:
@@ -249,38 +252,36 @@ def diff(lhs: Union[NibValue,NibCollection,NibObject], rhs: Union[NibValue,NibCo
 
 def fixup_layout_constrints(collection, all_objects):
     # We need to order the layout constraints explicitly for comparison. Apple's tool uses random order.
-    def find_order(obj, keys):
-        order_tuple = (-200000, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, "", "")
-        for i, key in enumerate(keys):
-            if key is obj:
-                if key.classname == "NSLayoutConstraint":
-                    first = key.entries.get("NSFirstAttribute").value if key.entries.get("NSFirstAttribute") is not None else -1
-                    firstv2 = key.entries.get("NSFirstAttributeV2").value if key.entries.get("NSFirstAttributeV2") is not None else -1
-                    second = key.entries.get("NSSecondAttribute").value if key.entries.get("NSSecondAttribute") is not None else -1
-                    secondv2 = key.entries.get("NSSecondAttributeV2").value if key.entries.get("NSSecondAttributeV2") is not None else -1
-                    def _item_key(item):
-                        if item is None:
-                            return ("", b"")
-                        frame = item.entries.get("NSFrame")
-                        frame_bytes = frame.entries.get("NS.bytes").value if frame is not None and hasattr(frame, "entries") and frame.entries.get("NS.bytes") is not None else b""
-                        return (item.classname, frame_bytes)
-                    firstitem_key = _item_key(key.entries.get("NSFirstItem"))
-                    seconditem_key = _item_key(key.entries.get("NSSecondItem"))
-                    priority = key.entries.get("NSPriority").value if key.entries.get("NSPriority") is not None else -1
-                    constantval = key.entries.get("NSConstantValue").value if key.entries.get("NSConstantValue") is not None else -1
-                    constantvalv2 = key.entries.get("NSConstantValueV2").value if key.entries.get("NSConstantValueV2") is not None else -1
-                    constant = key.entries.get("NSConstant").value if key.entries.get("NSConstant") is not None else -1
-                    constantv2 = key.entries.get("NSConstantV2").value if key.entries.get("NSConstantV2") is not None else -1
-                    symbolic = key.entries.get("NSSymbolicConstant").entries["NS.bytes"].value if key.entries.get("NSSymbolicConstant") is not None else b""
-                    relation = key.entries.get("NSRelation").value if key.entries.get("NSRelation") is not None else -1
+    def constraint_sort_key(obj):
+        def _item_key(item):
+            if item is None:
+                return ("", b"")
+            frame = item.entries.get("NSFrame")
+            frame_bytes = frame.entries.get("NS.bytes").value if frame is not None and hasattr(frame, "entries") and frame.entries.get("NS.bytes") is not None else b""
+            return (item.classname, frame_bytes)
+        first = obj.entries.get("NSFirstAttribute").value if obj.entries.get("NSFirstAttribute") is not None else -1
+        firstv2 = obj.entries.get("NSFirstAttributeV2").value if obj.entries.get("NSFirstAttributeV2") is not None else -1
+        second = obj.entries.get("NSSecondAttribute").value if obj.entries.get("NSSecondAttribute") is not None else -1
+        secondv2 = obj.entries.get("NSSecondAttributeV2").value if obj.entries.get("NSSecondAttributeV2") is not None else -1
+        firstitem_key = _item_key(obj.entries.get("NSFirstItem"))
+        seconditem_key = _item_key(obj.entries.get("NSSecondItem"))
+        priority = obj.entries.get("NSPriority").value if obj.entries.get("NSPriority") is not None else -1
+        constantval = obj.entries.get("NSConstantValue").value if obj.entries.get("NSConstantValue") is not None else -1
+        constantvalv2 = obj.entries.get("NSConstantValueV2").value if obj.entries.get("NSConstantValueV2") is not None else -1
+        constant = obj.entries.get("NSConstant").value if obj.entries.get("NSConstant") is not None else -1
+        constantv2 = obj.entries.get("NSConstantV2").value if obj.entries.get("NSConstantV2") is not None else -1
+        symbolic = obj.entries.get("NSSymbolicConstant").entries["NS.bytes"].value if obj.entries.get("NSSymbolicConstant") is not None else b""
+        relation = obj.entries.get("NSRelation").value if obj.entries.get("NSRelation") is not None else -1
+        return (first, firstv2, second, secondv2, priority, constantval, constantvalv2, constant, constantv2, symbolic, relation, firstitem_key, seconditem_key)
 
-                    order_tuple = (first, firstv2, second, secondv2, priority, constantval, constantvalv2, constant, constantv2, symbolic, relation, firstitem_key, seconditem_key)
-                else:
-                    order_tuple = (-100000 + i, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, "", "")
-        return order_tuple
-
-    all_objects = all_objects.copy()
-    collection.sort(key=lambda x: find_order(x, all_objects))
+    all_objects_copy = all_objects.copy()
+    constraint_indices = [i for i, obj in enumerate(collection)
+                          if any(obj is k and k.classname == "NSLayoutConstraint" for k in all_objects_copy)
+                          or (obj.classname == "NSLayoutConstraint" if hasattr(obj, "classname") else False)]
+    constraints = [collection[i] for i in constraint_indices]
+    constraints.sort(key=constraint_sort_key)
+    for idx, sorted_obj in zip(constraint_indices, constraints):
+        collection[idx] = sorted_obj
 
 def fixup_connections(collection):
     connector_classes = {"NSNibConnector", "NSNibOutletConnector", "NSNibControlConnector",
