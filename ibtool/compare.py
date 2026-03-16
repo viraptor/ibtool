@@ -143,6 +143,9 @@ def diff(lhs: Union[NibValue,NibCollection,NibObject], rhs: Union[NibValue,NibCo
     if path.endswith("NSOidsValues"):
         return
 
+    if "->nib->" in path and path.endswith("NSOidsKeys"):
+        return
+
     if type(lhs) != type(rhs):
         yield f"{path}{_xib_annotation(rhs, xibid_map)} (in {parent_class}): Types don't match {type(lhs)} != {type(rhs)}"
         return
@@ -160,7 +163,11 @@ def diff(lhs: Union[NibValue,NibCollection,NibObject], rhs: Union[NibValue,NibCo
             nib_left_root, _ = pythonObjects(nib_left)
             nib_right = getNibSections(rhs.value, "(inlined)")
             nib_right_root, _ = pythonObjects(nib_right)
-            yield from diff(nib_left_root, nib_right_root, nib_left_root.entries["IB.objectdata"].entries["NSObjectsKeys"].entries, nib_right_root.entries["IB.objectdata"].entries["NSObjectsKeys"].entries, current_path + ["nib"], [], [], xibid_map=xibid_map)
+            nib_left_objects = nib_left_root.entries["IB.objectdata"].entries["NSObjectsKeys"].entries
+            nib_right_objects = nib_right_root.entries["IB.objectdata"].entries["NSObjectsKeys"].entries
+            fixup_layout_constrints(nib_left_objects, nib_left_objects)
+            fixup_layout_constrints(nib_right_objects, nib_right_objects)
+            yield from diff(nib_left_root, nib_right_root, nib_left_objects, nib_right_objects, current_path + ["nib"], [], [], xibid_map=xibid_map)
 
         elif type(lhs.value) in [int, str, float, bytes, type(None)]:
             if lhs.value != rhs.value:
@@ -243,7 +250,7 @@ def diff(lhs: Union[NibValue,NibCollection,NibObject], rhs: Union[NibValue,NibCo
 def fixup_layout_constrints(collection, all_objects):
     # We need to order the layout constraints explicitly for comparison. Apple's tool uses random order.
     def find_order(obj, keys):
-        order_tuple = (-200000, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, "", "")
+        order_tuple = (-200000, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, "", "")
         for i, key in enumerate(keys):
             if key is obj:
                 if key.classname == "NSLayoutConstraint":
