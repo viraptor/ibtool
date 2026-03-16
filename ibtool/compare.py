@@ -11,11 +11,17 @@ class NibCollection:
     def __repr__(self):
         return f"{self.classname} ({len(self.entries)} entries)"
 
-    def rec_hash(self, path):
+    def rec_hash(self, path, cache=None):
+        if cache is None:
+            cache = {}
+        if id(self) in cache:
+            return cache[id(self)]
         if id(self) in path:
             return 999
-        else:
-            return hash((self.classname, tuple([x.rec_hash(path + [id(self)]) if getattr(x, "rec_hash", None) else x for x in self.entries])))
+        path_next = path + [id(self)]
+        result = hash((self.classname, tuple([x.rec_hash(path_next, cache) if getattr(x, "rec_hash", None) else x for x in self.entries])))
+        cache[id(self)] = result
+        return result
 
 class NibObject:
     def __init__(self, classname: str, entries: dict[str,Any], nibidx: int = -1):
@@ -34,11 +40,17 @@ class NibObject:
     def __repr__(self):
         return f"{self.classname} ({len(self.entries)} entries)"
 
-    def rec_hash(self, path):
+    def rec_hash(self, path, cache=None):
+        if cache is None:
+            cache = {}
+        if id(self) in cache:
+            return cache[id(self)]
         if id(self) in path:
             return 999
-        else:
-            return hash((self.classname, tuple([(k,v.rec_hash(path + [id(self)]) if getattr(v, "rec_hash", None) else v) for k,v in self.entries.items()])))
+        path_next = path + [id(self)]
+        result = hash((self.classname, tuple([(k,v.rec_hash(path_next, cache) if getattr(v, "rec_hash", None) else v) for k,v in self.entries.items()])))
+        cache[id(self)] = result
+        return result
 
 class NibValue:
     def __init__(self, value: Any, vtype: int):
@@ -218,8 +230,9 @@ def diff(lhs: Union[NibValue,NibCollection,NibObject], rhs: Union[NibValue,NibCo
         for i, (left, right) in enumerate(zip(lhs.entries, rhs.entries)):
             yield from diff(left, right, lhs_root, rhs_root, current_path + [str(i)], lhs_path, rhs_path, lhs.classname, xibid_map=xibid_map)
     elif path.endswith("NSConnections"):
-        lhs_entries = sorted(lhs.entries, key=lambda x: x.rec_hash([]))
-        rhs_entries = sorted(rhs.entries, key=lambda x: x.rec_hash([]))
+        cache = {}
+        lhs_entries = sorted(lhs.entries, key=lambda x: x.rec_hash([], cache))
+        rhs_entries = sorted(rhs.entries, key=lambda x: x.rec_hash([], cache))
         for i, (left, right) in enumerate(zip(lhs_entries, rhs_entries)):
             yield from diff(left, right, lhs_root, rhs_root, current_path + [str(i)], lhs_path, rhs_path, lhs.classname, xibid_map=xibid_map)
     elif isinstance(lhs, NibCollection) and isinstance(rhs, NibCollection):
