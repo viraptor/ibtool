@@ -28,7 +28,8 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
 
         text_color = obj.get("NSTextColor")
         bg_color = obj.get("NSBackgroundColor")
-        if (elem.attrib.get("editable") == "YES"
+        if (ctx.toolsVersion <= 14268
+                and elem.attrib.get("editable") == "YES"
                 and text_color is not None and text_color.get("NSColorName") == NibString.intern("textColor")
                 and bg_color is not None and bg_color.get("NSColorName") == NibString.intern("textBackgroundColor")):
             obj["NSTextColor"] = makeSystemColor("controlTextColor")
