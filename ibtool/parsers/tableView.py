@@ -139,12 +139,6 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
                     obj.extraContext["elastic_row_height"] = new_h
 
     columns = obj.get("NSTableColumns")
-    # Clear BIT0 when columnResizing=NO and any column has resizeWithTable (only with multiple columns)
-    if elem.attrib.get("columnResizing", "YES") == "NO" and columns and len(columns) > 1:
-        for col in columns:
-            if col.get("NSIsResizeable"):
-                obj.flagsAnd("NSTvFlags", ~TVFLAGS.GRID_STYLE_BIT0)
-                break
 
     if "autosaveColumns" not in elem.attrib:
         obj.flagsOr("NSTvFlags", TVFLAGS.UNKNOWN_4)

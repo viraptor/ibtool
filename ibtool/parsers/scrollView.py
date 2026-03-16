@@ -90,6 +90,9 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
 
     if not obj.extraContext.get("parsed_autoresizing"):
         obj.flagsOr("NSvFlags", vFlags.DEFAULT_VFLAGS_AUTOLAYOUT if ctx.useAutolayout else vFlags.DEFAULT_VFLAGS)
+    focus_ring = {"none": 0x1000, "exterior": 0x2000}.get(obj.extraContext.get("focusRingType"), 0)
+    if focus_ring:
+        obj.flagsOr("NSvFlags", focus_ring)
     obj["NSGestureRecognizers"] = NibList([default_pan_recognizer(obj)])
     obj["NSMagnification"] = 1.0
     obj["NSMaxMagnification"] = 4.0
@@ -148,21 +151,22 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     clip_y = cv_frame[1] if cv_frame and len(cv_frame) == 4 else border
     border_deficit = border - clip_y
     doc_view = cv.get("NSDocView")
+    border_col_reduced = False
     if border_deficit > 0 and _is_table_or_outline(doc_view):
-        # Height adjustment is handled by heightSizable autoresizing in the table/outline parser.
-        # When grid lines are present and clip_y < border, swap GRID_STYLE_BIT0 → BIT1
-        # and reduce autoresizable column width by ics * 3
         if doc_view.get("NSGridStyleMask"):
             doc_view.flagsAnd("NSTvFlags", ~TVFLAGS.GRID_STYLE_BIT0)
             doc_view.flagsOr("NSTvFlags", TVFLAGS.GRID_STYLE_BIT1)
-            reduction = _get_ics_w(doc_view) * 3
-            _reduce_column_widths(doc_view, reduction)
+            _reduce_column_widths(doc_view, _get_ics_w(doc_view) * 3)
+            border_col_reduced = True
         elif auto_hiding and obj.get("NSHeaderClipView") is not None and not is_small_offscreen:
-            # Autohiding scroll views with headers and no grid lines:
-            # reduce column widths by scroller_width + ics * 4
-            # (skipped for small offscreen scrollers which expand doc view instead)
             reduction = 17 + _get_ics_w(doc_view) * 4
             _reduce_column_widths(doc_view, reduction)
+            border_col_reduced = True
+    elif border > 0 and _is_table_or_outline(doc_view) and not obj.get("NSHeaderClipView") and (vs_offscreen or (auto_hiding and is_regular_scroller)):
+        doc_view.flagsAnd("NSTvFlags", ~TVFLAGS.GRID_STYLE_BIT0)
+        doc_view.flagsOr("NSTvFlags", TVFLAGS.GRID_STYLE_BIT1)
+        _reduce_column_widths(doc_view, _get_ics_w(doc_view) * 3)
+        border_col_reduced = True
     # Autohiding scroll views without headers: reduce column widths when VScroller is not offscreen
     doc_view = cv.get("NSDocView")
     # COPY_ON_SCROLL: only when VScroller is not offscreen
@@ -170,7 +174,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
         if _is_table_or_outline(doc_view):
             obj.flagsOr("NSsFlags", sFlagsScrollView.COPY_ON_SCROLL)
     has_header = obj.get("NSHeaderClipView") is not None
-    if auto_hiding and not has_header and not vs_offscreen and _is_table_or_outline(doc_view):
+    if auto_hiding and not has_header and not vs_offscreen and not border_col_reduced and _is_table_or_outline(doc_view):
         reduction = 17 + _get_ics_w(doc_view) * 4
         _reduce_column_widths(doc_view, reduction)
     # Small-scroller expansion: expand doc view to clip computed width
