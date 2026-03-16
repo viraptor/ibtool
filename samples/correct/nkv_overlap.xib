@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="22503" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES">
+    <dependencies>
+        <deployment identifier="macosx"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="22503"/>
+    </dependencies>
+    <objects>
+        <customObject id="-2" userLabel="File's Owner" customClass="NSApplication"/>
+        <customObject id="-1" userLabel="First Responder" customClass="FirstResponder"/>
+        <customObject id="-3" userLabel="Application" customClass="NSObject"/>
+        <customView id="1">
+            <rect key="frame" x="0" y="0" width="500" height="500"/>
+            <autoresizingMask key="autoresizingMask"/>
+            <subviews>
+                <tabView translatesAutoresizingMaskIntoConstraints="NO" id="TV">
+                    <rect key="frame" x="10" y="10" width="480" height="480"/>
+                    <autoresizingMask key="autoresizingMask"/>
+                    <tabViewItems>
+                        <tabViewItem label="Tab 1" identifier="tab1" id="TI">
+                            <view key="view" id="V">
+                                <rect key="frame" x="10" y="33" width="460" height="434"/>
+                                <autoresizingMask key="autoresizingMask"/>
+                                <subviews>
+                                    <customView id="CV">
+                                        <rect key="frame" x="0" y="0" width="460" height="434"/>
+                                        <autoresizingMask key="autoresizingMask"/>
+                                        <subviews>
+                                            <button verticalHuggingPriority="750" id="A"><rect key="frame" x="20" y="250" width="80" height="18"/><autoresizingMask key="autoresizingMask"/><buttonCell key="cell" type="push" title="A" bezelStyle="rounded" alignment="center" borderStyle="border" id="Ac"><behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/><font key="font" metaFont="system"/></buttonCell></button>
+                                            <popUpButton verticalHuggingPriority="750" id="B"><rect key="frame" x="260" y="245" width="80" height="25"/><autoresizingMask key="autoresizingMask"/><popUpButtonCell key="cell" type="push" title="B" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" borderStyle="borderAndBezel" id="Bc"><behavior key="behavior" lightByBackground="YES" lightByGray="YES"/><font key="font" metaFont="system"/><menu key="menu" title="" id="Bm"><items><menuItem title="x" id="Bmi"/></items></menu></popUpButtonCell></popUpButton>
+                                            <button verticalHuggingPriority="750" id="C"><rect key="frame" x="20" y="230" width="80" height="18"/><autoresizingMask key="autoresizingMask"/><buttonCell key="cell" type="push" title="C" bezelStyle="rounded" alignment="center" borderStyle="border" id="Cc"><behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/><font key="font" metaFont="system"/></buttonCell></button>
+                                            <button verticalHuggingPriority="750" id="D"><rect key="frame" x="20" y="210" width="80" height="18"/><autoresizingMask key="autoresizingMask"/><buttonCell key="cell" type="push" title="D" bezelStyle="rounded" alignment="center" borderStyle="border" id="Dc"><behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/><font key="font" metaFont="system"/></buttonCell></button>
+                                            <button verticalHuggingPriority="750" id="E"><rect key="frame" x="20" y="100" width="80" height="18"/><autoresizingMask key="autoresizingMask"/><buttonCell key="cell" type="push" title="E" bezelStyle="rounded" alignment="center" borderStyle="border" id="Ec"><behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/><font key="font" metaFont="system"/></buttonCell></button>
+                                        </subviews>
+                                    </customView>
+                                </subviews>
+                            </view>
+                        </tabViewItem>
+                    </tabViewItems>
+                </tabView>
+            </subviews>
+        </customView>
+    </objects>
+</document>

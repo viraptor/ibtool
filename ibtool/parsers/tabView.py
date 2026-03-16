@@ -28,6 +28,9 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
                     if item_elem.attrib.get("id") == initial_item_id:
                         selected_item = tab_item
 
+        if selected_item is None and tab_item_objects:
+            selected_item = tab_item_objects[0][1]
+
         selected_view = selected_item.get("NSView") if selected_item else None
         for item_elem, tab_item in tab_item_objects:
             view = tab_item.get("NSView")
@@ -54,6 +57,13 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     obj["NSAllowTruncatedLabels"] = True
     obj["NSDrawsBackground"] = True
     obj.setIfEmpty("NSTvFlags", 0x0)
+    if not obj.get("NSFont"):
+        from .font import to_flags_val
+        font = NibObject("NSFont")
+        font["NSName"] = NibString.intern(".AppleSystemUIFont")
+        font["NSSize"] = 11.0
+        font["NSfFlags"] = to_flags_val(0x1c)
+        obj["NSFont"] = font
 
     _xibparser_common_translate_autoresizing(ctx, elem, parent, obj)
 
@@ -87,10 +97,56 @@ def _collect_leaf_views(view):
             if frame:
                 x = frame[0] if len(frame) == 4 else 0
                 y = frame[1] if len(frame) == 4 else 0
+                h = frame[3] if len(frame) == 4 else frame[1]
             else:
-                x, y = 0, 0
-            leaves.append((sv, x, y))
+                x, y, h = 0, 0, 0
+            leaves.append((sv, x, y, h))
     return leaves
+
+
+def _sort_views_for_key_loop(leaves):
+    """Sort views using overlapping-row grouping for NSNextKeyView chain.
+
+    Views whose Y-ranges [y, y+h] overlap are grouped into the same "row".
+    Within each row, views are sorted by X-ascending then Y-descending.
+    Rows are ordered by their maximum top edge (y+h) descending.
+    """
+    if len(leaves) <= 1:
+        return leaves
+
+    n = len(leaves)
+    parent = list(range(n))
+
+    def find(i):
+        while parent[i] != i:
+            parent[i] = parent[parent[i]]
+            i = parent[i]
+        return i
+
+    def union(i, j):
+        pi, pj = find(i), find(j)
+        if pi != pj:
+            parent[pi] = pj
+
+    for i in range(n):
+        y_i, h_i = leaves[i][2], leaves[i][3]
+        for j in range(i + 1, n):
+            y_j, h_j = leaves[j][2], leaves[j][3]
+            if y_i < y_j + h_j and y_j < y_i + h_i:
+                union(i, j)
+
+    groups = {}
+    for i in range(n):
+        groups.setdefault(find(i), []).append(i)
+
+    for r in groups:
+        groups[r].sort(key=lambda i: (leaves[i][1], -leaves[i][2]))
+
+    sorted_groups = sorted(groups.values(),
+                           key=lambda g: max(leaves[i][2] + leaves[i][3] for i in g),
+                           reverse=True)
+
+    return [leaves[i] for g in sorted_groups for i in g]
 
 
 def _build_key_view_loop(tab_item, tab_view):
@@ -99,7 +155,6 @@ def _build_key_view_loop(tab_item, tab_view):
     if not item_view:
         return
 
-    # Find the content container (first subview, usually a customView)
     container = None
     subviews = item_view.get("NSSubviews")
     if subviews and len(subviews) > 0:
@@ -112,14 +167,11 @@ def _build_key_view_loop(tab_item, tab_view):
     if not leaves:
         return
 
-    # Skip if any leaf already has NSNextKeyView from explicit connections
     if any(v[0].get("NSNextKeyView") for v in leaves):
         return
 
-    # Sort: Y-descending, X-ascending (top-to-bottom, left-to-right in standard coords)
-    leaves.sort(key=lambda v: (-v[2], v[1]))
+    leaves = _sort_views_for_key_loop(leaves)
 
-    # Build chain: tabView → item_view → container → first → ... → last → tabView
     tab_view["NSNextKeyView"] = item_view
     item_view["NSNextKeyView"] = container
     container["NSNextKeyView"] = leaves[0][0]
