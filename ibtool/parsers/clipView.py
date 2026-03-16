@@ -45,7 +45,11 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     
     obj["NSAutomaticallyAdjustsContentInsets"] = True
     if not is_main_view:
-        obj["NSvFlags"] = vFlags.AUTORESIZES_SUBVIEWS # clearing the values from elem - they don't seem to matter
+        if obj.extraContext.get("preserve_clip_autoresizing"):
+            ar_bits = (obj["NSvFlags"] if obj.get("NSvFlags") else 0) & 0x3F
+            obj["NSvFlags"] = vFlags.AUTORESIZES_SUBVIEWS | ar_bits
+        else:
+            obj["NSvFlags"] = vFlags.AUTORESIZES_SUBVIEWS
     if elem.attrib.get("copiesOnScroll", "YES") == "NO":
         obj.flagsOr("NScvFlags", 0x2)
     if is_main_view:

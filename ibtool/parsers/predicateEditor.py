@@ -19,6 +19,8 @@ _SF_ADVANCES = {
     'v': 1110, 'w': 1586, 'x': 1074, 'y': 1112, 'z': 1104,
 }
 _POPUP_CHROME = 37
+_POPUP_KP_CHROME = 36
+_POPUP_PER_ITEM = 0.14
 _POPUP_FONT_SIZE = 13.0
 _POPUP_UPM = 2048
 
@@ -28,24 +30,44 @@ COMPOUND_POPUP_FRAMES = [
 ]
 
 
-def _measure_text_width(text):
+def _measure_text_width(text, zero_dots=False):
+    if zero_dots:
+        return sum(_SF_ADVANCES.get(c, 1000) if c != '.' else 0 for c in text) * _POPUP_FONT_SIZE / _POPUP_UPM
     return sum(_SF_ADVANCES.get(c, 1000) for c in text) * _POPUP_FONT_SIZE / _POPUP_UPM
 
 
 def _compute_popup_width(menu_elem):
-    max_w = 0
+    max_title_w = 0
+    max_kp_w = 0
+    num_items = 0
     items_elem = menu_elem.find("items")
     if items_elem is not None:
         for mi_elem in items_elem:
             if mi_elem.tag == "menuItem":
+                num_items += 1
                 title = mi_elem.attrib.get("title", "")
                 tw = _measure_text_width(title)
-                if tw > max_w:
-                    max_w = tw
-    return math.ceil(max_w) + _POPUP_CHROME
+                if tw > max_title_w:
+                    max_title_w = tw
+                expr_elem = mi_elem.find("expression")
+                if expr_elem is not None and expr_elem.attrib.get("type") == "keyPath":
+                    kp_text = expr_elem.attrib.get("keyPath", "")
+                    if not kp_text:
+                        kp_str_elem = expr_elem.find("string")
+                        if kp_str_elem is not None and kp_str_elem.text:
+                            kp_text = kp_str_elem.text
+                    if kp_text:
+                        kp_w = _measure_text_width(kp_text, zero_dots=True)
+                        if kp_w > max_kp_w:
+                            max_kp_w = kp_w
+    title_popup_w = math.ceil(max_title_w + num_items * _POPUP_PER_ITEM) + _POPUP_CHROME
+    if max_kp_w > 0:
+        kp_popup_w = math.ceil(max_kp_w) + _POPUP_KP_CHROME
+        return max(title_popup_w, kp_popup_w)
+    return title_popup_w
 
 
-def _parse_row_template(ctx, elem, parent):
+def _parse_row_template(ctx, elem, parent, has_simple_templates=False):
     custom_class = elem.attrib.get("customClass")
     if custom_class:
         elem.attrib.pop("customClass", None)
@@ -99,13 +121,13 @@ def _parse_row_template(ctx, elem, parent):
                     x, w = COMPOUND_POPUP_FRAMES[i]
                 else:
                     x, w = COMPOUND_POPUP_FRAMES[-1]
-                popup = _build_popup_button(ctx, menu_elem, obj, x, w)
+                popup = _build_popup_button(ctx, menu_elem, obj, x, w, add_subviews=has_simple_templates)
                 views.append(popup)
         else:
             x = 37
             for menu_elem in menu_elems:
                 w = _compute_popup_width(menu_elem)
-                popup = _build_popup_button(ctx, menu_elem, obj, x, w)
+                popup = _build_popup_button(ctx, menu_elem, obj, x, w, add_subviews=not custom_class)
                 views.append(popup)
                 x += w + 6
 
@@ -115,10 +137,11 @@ def _parse_row_template(ctx, elem, parent):
             tf_w = editor_w - tf_x - 76
             if tf_w < 20:
                 tf_w = 98
-            text_field = _build_text_field(ctx, tf_x, tf_w)
+            text_field = _build_text_field(ctx, tf_x, tf_w, add_subviews=not custom_class)
             views.append(text_field)
 
-        if row_type == "compound":
+        set_chain = custom_class or (row_type == "compound" and not has_simple_templates)
+        if set_chain:
             for i in range(len(views) - 1):
                 views[i]["NSNextKeyView"] = views[i + 1]
 
@@ -154,7 +177,7 @@ def _build_expression(ctx, expr_el):
     return expr_obj
 
 
-def _build_popup_button(ctx, menu_elem, row_template, x, w):
+def _build_popup_button(ctx, menu_elem, row_template, x, w, add_subviews=True):
     popup = NibObject("NSPopUpButton")
     popup["NSNextResponder"] = NibNil()
     popup["NSNibTouchBar"] = NibNil()
@@ -241,6 +264,8 @@ def _build_popup_button(ctx, menu_elem, row_template, x, w):
     cell["NSAltersState"] = True
     cell["NSArrowPosition"] = 2
 
+    if add_subviews:
+        popup["NSSubviews"] = NibMutableList([])
     popup["NSCell"] = cell
     popup["NSAllowsLogicalLayoutDirection"] = False
     popup["NSControlSize"] = 0
@@ -255,7 +280,7 @@ def _build_popup_button(ctx, menu_elem, row_template, x, w):
     return popup
 
 
-def _build_text_field(ctx, x, w):
+def _build_text_field(ctx, x, w, add_subviews=True):
     tf = NibObject("NSTextField")
     tf["NSNextResponder"] = NibNil()
     tf["NSNibTouchBar"] = NibNil()
@@ -307,6 +332,8 @@ def _build_text_field(ctx, x, w):
     text_color["NSColor"] = inner_tc
     cell["NSTextColor"] = text_color
 
+    if add_subviews:
+        tf["NSSubviews"] = NibMutableList([])
     tf["NSCell"] = cell
     tf["NSAllowsLogicalLayoutDirection"] = False
     tf["NSControlSize"] = 1
@@ -407,10 +434,18 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
 
     templates = NibList([])
     row_templates_elem = elem.find("rowTemplates")
+    has_simple_templates = False
+    if row_templates_elem is not None:
+        for rt_elem in row_templates_elem:
+            if rt_elem.tag == "predicateEditorRowTemplate" and rt_elem.attrib.get("rowType", "simple") != "compound":
+                has_simple_templates = True
+                break
+    if has_simple_templates:
+        parent.extraContext["preserve_clip_autoresizing"] = True
     if row_templates_elem is not None:
         for rt_elem in row_templates_elem:
             if rt_elem.tag == "predicateEditorRowTemplate":
-                template = _parse_row_template(ctx, rt_elem, obj)
+                template = _parse_row_template(ctx, rt_elem, obj, has_simple_templates=has_simple_templates)
                 templates.addItem(template)
 
     obj["NSPredicateTemplates"] = templates
@@ -430,5 +465,10 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
 
     if not obj.extraContext.get("parsed_autoresizing"):
         obj.flagsOr("NSvFlags", vFlags.DEFAULT_VFLAGS_AUTOLAYOUT if ctx.useAutolayout else vFlags.DEFAULT_VFLAGS)
+
+    conn_elem = elem.find("connections")
+    if conn_elem is not None:
+        from ..parsers_base import parse_children as _pc
+        _pc(ctx, conn_elem, obj)
 
     return obj
