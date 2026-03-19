@@ -323,6 +323,30 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
                 doc_view["NSFrameSize"] = NibString.intern(f"{{{clip_computed_w}, {new_h}}}")
                 doc_view.extraContext["NSFrameSize"] = (clip_computed_w, new_h)
                 doc_view.extraContext.pop("NSFrame", None)
+        # 16px frame with 17px standard: apply BIT0→BIT1 swap and column expansion
+        if vs_standard_w == 17 and _is_table_or_outline(doc_view):
+            ics_w = _get_ics_w(doc_view)
+            table_columns = doc_view.get("NSTableColumns") or []
+            n_cols = len(table_columns)
+            sum_cols = sum(col["NSWidth"] for col in table_columns)
+            total_content = sum_cols + n_cols * ics_w
+            target_sum = clip_computed_w - (n_cols + 3) * ics_w
+            if total_content > clip_computed_w - ics_w * 3 - vs_standard_w:
+                doc_view.flagsAnd("NSTvFlags", ~TVFLAGS.GRID_STYLE_BIT0)
+                doc_view.flagsOr("NSTvFlags", TVFLAGS.GRID_STYLE_BIT1)
+                col_change = int(target_sum - sum_cols)
+                if col_change > 0:
+                    _reduce_column_widths(doc_view, -col_change)
+            # Adjust header view width to clip_computed_w
+            if has_header:
+                hcv = obj.get("NSHeaderClipView")
+                if hcv:
+                    hv = hcv.get("NSDocView")
+                    if hv:
+                        hv_f = hv.extraContext.get("NSFrame") or hv.extraContext.get("NSFrameSize")
+                        if hv_f:
+                            hv_h = int(hv_f[3]) if len(hv_f) == 4 else int(hv_f[1])
+                            hv["NSFrameSize"] = NibString.intern(f"{{{clip_computed_w}, {hv_h}}}")
     if _is_table_or_outline(doc_view) and not vs_offscreen and is_regular_scroller and (has_horizontal_scroller or not auto_hiding):
         scroller_w = 17
         ics_w = _get_ics_w(doc_view)
