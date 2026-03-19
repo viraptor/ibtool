@@ -5,6 +5,21 @@ from typing import Optional, Any, Callable
 from ..constants import vFlags, CellFlags, CellFlags2, LineBreakMode, CONTROL_SIZE_MAP, CONTROL_SIZE_MAP2, ButtonFlags, ButtonFlags2, BEZEL_STYLE_MAP
 from ..constant_objects import RGB_COLOR_SPACE, GENERIC_GREY_COLOR_SPACE
 from dataclasses import dataclass
+import re as _re
+
+
+def frame_string(x: int, y: int, w: int, h: int) -> NibString:
+    return NibString.intern(f"{{{{{int(x)}, {int(y)}}}, {{{int(w)}, {int(h)}}}}}")
+
+def size_string(w: int, h: int) -> NibString:
+    return NibString.intern(f"{{{int(w)}, {int(h)}}}")
+
+def parse_frame_string(s) -> 'tuple[int, int, int, int] | None':
+    """Parse '{{x, y}, {w, h}}' NibString to (x, y, w, h)."""
+    m = _re.match(r'\{\{(\d+), (\d+)\}, \{(\d+), (\d+)\}\}', s._text)
+    if m:
+        return (int(m.group(1)), int(m.group(2)), int(m.group(3)), int(m.group(4)))
+    return None
 
 
 def parse_interfacebuilder_properties(ctx: ArchiveContext, elem: Element, _parent: Optional[NibObject], obj: NibObject) -> None:
@@ -230,13 +245,11 @@ def __handle_view_chain(ctx: ArchiveContext, obj: XibObject):
     yield object()
     ctx.viewKeyList.pop(-1)
 
-    # Use frame() for views that need computed frames (e.g. clip views with scrollview_size),
-    # but for views with explicit XIB frames, preserve the raw coordinates
     x, y, w, h = obj.frame()
     if x == 0 and y == 0:
-        obj["NSFrameSize"] = NibString.intern(f"{{{w}, {h}}}")
+        obj["NSFrameSize"] = size_string(w, h)
     else:
-        obj["NSFrame"] = NibString.intern(f"{{{{{x}, {y}}}, {{{w}, {h}}}}}")
+        obj["NSFrame"] = frame_string(x, y, w, h)
 
 def make_image(name: str, parent: NibObject, ctx: "ArchiveContext") -> NibObject:
     obj = NibObject("NSCustomResource", parent)

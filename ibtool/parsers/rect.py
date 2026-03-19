@@ -18,11 +18,6 @@ def parse(ctx: ArchiveContext, elem: Element, parent: XibObject) -> None:
     elif key == "frame":
         x = int(float(elem.attrib["x"]))
         y = int(float(elem.attrib["y"]))
-        if x == 0 and y == 0:
-            parent["NSFrameSize"] = "{" + str(w) + ", " + str(h) + "}"
-            parent.extraContext["NSFrameSize"] = (w, h)
-        else:
-            parent["NSFrame"] = "{{" + str(x) + ", " + str(y) + "}, {" + str(w) + ", " + str(h) + "}}"
-            parent.extraContext["NSFrame"] = (x, y, w, h)
+        parent.set_nib_frame(x, y, w, h)
     else:
         raise Exception(f"unknown rect key {key}")

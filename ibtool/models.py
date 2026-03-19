@@ -566,6 +566,40 @@ class XibObject(NibObject):
         else:
             return False
 
+    def raw_frame(self) -> Optional[tuple[int, int, int, int]]:
+        """Return normalized (x, y, w, h) from extraContext, regardless of storage format."""
+        if f := self.extraContext.get("NSFrame"):
+            return (int(f[0]), int(f[1]), int(f[2]), int(f[3]))
+        elif f := self.extraContext.get("NSFrameSize"):
+            return (0, 0, int(f[0]), int(f[1]))
+        return None
+
+    def raw_size(self) -> tuple[int, int]:
+        """Return (w, h) from extraContext."""
+        if f := self.extraContext.get("NSFrame"):
+            return (int(f[2]), int(f[3]))
+        elif f := self.extraContext.get("NSFrameSize"):
+            return (int(f[0]), int(f[1]))
+        return (0, 0)
+
+    def set_nib_frame(self, x: int, y: int, w: int, h: int) -> None:
+        """Write frame to both NIB property and extraContext consistently."""
+        x, y, w, h = int(x), int(y), int(w), int(h)
+        if x == 0 and y == 0:
+            self["NSFrameSize"] = NibString.intern(f"{{{w}, {h}}}")
+            self.extraContext["NSFrameSize"] = (w, h)
+            self.properties.pop("NSFrame", None)
+            self.extraContext.pop("NSFrame", None)
+        else:
+            self["NSFrame"] = NibString.intern(f"{{{{{x}, {y}}}, {{{w}, {h}}}}}")
+            self.extraContext["NSFrame"] = (x, y, w, h)
+            self.properties.pop("NSFrameSize", None)
+            self.extraContext.pop("NSFrameSize", None)
+
+    def set_nib_size(self, w: int, h: int) -> None:
+        """Write NSFrameSize (assumes origin 0,0) and update extraContext."""
+        self.set_nib_frame(0, 0, int(w), int(h))
+
     def frame(self) -> Optional[tuple[int, int, int, int]]:
         if self.extraContext.get("skip_parent_insets"):
             insets = None

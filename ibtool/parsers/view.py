@@ -1,4 +1,4 @@
-from .helpers import parse_interfacebuilder_properties, _xibparser_common_view_attributes, _xibparser_common_translate_autoresizing
+from .helpers import parse_interfacebuilder_properties, _xibparser_common_view_attributes, _xibparser_common_translate_autoresizing, frame_string, size_string
 from ..parsers_base import parse_children
 from ..models import ArchiveContext, XibObject, NibString, NibMutableList
 from xml.etree.ElementTree import Element
@@ -24,10 +24,9 @@ def parse(ctx: ArchiveContext, elem: Element, parent: XibObject, **kwargs) -> Xi
             obj["NSSuperview"] = parent
             is_box_content = True
             # Store box outer size so subviews' frame() uses it as parent size
-            box_frame = parent.extraContext.get("NSFrame") or parent.extraContext.get("NSFrameSize")
-            if box_frame:
-                bw = box_frame[2] if len(box_frame) == 4 else box_frame[0]
-                bh = box_frame[3] if len(box_frame) == 4 else box_frame[1]
+            box_raw = parent.raw_frame()
+            if box_raw:
+                bw, bh = box_raw[2], box_raw[3]
                 # Titled boxes have a 12px title area
                 title_offset = 12 if parent.extraContext.get("titlePosition") != "noTitle" else 0
                 content_h = bh - title_offset
@@ -66,7 +65,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: XibObject, **kwargs) -> Xi
         obj["NSNextResponder"] = parent
         # Override frame using pre-computed box content size
         if box_size := obj.extraContext.get("box_content_size"):
-            obj["NSFrameSize"] = NibString.intern(f"{{{int(box_size[0])}, {int(box_size[1])}}}")
+            obj["NSFrameSize"] = size_string(box_size[0], box_size[1])
             if obj.get("NSFrame"):
                 del obj["NSFrame"]
         # Adjust child coordinates and sizes for autoresizing when content view size differs from XIB
@@ -111,8 +110,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: XibObject, **kwargs) -> Xi
                         cy += y_off
                         changed = True
                     if changed:
-                        child["NSFrame"] = NibString.intern(f"{{{{{cx}, {cy}}}, {{{cw}, {ch}}}}}")
-                        child.extraContext["NSFrame"] = (cx, cy, cw, ch)
+                        child.set_nib_frame(cx, cy, cw, ch)
         # Box content views are width+height sizable, skip default autolayout flags
         obj.flagsOr("NSvFlags", vFlags.WIDTH_SIZABLE | vFlags.HEIGHT_SIZABLE)
         obj.extraContext["parsed_autoresizing"] = True
