@@ -5,7 +5,6 @@ Entry point: `ibtool/__main__.py` -> `run()`
 ```
 ibtool input.xib --compile output.nib   # Compile XIB to NIB
 ibtool input.nib --dump                  # Dump NIB contents
-ibtool input.nib --dump -t               # Dump NIB as a tree view
 ibtool input.nib --compare other.nib     # Diff two NIB files
 ibtool input.nib --compare other.nib --xib source.xib  # Diff with XIB id annotations
 ibtool input.xib --xibmap               # Show XIB element id -> NIB object index mapping
