@@ -95,7 +95,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     obj["NSDraggingSourceMaskForLocal"] = -1
     obj["NSDraggingSourceMaskForNonLocal"] = 0
     obj["NSEnabled"] = True
-    obj["NSTableViewDraggingDestinationStyle"] = 0
+    obj["NSTableViewDraggingDestinationStyle"] = 1 if elem.attrib.get("selectionHighlightStyle") == "sourceList" else 0
     obj["NSTableViewGroupRowStyle"] = 1
 
     MAP_TABLE_STYLE = {
@@ -119,11 +119,15 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
         PropSchema(prop="NSTvFlags", attrib="emptySelection", default="YES", map=MAP_YES_NO, or_mask=TVFLAGS.ALLOWS_EMPTY_SELECTION),
         PropSchema(prop="NSTableViewShouldFloatGroupRows", attrib="floatsGroupRows", default="YES", map=MAP_YES_NO),
         PropSchema(prop="NSTableViewStyle", attrib="tableStyle", map=MAP_TABLE_STYLE, skip_default=True),
+        PropSchema(prop="NSTvFlags", attrib="selectionHighlightStyle", default=None, map={None: False, "sourceList": True}, or_mask=TVFLAGS.GRID_STYLE_BIT1),
         PropSchema(prop="NSTableViewSelectionHighlightStyle", attrib="selectionHighlightStyle", map=MAP_TABLE_HIGHLIGHT_STYLE, skip_default=True),
         PropSchema(prop="NSAllowsTypeSelect", attrib="typeSelect", default="YES", map=MAP_YES_NO, skip_default=False),
         PropSchema(prop="NSAutosaveName", attrib="autosaveName", skip_default=True),
         PropSchema(prop="NSRowHeight", attrib="rowHeight", default="17", filter=float, skip_default=False),
     ])
+
+    if elem.attrib.get("selectionHighlightStyle") == "sourceList" and ctx.toolsVersion < 11762:
+        obj.flagsAnd("NSTvFlags", ~TVFLAGS.GRID_STYLE_BIT0)
 
     if is_elastic:
         columns_for_height = obj.get("NSTableColumns")

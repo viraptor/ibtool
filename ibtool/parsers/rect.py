@@ -7,8 +7,8 @@ def parse(ctx: ArchiveContext, elem: Element, parent: XibObject) -> None:
     h = 0 if elem.attrib["height"] == "0.0" else int(elem.attrib["height"]) 
     if key == "contentRect":
         assert parent.originalclassname() == "NSWindowTemplate"
-        x = int(elem.attrib["x"])
-        y = int(elem.attrib["y"])
+        x = int(float(elem.attrib["x"]))
+        y = int(float(elem.attrib["y"]))
         parent.extraContext["NSWindowRect"] = (x, y, w, h)
     elif key == "screenRect":
         assert parent.originalclassname() == "NSWindowTemplate"

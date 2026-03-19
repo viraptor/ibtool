@@ -1,5 +1,8 @@
 from . import accessibility
 from . import action
+from . import allowedTypes
+from . import animations
+from . import attributedString
 from . import autoresizingMask
 from . import behavior
 from . import binding
@@ -12,12 +15,14 @@ from . import color
 from . import colorWell
 from . import column
 from . import connections
+from . import contentBorderThickness
 from . import constraint
 from . import constraints
 from . import customFormatter
 from . import customObject
 from . import customSpacing
 from . import customView
+from . import calendarDate
 from . import date
 from . import dateFormatter
 from . import datePicker
@@ -41,6 +46,8 @@ from . import nil
 from . import numberFormatter
 from . import outlet
 from . import outlineView
+from . import pathCell
+from . import pathControl
 from . import placeholder
 from . import allowedInputSourceLocales
 from . import pdfView
@@ -85,6 +92,9 @@ from . import tableViewGridLines
 from . import textField
 from . import textFieldCell
 from . import textView
+from . import toolbar
+from . import url
+from . import userDefinedRuntimeAttributes
 from . import userDefaultsController
 from . import value
 from . import view
@@ -100,7 +110,10 @@ from . import windowStyleMask
 all = {
     "accessibility": accessibility,
     "allowedInputSourceLocales": allowedInputSourceLocales,
+    "allowedTypes": allowedTypes,
     "action": action,
+    "animations": animations,
+    "attributedString": attributedString,
     "autoresizingMask": autoresizingMask,
     "behavior": behavior,
     "binding": binding,
@@ -113,12 +126,14 @@ all = {
     "colorWell": colorWell,
     "column": column,
     "connections": connections,
+    "contentBorderThickness": contentBorderThickness,
     "constraint": constraint,
     "constraints": constraints,
     "customFormatter": customFormatter,
     "customObject": customObject,
     "customSpacing": customSpacing,
     "customView": customView,
+    "calendarDate": calendarDate,
     "date": date,
     "dateFormatter": dateFormatter,
     "datePicker": datePicker,
@@ -142,6 +157,8 @@ all = {
     "numberFormatter": numberFormatter,
     "outlet": outlet,
     "outlineView": outlineView,
+    "pathCell": pathCell,
+    "pathControl": pathControl,
     "placeholder": placeholder,
     "pdfView": pdfView,
     "point": point,
@@ -185,6 +202,9 @@ all = {
     "textField": textField,
     "textFieldCell": textFieldCell,
     "textView": textView,
+    "toolbar": toolbar,
+    "url": url,
+    "userDefinedRuntimeAttributes": userDefinedRuntimeAttributes,
     "userDefaultsController": userDefaultsController,
     "value": value,
     "view": view,

@@ -37,26 +37,40 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
         PropSchema(prop="NSBoxType", attrib="boxType", default=None, map=BOX_TYPE_MAP, skip_default=False),
         PropSchema(prop="NSBorderType", attrib="borderType", default=None, map=BOX_BORDER_TYPE_MAP, skip_default=False),
         PropSchema(prop="IBNSBoxIsUsingDocumentContentView", attrib="boxType", default=None, map=BOX_USING_CONTENT_VIEW_MAP, skip_default=False),
-        PropSchema(prop="NSTitlePosition", attrib="titlePosition", default=None, map=BOX_TITLE_POSITION_MAP, skip_default=False),
         PropSchema(prop="NSTransparent", const=False),
         PropSchema(prop="NSOffsets", attrib="boxType", default=None, map={None: NibString.intern("{0, 0}"), "separator": NibString.intern("{5, 5}")}, skip_default=False),
         PropSchema(prop="NSSubviews", default=NibMutableList([])),
     ])
     
-    if tf := obj.extraContext.get("titleFont"):
-        font = tf
-    else:
+    is_separator = elem.attrib.get("boxType") == "separator"
+
+    if is_separator:
         font = NibObject("NSFont", None, {
             "NSName": NibString.intern(".AppleSystemUIFont"),
             "NSSize": 11.0,
             "NSfFlags": 0xc1c,
         })
+        title = "Title"
+        title_position = 2
+    else:
+        if tf := obj.extraContext.get("titleFont"):
+            font = tf
+        else:
+            font = NibObject("NSFont", None, {
+                "NSName": NibString.intern(".AppleSystemUIFont"),
+                "NSSize": 11.0,
+                "NSfFlags": 0xc1c,
+            })
+        title = elem.attrib.get("title", "" if elem.attrib.get("titlePosition") == "noTitle" else "Title")
+        title_position = BOX_TITLE_POSITION_MAP.get(elem.attrib.get("titlePosition"), 2)
+
+    obj["NSTitlePosition"] = title_position
 
     obj["NSTitleCell"] = NibObject("NSTextFieldCell", None, {
         "NSBackgroundColor": makeSystemColor("textBackgroundColor"),
         "NSCellFlags": CellFlags.UNKNOWN_TEXT_FIELD,
         "NSCellFlags2": CellFlags2.TEXT_ALIGN_CENTER,
-        "NSContents": NibString.intern(elem.attrib.get("title", "" if elem.attrib.get("titlePosition") == "noTitle" else "Title")),
+        "NSContents": NibString.intern(title),
         "NSControlView": NibNil(),
         "NSSupport": font,
         "NSTextColor": makeSystemColor("labelColor"),
@@ -64,6 +78,9 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
     if "verticalHuggingPriority" in obj.extraContext or "horizontalHuggingPriority" in obj.extraContext:
         v, h = obj.extraContext.get("verticalHuggingPriority", 250), obj.extraContext.get("horizontalHuggingPriority", 250)
         obj["NSHuggingPriority"] = f"{{{h}, {v}}}"
+    if is_separator:
+        obj.flagsOr("NSvFlags", 0x1000)
+
     if not obj.extraContext.get("parsed_autoresizing"):
         flags = vFlags.DEFAULT_VFLAGS_AUTOLAYOUT if ctx.useAutolayout else vFlags.DEFAULT_VFLAGS
         if obj.extraContext.get("no_autoresizes_subviews"):

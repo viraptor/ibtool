@@ -129,7 +129,7 @@ def createTopLevel(toplevelObjects: list["XibObject"], context) -> NibObject:
     rootData["NSObjectsKeys"] = NibList(context.extraNibObjects)
     # parents of XibObjects should be listed here with filesOwner as the highest parent
 
-    parent_objects = [(o.xib_parent() or filesOwner) for o in context.extraNibObjects]
+    parent_objects = [(o.xib_parent() if hasattr(o, 'xib_parent') else None) or filesOwner for o in context.extraNibObjects]
     rootData["NSObjectsValues"] = NibList(parent_objects)
 
     oid_objects = [filesOwner] + \

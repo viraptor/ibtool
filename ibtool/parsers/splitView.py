@@ -98,7 +98,10 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
                                 subview.extraContext["NSFrame"] = (0, pos, sv_w, h)
                             pos += h + divider_thickness
 
+    divider_style_map = {None: None, "thin": 2, "thick": 1, "paneSplitter": 3}
     handle_props(ctx, elem, obj, [
+        PropSchema(prop="NSAutosaveName", attrib="autosaveName"),
+        PropSchema(prop="NSDividerStyle", attrib="dividerStyle", map=divider_style_map, skip_default=True),
     ])
 
     return obj

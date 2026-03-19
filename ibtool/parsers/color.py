@@ -29,6 +29,13 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
         "NSMatrix": {
             "backgroundColor": ["NSBackgroundColor"],
         },
+        "NSBox": {
+            "borderColor": None,
+            "fillColor": None,
+            "textColor": ["NSTextColor"],
+            "backgroundColor": ["NSBackgroundColor"],
+            "color": ["NSColor"],
+        },
         None: {
             "textColor": ["NSTextColor"],
             "backgroundColor": ["NSBackgroundColor"],

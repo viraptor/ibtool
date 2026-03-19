@@ -31,8 +31,10 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
                 if cv_frame and rect_elem is not None:
                     raw_w = int(rect_elem.attrib.get("width", "0"))
                     clip_w = int(cv_frame[2])
-                    if clip_w > raw_w:
-                        obj.extraContext["expected_column_expansion"] = clip_w - raw_w
+                    vs_reduction = sv_parent.extraContext.get("expected_vs_reduction", 0)
+                    effective_clip_w = clip_w - vs_reduction
+                    if effective_clip_w > raw_w:
+                        obj.extraContext["expected_column_expansion"] = effective_clip_w - raw_w
 
     with __handle_view_chain(ctx, obj):
         parse_children(ctx, elem, obj)

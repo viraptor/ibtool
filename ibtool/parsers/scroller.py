@@ -21,7 +21,8 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
     obj["NSControlWritingDirection"] = 0
     obj["NSControlTextAlignment"] = 0
     obj["NSControlLineBreakMode"] = 0
-    obj["NSViewIsLayerTreeHost"] = True
+    if ctx.toolsVersion >= 11762 and elem.attrib.get("wantsLayer") == "YES":
+        obj["NSViewIsLayerTreeHost"] = True
     obj["NSControlRefusesFirstResponder"] = elem.attrib.get("refusesFirstResponder", "NO") == "YES"
     if (cur_value := elem.attrib.get("doubleValue")) is not None:
         obj["NSCurValue"] = float(cur_value)
@@ -39,7 +40,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
     if frame:
         obj.extraContext["scroller_width"] = frame[2] if len(frame) == 4 else frame[0]
     obj.extraContext["standard_scroller_width"] = {
-        "small": 15, "mini": 11,
+        "small": 13, "mini": 11,
     }.get(elem.attrib.get("controlSize"), 17)
 
     if elem.attrib["horizontal"] == "YES":

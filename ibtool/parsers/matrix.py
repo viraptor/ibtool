@@ -30,15 +30,16 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
 
     # Compute NSMatrixFlags
     mode = MATRIX_MODE_MAP.get(elem.attrib.get("mode"), 2)
-    matrix_flags = 0
-    if mode & 2:
-        matrix_flags |= 0x40000000
-    if mode & 1:
-        matrix_flags |= 0x01000000
+    mode_bits = {0: 0, 1: 0x80000000, 2: 0x40000000, 3: 0x20000000}[mode]
+    matrix_flags = mode_bits
+    if elem.attrib.get("allowsEmptySelection", "YES") != "NO":
+        matrix_flags |= 0x10000000
     if elem.attrib.get("selectionByRect", "YES") != "NO":
         matrix_flags |= 0x04000000
+    if elem.attrib.get("autosizesCells", "YES") != "NO":
+        matrix_flags |= 0x00800000
     if elem.attrib.get("drawsBackground") == "YES":
-        matrix_flags |= 0x80000000
+        matrix_flags |= 0x01000000
         # Propagate drawsBackground to parent clip view
         if parent.originalclassname() == "NSClipView":
             parent.flagsOr("NScvFlags", cvFlags.DRAW_BACKGROUND)

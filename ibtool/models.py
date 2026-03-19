@@ -614,7 +614,7 @@ class XibObject(NibObject):
             # Only apply compile-time autoresizing when the parent has a computed size
             # (scrollview_size, box_content_size, window_content_size), not a raw XIB frame
             parent_has_computed_size = any(k in parent.extraContext for k in
-                ("scrollview_size", "box_content_size", "window_content_size"))
+                ("scrollview_size", "box_content_size", "window_content_size", "_has_computed_size"))
             if parent_has_computed_size:
                 parent_computed = parent.frame()
                 # Get parent's raw XIB size for delta-based autoresizing
@@ -625,16 +625,32 @@ class XibObject(NibObject):
                 else:
                     raw_pw, raw_ph = parent_computed[2], parent_computed[3]
                 result = [x, y, mw, mh]
+                delta_w = parent_computed[2] - raw_pw
+                delta_h = parent_computed[3] - raw_ph
                 if auto_resizing.get("widthSizable"):
                     if mw >= raw_pw:
                         result[2] = parent_computed[2]
                     else:
-                        result[2] = mw + (parent_computed[2] - raw_pw)
+                        result[2] = mw + delta_w
                 if auto_resizing.get("heightSizable"):
                     if mh >= raw_ph:
                         result[3] = parent_computed[3]
                     else:
-                        result[3] = mh + (parent_computed[3] - raw_ph)
+                        result[3] = mh + delta_h
+                if delta_w != 0 and not auto_resizing.get("widthSizable"):
+                    flex_min_x = auto_resizing.get("flexibleMinX", False)
+                    flex_max_x = auto_resizing.get("flexibleMaxX", False)
+                    if flex_min_x and not flex_max_x:
+                        result[0] = x + delta_w
+                    elif flex_min_x and flex_max_x and raw_pw > 0:
+                        result[0] = round(x * parent_computed[2] / raw_pw)
+                if delta_h != 0 and not auto_resizing.get("heightSizable"):
+                    flex_min_y = auto_resizing.get("flexibleMinY", False)
+                    flex_max_y = auto_resizing.get("flexibleMaxY", False)
+                    if flex_min_y and not flex_max_y:
+                        result[1] = y + delta_h
+                    elif flex_min_y and flex_max_y and raw_ph > 0:
+                        result[1] = round(y * parent_computed[3] / raw_ph)
                 if insets:
                     result[2] -= insets[0]
                     result[3] -= insets[1]
@@ -676,13 +692,13 @@ def _xibparser_handle_custom_class(ctx: ArchiveContext, elem: Element, obj: "Xib
             obj["IBClassReference"] = make_class_reference(custom_class or "NSApplication", None, None)
     elif custom_class:
         #print(obj.xibid, obj.originalclassname(), obj.classname(), custom_class)
-        if ctx.customObjectInstantitationMethod == "direct" and not (obj.originalclassname() in ("NSCustomObject", "NSWindowTemplate") and not custom_module) or obj.originalclassname() in ("NSView", "NSOutlineView", "NSButton", "NSTextField", "NSTextView", "NSProgressIndicator", "NSTableView", "NSTableHeaderView", "NSPopUpButtonCell", "NSScrollView", "NSLevelIndicatorCell", "NSImageView", "NSTableCellView", "NSCustomFormatter"):
+        if ctx.customObjectInstantitationMethod == "direct" and not (obj.originalclassname() in ("NSCustomObject", "NSWindowTemplate") and not custom_module) or obj.originalclassname() in ("NSView", "NSOutlineView", "NSButton", "NSTextField", "NSTextView", "NSProgressIndicator", "NSTableView", "NSTableHeaderView", "NSPopUpButtonCell", "NSScrollView", "NSLevelIndicatorCell", "NSImageView", "NSTableCellView", "NSCustomFormatter", "NSNumberFormatter", "NSSplitView"):
             #print("direct")
             if custom_module:
                 obj["NSClassName"] = NibString.intern(f"_TtC{len(custom_module)}{custom_module}{len(custom_class)}{custom_class}")
             else:
                 obj["NSClassName"] = NibString.intern(custom_class)
-            if obj.classname() not in ("NSView", "NSCustomView", "NSButton", "NSTextField", "NSOutlineView", "NSScrollView", "NSClipView", "NSColorWell", "NSStackView", "NSTextView", "NSProgressIndicator", "NSTableView", "NSTableHeaderView", "NSPopUpButtonCell", "NSLevelIndicatorCell", "NSSegmentedControl", "NSSegmentedCell", "NSImageView", "NSTableCellView", "NSCustomFormatter"):
+            if obj.classname() not in ("NSView", "NSCustomView", "NSButton", "NSTextField", "NSOutlineView", "NSScrollView", "NSClipView", "NSColorWell", "NSStackView", "NSTextView", "NSProgressIndicator", "NSTableView", "NSTableHeaderView", "NSPopUpButtonCell", "NSLevelIndicatorCell", "NSSegmentedControl", "NSSegmentedCell", "NSImageView", "NSTableCellView", "NSCustomFormatter", "NSNumberFormatter", "NSSplitView"):
                 obj["NSInitializeWithInit"] = True
             final_original_class = {
                 "NSCustomObject": "NSObject",

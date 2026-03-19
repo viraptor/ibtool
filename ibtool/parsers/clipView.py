@@ -76,7 +76,11 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     # Table/outline view doc views imply DRAW_BACKGROUND on clip view
     doc_view = obj.get("NSDocView")
     if not is_main_view and doc_view is not None and not isinstance(doc_view, NibNil):
-        if doc_view.originalclassname() in ("NSTableView", "NSOutlineView"):
+        if doc_view.originalclassname() in ("NSTableView", "NSOutlineView") and elem.attrib.get("drawsBackground") != "NO":
             obj.flagsOr("NScvFlags", cvFlags.DRAW_BACKGROUND)
-    obj.setIfEmpty("NSBGColor", makeSystemColor("controlBackgroundColor"))
+    skip_bg = (not is_main_view and elem.attrib.get("drawsBackground") == "NO"
+               and doc_view is not None and not isinstance(doc_view, NibNil)
+               and doc_view.originalclassname() in ("NSTableView", "NSOutlineView"))
+    if not skip_bg:
+        obj.setIfEmpty("NSBGColor", makeSystemColor("controlBackgroundColor"))
     return obj
