@@ -78,7 +78,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
     if "verticalHuggingPriority" in obj.extraContext or "horizontalHuggingPriority" in obj.extraContext:
         v, h = obj.extraContext.get("verticalHuggingPriority", 250), obj.extraContext.get("horizontalHuggingPriority", 250)
         obj["NSHuggingPriority"] = f"{{{h}, {v}}}"
-    if is_separator:
+    if is_separator and not obj.extraContext.get("NSDoNotTranslateAutoresizingMask"):
         obj.flagsOr("NSvFlags", 0x1000)
 
     if not obj.extraContext.get("parsed_autoresizing"):
