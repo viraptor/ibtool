@@ -201,7 +201,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
                 else:
                     target_w = None
             else:
-                x_offset = int((ics_w + 3) // 2)
+                x_offset = None
                 target_w = None
 
             nib_appl_parent = XibObject(nested_ctx, "NSCustomObject", None, None)
@@ -223,16 +223,28 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
             nib_outlet["NSChildControllerCreationSelectorName"] = NibNil()
 
             ec_frame = nib_view.extraContext.get("NSFrame")
-            if ec_frame and len(ec_frame) == 4 and x_offset > 0:
-                new_x = ec_frame[0] + x_offset
+            if ec_frame and len(ec_frame) == 4:
+                if x_offset is not None and x_offset > 0:
+                    new_x = ec_frame[0] + x_offset
+                elif x_offset is None:
+                    # Non-outline column: compute x from preceding column's cell view end
+                    last_end = parent.extraContext.get("_last_cell_view_end_x")
+                    if last_end is not None:
+                        new_x = last_end + int(ics_w)
+                    else:
+                        new_x = ec_frame[0] + int((ics_w + 3) // 2)
+                else:
+                    new_x = ec_frame[0]
                 new_w = target_w if target_w is not None else ec_frame[2]
-                nib_view["NSFrame"] = NibString.intern(f"{{{{{new_x}, {ec_frame[1]}}}, {{{new_w}, {ec_frame[3]}}}}}")
-                nib_view.extraContext["NSFrame"] = (new_x, ec_frame[1], new_w, ec_frame[3])
-                if target_w is not None and new_w != ec_frame[2]:
-                    nib_sub_frame = nib_sub.extraContext.get("NSFrame")
-                    if nib_sub_frame and len(nib_sub_frame) == 4:
-                        nib_sub["NSFrame"] = NibString.intern(f"{{{{{nib_sub_frame[0]}, {nib_sub_frame[1]}}}, {{{new_w}, {nib_sub_frame[3]}}}}}")
-                        nib_sub.extraContext["NSFrame"] = (nib_sub_frame[0], nib_sub_frame[1], new_w, nib_sub_frame[3])
+                if new_x != ec_frame[0] or new_w != ec_frame[2]:
+                    nib_view["NSFrame"] = NibString.intern(f"{{{{{new_x}, {ec_frame[1]}}}, {{{new_w}, {ec_frame[3]}}}}}")
+                    nib_view.extraContext["NSFrame"] = (new_x, ec_frame[1], new_w, ec_frame[3])
+                    if target_w is not None and new_w != ec_frame[2]:
+                        nib_sub_frame = nib_sub.extraContext.get("NSFrame")
+                        if nib_sub_frame and len(nib_sub_frame) == 4:
+                            nib_sub["NSFrame"] = NibString.intern(f"{{{{{nib_sub_frame[0]}, {nib_sub_frame[1]}}}, {{{new_w}, {nib_sub_frame[3]}}}}}")
+                            nib_sub.extraContext["NSFrame"] = (nib_sub_frame[0], nib_sub_frame[1], new_w, nib_sub_frame[3])
+                parent.extraContext["_last_cell_view_end_x"] = new_x + new_w
 
             objects = [nib_appl_parent, nib_view, nib_sub, nib_sub_cell, nib_appl, nib_outlet]
             nib_data = CompileNibObjects([make_basic_nib(objects, root=nib_appl_parent, connections=[nib_outlet])])
