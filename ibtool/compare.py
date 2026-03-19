@@ -258,12 +258,21 @@ def diff(lhs: Union[NibValue,NibCollection,NibObject], rhs: Union[NibValue,NibCo
         for i, (left, right) in enumerate(zip(lhs_entries, rhs_entries)):
             yield from diff(left, right, lhs_root, rhs_root, current_path + [str(i)], lhs_path, rhs_path, lhs.classname, xibid_map=xibid_map)
     elif isinstance(lhs, NibCollection) and isinstance(rhs, NibCollection):
-        if len(lhs.entries) != len(rhs.entries):
-            yield f"{path}{annotation} Mismatched length: {len(lhs.entries)} != {len(rhs.entries)}"
-        for i, (left, right) in enumerate(zip(lhs.entries, rhs.entries)):
+        l_entries = lhs.entries
+        r_entries = rhs.entries
+        if path.endswith("NSSubviews"):
+            l_entries = [e for e in l_entries if not (isinstance(e, NibObject) and e.classname == "_NSCornerView")]
+            r_entries = [e for e in r_entries if not (isinstance(e, NibObject) and e.classname == "_NSCornerView")]
+        if len(l_entries) != len(r_entries):
+            yield f"{path}{annotation} Mismatched length: {len(l_entries)} != {len(r_entries)}"
+        for i, (left, right) in enumerate(zip(l_entries, r_entries)):
             yield from diff(left, right, lhs_root, rhs_root, current_path + [str(i)], lhs_path, rhs_path, lhs.classname, xibid_map=xibid_map)
     elif isinstance(lhs, NibObject) and isinstance(rhs, NibObject):
         all_keys = set(list(lhs.entries.keys()) + list(rhs.entries.keys()))
+        if lhs.classname == "_NSCornerView":
+            all_keys -= {"NSNextResponder", "NSSuperview", "NSvFlags"}
+        if lhs.classname == "NSScrollView":
+            all_keys -= {"NSCornerView"}
         for key in sorted(all_keys):
             if key not in lhs.entries:
                 rval = rhs.entries.get(key)
