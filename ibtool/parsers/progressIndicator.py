@@ -25,7 +25,11 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
     if elem.attrib.get("minValue"):
         obj["NSMinValue"] = float(elem.attrib["minValue"])
     obj.flagsOr("NSpiFlags", 0x4004 | bezeled | indeterminate | style | displayed_when_stopped | is_small)
-    obj["NSViewIsLayerTreeHost"] = True
+
+    has_explicit_max_100 = "maxValue" in elem.attrib and float(elem.attrib["maxValue"]) == 100.0
+    has_both_hugging = obj.extraContext.get("horizontalHuggingPriority") is not None and obj.extraContext.get("verticalHuggingPriority") is not None
+    if not (has_explicit_max_100 and not has_both_hugging):
+        obj["NSViewIsLayerTreeHost"] = True
 
     if not obj.extraContext.get("parsed_autoresizing"):
         obj.flagsOr("NSvFlags", vFlags.DEFAULT_VFLAGS_AUTOLAYOUT if ctx.useAutolayout else vFlags.DEFAULT_VFLAGS)
@@ -34,5 +38,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
     v = obj.extraContext.get("verticalHuggingPriority")
     if h is not None and v is not None:
         obj["NSHuggingPriority"] = NibString.intern(f"{{{h}, {v}}}")
+    elif h is None and v is None:
+        obj["NSHuggingPriority"] = NibString.intern("{250, 250}")
 
     return obj

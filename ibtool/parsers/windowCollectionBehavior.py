@@ -11,4 +11,7 @@ def parse(_ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
         value |= 1
     if elem.attrib.get("transient") == "YES":
         value |= 8
-    parent["NSWindowCollectionBehavior"] = value
+    if elem.attrib.get("fullScreenPrimary") == "YES":
+        value |= 128
+    if value:
+        parent["NSWindowCollectionBehavior"] = value

@@ -712,6 +712,8 @@ class XibObject(NibObject):
                 # TODO: is this even right?
                 return [0, 0, 0, 0]
 
+_CUSTOM_OBJECT_NO_SWAP = {"NSFontManager"}
+
 def _xibparser_handle_custom_class(ctx: ArchiveContext, elem: Element, obj: "XibObject") -> None:
     custom_module = elem.attrib.get("customModule")
     custom_module_provider = elem.attrib.get("customModuleProvider")
@@ -726,7 +728,7 @@ def _xibparser_handle_custom_class(ctx: ArchiveContext, elem: Element, obj: "Xib
             obj["IBClassReference"] = make_class_reference(custom_class or "NSApplication", None, None)
     elif custom_class:
         #print(obj.xibid, obj.originalclassname(), obj.classname(), custom_class)
-        if ctx.customObjectInstantitationMethod == "direct" and not (obj.originalclassname() in ("NSCustomObject", "NSWindowTemplate") and not custom_module) or obj.originalclassname() in ("NSView", "NSOutlineView", "NSButton", "NSTextField", "NSTextView", "NSProgressIndicator", "NSTableView", "NSTableHeaderView", "NSPopUpButtonCell", "NSScrollView", "NSLevelIndicatorCell", "NSImageView", "NSTableCellView", "NSCustomFormatter", "NSNumberFormatter", "NSSplitView"):
+        if (ctx.customObjectInstantitationMethod == "direct" and not (obj.originalclassname() == "NSWindowTemplate" and not custom_module) and not (obj.originalclassname() == "NSCustomObject" and not custom_module and custom_class in _CUSTOM_OBJECT_NO_SWAP)) or obj.originalclassname() in ("NSView", "NSOutlineView", "NSButton", "NSTextField", "NSTextView", "NSProgressIndicator", "NSTableView", "NSTableHeaderView", "NSPopUpButtonCell", "NSScrollView", "NSLevelIndicatorCell", "NSImageView", "NSTableCellView", "NSCustomFormatter", "NSNumberFormatter", "NSSplitView"):
             #print("direct")
             if custom_module:
                 obj["NSClassName"] = NibString.intern(f"_TtC{len(custom_module)}{custom_module}{len(custom_class)}{custom_class}")
