@@ -9,6 +9,9 @@ from concurrent.futures import ProcessPoolExecutor
 
 
 def run_test(xib):
+    if xib.endswith(".storyboard"):
+        return run_storyboard_test(xib)
+
     with tempfile.NamedTemporaryFile(suffix=".nib", delete=False) as f:
         test_out = f.name
 
@@ -38,6 +41,41 @@ def run_test(xib):
     finally:
         if os.path.exists(test_out):
             os.unlink(test_out)
+
+
+def run_storyboard_test(sb):
+    import shutil
+    test_out = tempfile.mkdtemp(suffix=".storyboardc")
+
+    try:
+        compile_result = subprocess.run(
+            [sys.executable, "-m", "ibtool", "--compile", test_out, sb],
+            capture_output=True,
+            text=True,
+        )
+
+        if compile_result.returncode != 0:
+            output = (compile_result.stdout + compile_result.stderr).strip()
+            return False, sb, output
+
+        ref_dir = sb.removesuffix(".storyboard") + ".out"
+        if not os.path.isdir(ref_dir):
+            return False, sb, f"Reference directory not found: {ref_dir}"
+
+        compare_result = subprocess.run(
+            [sys.executable, "-m", "ibtool", "--compare", ref_dir, test_out],
+            capture_output=True,
+            text=True,
+        )
+
+        if compare_result.returncode == 0:
+            return True, sb, ""
+        else:
+            output = (compare_result.stdout + compare_result.stderr).strip()
+            return False, sb, output
+    finally:
+        if os.path.exists(test_out):
+            shutil.rmtree(test_out)
 
 
 def main():

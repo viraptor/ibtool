@@ -1,5 +1,6 @@
 from .ibdump import getNibSections, getNibSectionsFile, NibStructure
 import sys
+import os
 from typing import Any, Union, cast, Iterable, Optional
 
 class NibCollection:
@@ -345,7 +346,12 @@ def fixup_connections(collection):
     connectors.sort(key=conn_sort_key)
     collection[:] = non_connectors + connectors
 
-def main(orig_path, test_path, xib_path=None):
+def _is_uuid_diff(issue_str):
+    import re
+    return bool(re.search(r"uniqueIdentifierForStoryboardCompilation.*difference b'[0-9A-F-]+'", issue_str))
+
+
+def _compare_nib(orig_path, test_path, xib_path=None, skip_uuids=False):
     orig_nib = getNibSectionsFile(orig_path)
     test_nib = getNibSectionsFile(test_path)
 
@@ -357,7 +363,6 @@ def main(orig_path, test_path, xib_path=None):
     if test_rest:
         print("test has unreferenced items")
 
-    # Build xibid map if a XIB source file is provided
     xibid_map = None
     if xib_path:
         from .xibmap import build_nibidx_to_xibid
@@ -373,8 +378,40 @@ def main(orig_path, test_path, xib_path=None):
     fixup_connections(orig_root.entries["IB.objectdata"].entries["NSOidsKeys"].entries)
     fixup_connections(test_root.entries["IB.objectdata"].entries["NSOidsKeys"].entries)
     for issue in diff(orig_root, test_root, lhs_root=orig_objects, rhs_root=test_objects, xibid_map=xibid_map):
+        if skip_uuids and _is_uuid_diff(issue):
+            continue
         found_issues = True
         print(issue)
+    return found_issues
+
+
+def main(orig_path, test_path, xib_path=None):
+    if os.path.isdir(orig_path) and os.path.isdir(test_path):
+        _compare_storyboard_dirs(orig_path, test_path)
+    else:
+        if _compare_nib(orig_path, test_path, xib_path):
+            sys.exit(1)
+
+
+def _compare_storyboard_dirs(orig_dir, test_dir):
+    orig_nibs = {f for f in os.listdir(orig_dir) if f.endswith(".nib")}
+    test_nibs = {f for f in os.listdir(test_dir) if f.endswith(".nib")}
+
+    found_issues = False
+    for nib in sorted(orig_nibs - test_nibs):
+        print(f"Missing in test: {nib}")
+        found_issues = True
+    for nib in sorted(test_nibs - orig_nibs):
+        print(f"Extra in test: {nib}")
+        found_issues = True
+
+    for nib in sorted(orig_nibs & test_nibs):
+        orig_path = os.path.join(orig_dir, nib)
+        test_path = os.path.join(test_dir, nib)
+        print(f"Comparing {nib}...")
+        if _compare_nib(orig_path, test_path, skip_uuids=True):
+            found_issues = True
+
     sys.exit(int(found_issues))
 
 if __name__ == "__main__":

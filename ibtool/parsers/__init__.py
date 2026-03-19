@@ -1,3 +1,4 @@
+from . import application
 from . import accessibility
 from . import action
 from . import allowedTypes
@@ -59,6 +60,7 @@ from . import progressIndicator
 from . import prototypeCellViews
 from . import rect
 from . import scrollView
+from . import segue
 from . import scroller
 from . import secureTextField
 from . import secureTextFieldCell
@@ -98,16 +100,19 @@ from . import userDefinedRuntimeAttributes
 from . import userDefaultsController
 from . import value
 from . import view
+from . import viewController
 from . import viewLayoutGuide
 from . import visibilityPriorities
 from . import webPreferences
 from . import webView
 from . import window
+from . import windowController
 from . import windowCollectionBehavior
 from . import windowPositionMask
 from . import windowStyleMask
 
 all = {
+    "application": application,
     "accessibility": accessibility,
     "allowedInputSourceLocales": allowedInputSourceLocales,
     "allowedTypes": allowedTypes,
@@ -169,6 +174,7 @@ all = {
     "prototypeCellViews": prototypeCellViews,
     "rect": rect,
     "scrollView": scrollView,
+    "segue": segue,
     "scroller": scroller,
     "secureTextField": secureTextField,
     "secureTextFieldCell": secureTextFieldCell,
@@ -208,11 +214,13 @@ all = {
     "userDefaultsController": userDefaultsController,
     "value": value,
     "view": view,
+    "viewController": viewController,
     "viewLayoutGuide": viewLayoutGuide,
     "visibilityPriorities": visibilityPriorities,
     "webPreferences": webPreferences,
     "webView": webView,
     "window": window,
+    "windowController": windowController,
     "windowCollectionBehavior": windowCollectionBehavior,
     "windowPositionMask": windowPositionMask,
     "windowStyleMask": windowStyleMask,

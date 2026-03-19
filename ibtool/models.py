@@ -481,8 +481,12 @@ class ArchiveContext:
             if con.classname() == "NSIBUserDefinedRuntimeAttributesConnector":
                 result.append(con)
                 continue
-            dst = cast(Union[XibId, NibProxyObject], con["NSDestination"])
+            dst = cast(Union[XibId, NibProxyObject, NibObject], con["NSDestination"])
             if isinstance(dst, NibProxyObject):
+                result.append(con)
+                continue
+
+            if isinstance(dst, NibObject) and not isinstance(dst, XibId):
                 result.append(con)
                 continue
 

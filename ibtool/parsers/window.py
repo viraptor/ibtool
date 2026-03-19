@@ -19,6 +19,8 @@ def calculate_window_rect(struts: dict[str, bool], content_rect: tuple[int, int,
 def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
     item = XibObject(ctx, "NSWindowTemplate", elem, parent)
     ctx.extraNibObjects.append(item)
+    if elem.get("key") == "window" and parent.originalclassname() == "NSWindowController":
+        parent["IBWindowTemplate"] = item
     item.flagsOr("NSWTFlags", 0x780000) # default initial position mask, can be overriden by children
 
     # Pre-read contentRect so children (e.g. clipView) can compute frames
