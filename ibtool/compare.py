@@ -152,7 +152,7 @@ def diff(lhs: Union[NibValue,NibCollection,NibObject], rhs: Union[NibValue,NibCo
 
     path = '->'.join(str(key) for key in current_path)
 
-    if path.endswith("NSOidsValues"):
+    if path.endswith("NSOidsValues") or path.endswith("NSAccessibilityOidsValues") or path.endswith("NSAccessibilityOidsKeys"):
         return
 
     if type(lhs) != type(rhs):
@@ -233,6 +233,28 @@ def diff(lhs: Union[NibValue,NibCollection,NibObject], rhs: Union[NibValue,NibCo
         cache = {}
         lhs_entries = sorted(lhs.entries, key=lambda x: x.rec_hash([], cache))
         rhs_entries = sorted(rhs.entries, key=lambda x: x.rec_hash([], cache))
+        for i, (left, right) in enumerate(zip(lhs_entries, rhs_entries)):
+            yield from diff(left, right, lhs_root, rhs_root, current_path + [str(i)], lhs_path, rhs_path, lhs.classname, xibid_map=xibid_map)
+    elif path.endswith("NSAccessibilityConnectors"):
+        def ax_sort_key(x):
+            dest = x.entries.get("AXDestinationArchiveKey")
+            val = x.entries.get("AXAttributeValueArchiveKey")
+            dest_cls = dest.classname if dest else ""
+            dest_name = ""
+            if dest and hasattr(dest, 'entries'):
+                n = dest.entries.get("NSClassName")
+                if n and hasattr(n, 'entries'):
+                    b = n.entries.get("NS.bytes")
+                    if b and hasattr(b, 'value'):
+                        dest_name = str(b.value)
+            val_str = ""
+            if val and hasattr(val, 'entries'):
+                b = val.entries.get("NS.bytes")
+                if b and hasattr(b, 'value'):
+                    val_str = str(b.value)
+            return (val_str, dest_cls, dest_name)
+        lhs_entries = sorted(lhs.entries, key=ax_sort_key)
+        rhs_entries = sorted(rhs.entries, key=ax_sort_key)
         for i, (left, right) in enumerate(zip(lhs_entries, rhs_entries)):
             yield from diff(left, right, lhs_root, rhs_root, current_path + [str(i)], lhs_path, rhs_path, lhs.classname, xibid_map=xibid_map)
     elif isinstance(lhs, NibCollection) and isinstance(rhs, NibCollection):

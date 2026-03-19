@@ -104,7 +104,8 @@ def __xibparser_cell_flags(elem: Element, obj: NibObject, parent: NibObject) -> 
         "small": CellFlags2.CONTROL_SIZE_SMALL,
     }[elem.attrib.get("controlSize")]
     allows_mixed_state = CellFlags2.ALLOWS_MIXED_STATE if elem.attrib.get("allowsMixedState") == "YES" else 0
-    focus_ring_none = 0x8000 if elem.attrib.get("focusRingType") == "none" else 0
+    focus_ring_type = elem.attrib.get("focusRingType")
+    focus_ring_none = 0x8000 if focus_ring_type == "none" else (0x10000 if focus_ring_type == "exterior" else 0)
     truncates_last_visible = CellFlags2.TRUNCATES_LAST_VISIBLE_LINE if elem.attrib.get("truncatesLastVisibleLine") == "YES" else 0
 
     obj.flagsOr("NSCellFlags", lineBreakModeMask | text_field_flag | selectable | state_on | scrollable | disabled | editable | bezeled | border)

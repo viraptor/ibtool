@@ -6,5 +6,9 @@ def parse(_ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
     assert parent.originalclassname() == "NSWindowTemplate", parent.originalclassname()
     assert elem.attrib.get("key") == "collectionBehavior", elem.attrib.get("key")
 
-    can_join_all_spaces = elem.attrib.get("canJoinAllSpaces") == "YES"
-    transient = elem.attrib.get("transient") == "YES"
+    value = 0
+    if elem.attrib.get("canJoinAllSpaces") == "YES":
+        value |= 1
+    if elem.attrib.get("transient") == "YES":
+        value |= 8
+    parent["NSWindowCollectionBehavior"] = value

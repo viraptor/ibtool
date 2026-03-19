@@ -4,6 +4,8 @@ from typing import Optional
 from .helpers import __xibparser_cell_options, __xibparser_cell_flags, make_image
 from ..parsers_base import parse_children
 
+IMAGECELL_CELLFLAGS_THRESHOLD = 2494
+
 def _make_inline_image(name: str, parent: NibObject, ctx: "ArchiveContext") -> NibObject:
     res = ctx.imageResources.get(name)
     tiff_data = ctx.imageData.get(name)
@@ -91,6 +93,8 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
 
     if key == "cell":
         __xibparser_cell_options(elem, obj, parent)
+        if ctx.toolsVersion <= IMAGECELL_CELLFLAGS_THRESHOLD:
+            obj.flagsOr("NSCellFlags", 0x8000000)
 
         alignment_value = {None: 4, "left": 0, "center": 1, "right": 2}[elem.attrib.get("alignment")]
         obj["NSAlign"] = alignment_value

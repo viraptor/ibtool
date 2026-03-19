@@ -5,6 +5,8 @@ from .models import (
     NibList,
     NibMutableList,
     NibMutableSet,
+    NibString,
+    NibMutableString,
     XibId,
     ArchiveContext,
     XibObject,
@@ -136,10 +138,21 @@ def createTopLevel(toplevelObjects: list["XibObject"], context) -> NibObject:
         [o for o in context.connections if o.classname() != "NSNibOutletConnector"]
     rootData["NSOidsKeys"] = NibList(oid_objects)
     rootData["NSOidsValues"] = NibList([NibNSNumber(x+1) for x,_ in enumerate(oid_objects)])
-    rootData["NSAccessibilityConnectors"] = NibMutableList()
-    emptyList = NibList()
-    rootData["NSAccessibilityOidsKeys"] = emptyList
-    rootData["NSAccessibilityOidsValues"] = emptyList
+    ax_connectors = []
+    for dest, description in context.accessibilityConnections:
+        conn = NibObject("NSNibAXAttributeConnector")
+        conn["AXDestinationArchiveKey"] = dest
+        conn["AXAttributeTypeArchiveKey"] = NibMutableString("AXDescription")
+        conn["AXAttributeValueArchiveKey"] = NibString.intern(description)
+        ax_connectors.append(conn)
+    rootData["NSAccessibilityConnectors"] = NibMutableList(ax_connectors)
+    if ax_connectors:
+        rootData["NSAccessibilityOidsKeys"] = NibList(ax_connectors)
+        rootData["NSAccessibilityOidsValues"] = NibList([NibNSNumber(len(oid_objects) + 1 + i) for i in range(len(ax_connectors))])
+    else:
+        emptyList = NibList()
+        rootData["NSAccessibilityOidsKeys"] = emptyList
+        rootData["NSAccessibilityOidsValues"] = emptyList
     return NibObject("NSObject", None, {
         "IB.objectdata": rootData,
         "IB.systemFontUpdateVersion": 1,
