@@ -8,6 +8,8 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> No
     first_attribute = elem.attrib["firstAttribute"]
 
     obj = XibObject(ctx, "NSLayoutConstraint", elem, parent)
+    if obj.xibid is not None:
+        ctx.addObject(obj.xibid, obj)
     placeholder = elem.attrib.get("placeholder") == "YES"
     if placeholder:
         obj.extraContext["placeholder"] = True

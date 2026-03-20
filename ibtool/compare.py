@@ -202,9 +202,6 @@ def diff(lhs: Union[NibValue,NibCollection,NibObject], rhs: Union[NibValue,NibCo
     annotation = _xib_annotation(rhs, xibid_map)
 
     connector_classes = ("NSNibConnector", "NSNibOutletConnector", "NSNibControlConnector", "NSNibAuxiliaryActionConnector", "NSIBHelpConnector", "NSNibBindingConnector", "NSIBUserDefinedRuntimeAttributesConnector")
-    if lhs.classname in connector_classes and rhs.classname in connector_classes:
-        # Connections are unordered
-        return
     if lhs.classname != rhs.classname:
         yield f"{path}{annotation} (in {parent_class}): Class name doesn't match {lhs.classname} != {rhs.classname}"
         return
@@ -231,10 +228,11 @@ def diff(lhs: Union[NibValue,NibCollection,NibObject], rhs: Union[NibValue,NibCo
         for i, (left, right) in enumerate(zip(lhs.entries, rhs.entries)):
             yield from diff(left, right, lhs_root, rhs_root, current_path + [str(i)], lhs_path, rhs_path, lhs.classname, xibid_map=xibid_map)
     elif path.endswith("NSConnections"):
-        cache = {}
-        lhs_entries = sorted(lhs.entries, key=lambda x: x.rec_hash([], cache))
-        rhs_entries = sorted(rhs.entries, key=lambda x: x.rec_hash([], cache))
-        for i, (left, right) in enumerate(zip(lhs_entries, rhs_entries)):
+        fixup_connections(lhs.entries)
+        fixup_connections(rhs.entries)
+        if len(lhs.entries) != len(rhs.entries):
+            yield f"{path}{annotation} Mismatched connection count: {len(lhs.entries)} != {len(rhs.entries)}"
+        for i, (left, right) in enumerate(zip(lhs.entries, rhs.entries)):
             yield from diff(left, right, lhs_root, rhs_root, current_path + [str(i)], lhs_path, rhs_path, lhs.classname, xibid_map=xibid_map)
     elif path.endswith("NSAccessibilityConnectors"):
         def ax_sort_key(x):
@@ -342,7 +340,16 @@ def fixup_connections(collection):
         src_cls = src.classname if src is not None else ""
         label = c.entries.get("NSLabel")
         label_val = label.entries.get("NS.bytes").value if label is not None and hasattr(label, "entries") and label.entries.get("NS.bytes") is not None else b""
-        return (cls, dest_cls, src_cls, label_val)
+        def _frame_bytes(obj):
+            if obj is None:
+                return b""
+            f = obj.entries.get("NSFrame")
+            if f is not None and hasattr(f, "entries"):
+                fb = f.entries.get("NS.bytes")
+                if fb is not None and hasattr(fb, "value"):
+                    return fb.value if isinstance(fb.value, bytes) else str(fb.value).encode()
+            return b""
+        return (cls, label_val, dest_cls, src_cls, _frame_bytes(dest), _frame_bytes(src))
     connectors.sort(key=conn_sort_key)
     collection[:] = non_connectors + connectors
 
