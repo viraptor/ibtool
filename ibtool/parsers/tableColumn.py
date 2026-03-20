@@ -112,15 +112,17 @@ def _compile_prototype_cell_view(ctx, nested_ctx, column_elem, column_obj, table
 
         objects.append(nib_appl)
 
-        # Collect outlet connections belonging to this cell view hierarchy from the main context
+        # Collect connections belonging to this cell view hierarchy from the main context
         subnib_obj_ids = set(id(o) for o in objects)
         cell_connections = [c for c in ctx.connections
-                           if c.classname() == "NSNibOutletConnector"
+                           if c.classname() in ("NSNibOutletConnector", "NSNibConnector")
                            and (id(c.get("NSSource")) in subnib_obj_ids
                                 or id(c.get("NSDestination")) in subnib_obj_ids)]
         if cell_connections:
-            for conn in cell_connections:
-                connections.append(conn)
+            non_outlets = [c for c in cell_connections if c.classname() != "NSNibOutletConnector"]
+            outlets = [c for c in cell_connections if c.classname() == "NSNibOutletConnector"]
+            connections.extend(non_outlets)
+            connections.extend(outlets)
         else:
             nib_sub = subviews[0]
             nib_outlet = XibObject(nested_ctx, "NSNibOutletConnector", None, None)
