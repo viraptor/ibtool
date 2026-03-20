@@ -382,6 +382,8 @@ def _is_uuid_diff(issue_str):
 
 
 def _compare_nib(orig_path, test_path, xib_path=None, skip_uuids=False):
+    global already_seen
+    already_seen = set()
     orig_nib = getNibSectionsFile(orig_path)
     test_nib = getNibSectionsFile(test_path)
 
