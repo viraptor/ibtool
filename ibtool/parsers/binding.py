@@ -18,6 +18,11 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
     ])
     data = []
     for x in elem.iter("dictionary"):
+        for k, v in x.attrib.items():
+            if k == "key":
+                continue
+            data.append(NibString.intern(k))
+            data.append(NibString.intern(v))
         for o in x:
             if o.tag == "integer":
                 data.append(NibString.intern(o.attrib["key"]))
