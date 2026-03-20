@@ -476,9 +476,13 @@ class ArchiveContext:
             obj[key] = self.findObject(view_id)
 
     def _resolveConnections_xib(self) -> None:
+        first_responder_id = XibId("-1")
         result = []
         for con in self.connections:
             if con.classname() == "NSIBUserDefinedRuntimeAttributesConnector":
+                result.append(con)
+                continue
+            if "NSDestination" not in con.properties:
                 result.append(con)
                 continue
             dst = cast(Union[XibId, NibProxyObject, NibObject], con["NSDestination"])
@@ -491,6 +495,11 @@ class ArchiveContext:
                 continue
 
             assert isinstance(dst, XibId)
+
+            if dst == first_responder_id:
+                del con.properties["NSDestination"]
+                result.append(con)
+                continue
 
             #print("Resolving standalone xib connection with id", dst)
             if dst in self.objects:

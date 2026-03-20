@@ -23,6 +23,10 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
         obj.flagsOr("NSvFlags", vFlags.DEFAULT_VFLAGS_AUTOLAYOUT if ctx.useAutolayout else vFlags.DEFAULT_VFLAGS)
 
     if obj.get("NSSubviews") is not None:
+        ctx.connections.insert(0, NibObject("NSNibConnector", None, {
+            "NSSource": obj,
+            "NSLabel": NibString.intern("Encoding NSStackView requires being decoded before other connections with an early decoding order priority of 999990."),
+        }))
         if obj.extraContext.get("NSDoNotTranslateAutoresizingMask"):
             obj["NSDoNotTranslateAutoresizingMask"] = True
         for child in obj["NSSubviews"]._items:

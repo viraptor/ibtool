@@ -349,7 +349,19 @@ def fixup_connections(collection):
                 if fb is not None and hasattr(fb, "value"):
                     return fb.value if isinstance(fb.value, bytes) else str(fb.value).encode()
             return b""
-        return (cls, label_val, dest_cls, src_cls, _frame_bytes(dest), _frame_bytes(src))
+        def _obj_scalars(obj):
+            if obj is None:
+                return (0, b"")
+            tag = obj.entries.get("NSTag")
+            tag_val = tag.value if tag is not None and hasattr(tag, "value") else 0
+            title = obj.entries.get("NSTitle")
+            title_val = b""
+            if title is not None and hasattr(title, "entries"):
+                tb = title.entries.get("NS.bytes")
+                if tb is not None and hasattr(tb, "value"):
+                    title_val = tb.value if isinstance(tb.value, bytes) else str(tb.value).encode()
+            return (tag_val, title_val)
+        return (cls, label_val, dest_cls, src_cls, _frame_bytes(dest), _frame_bytes(src), _obj_scalars(src), _obj_scalars(dest))
     connectors.sort(key=conn_sort_key)
     collection[:] = non_connectors + connectors
 

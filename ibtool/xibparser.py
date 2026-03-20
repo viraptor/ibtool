@@ -148,7 +148,7 @@ def createTopLevel(toplevelObjects: list["XibObject"], context) -> NibObject:
     oid_objects = [filesOwner] + \
         [o for o in context.extraNibObjects] + \
         [o for o in context.connections if o.classname() == "NSNibOutletConnector"] + \
-        [o for o in context.connections if o.classname() != "NSNibOutletConnector"]
+        [o for o in context.connections if o.classname() not in ("NSNibOutletConnector", "NSNibConnector")]
     rootData["NSOidsKeys"] = NibList(oid_objects)
     rootData["NSOidsValues"] = NibList([NibNSNumber(x+1) for x,_ in enumerate(oid_objects)])
     ax_connectors = []
