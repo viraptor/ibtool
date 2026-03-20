@@ -359,6 +359,7 @@ class ArchiveContext:
         self.customObjectInstantitationMethod = customObjectInstantitationMethod
         self.toolsVersion = toolsVersion
         self.connections: list[NibObject] = []
+        self.bindingConnectors: dict[str, NibObject] = {}
 
         self.deployment = False
 
@@ -512,6 +513,11 @@ class ArchiveContext:
             result.append(con)
 
         self.connections = result
+
+        for con in self.connections:
+            prev = con.properties.get("NSPreviousConnector")
+            if isinstance(prev, XibId) and prev.val() in self.bindingConnectors:
+                con["NSPreviousConnector"] = self.bindingConnectors[prev.val()]
 
     def makexibid(self) -> str:
         chars = random.sample(

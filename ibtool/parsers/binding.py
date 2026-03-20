@@ -1,4 +1,4 @@
-from ..models import ArchiveContext, NibObject, XibId, NibMutableDictionary, NibNSNumber, NibString
+from ..models import ArchiveContext, NibObject, XibId, NibDictionary, NibNSNumber, NibString
 from .helpers import handle_props, PropSchema
 from xml.etree.ElementTree import Element
 
@@ -34,6 +34,11 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
             else:
                 raise Exception(f"unknown tag: {o.tag}")
     if data:
-        obj["NSOptions"] = NibMutableDictionary(data)
+        obj["NSOptions"] = NibDictionary(data)
+    if previousBinding:
+        obj["NSPreviousConnector"] = XibId(previousBinding)
+    binding_id = elem.attrib.get("id")
+    if binding_id:
+        ctx.bindingConnectors[binding_id] = obj
     ctx.connections.append(obj)
 

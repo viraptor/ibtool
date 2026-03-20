@@ -361,7 +361,18 @@ def fixup_connections(collection):
                 if tb is not None and hasattr(tb, "value"):
                     title_val = tb.value if isinstance(tb.value, bytes) else str(tb.value).encode()
             return (tag_val, title_val)
-        return (cls, label_val, dest_cls, src_cls, _frame_bytes(dest), _frame_bytes(src), _obj_scalars(src), _obj_scalars(dest))
+        def _str_entry(obj, key):
+            if obj is None:
+                return b""
+            v = obj.entries.get(key)
+            if v is not None and hasattr(v, "entries"):
+                b = v.entries.get("NS.bytes")
+                if b is not None and hasattr(b, "value"):
+                    return b.value if isinstance(b.value, bytes) else str(b.value).encode()
+            return b""
+        binding_key = _str_entry(c, "NSKeyPath")
+        binding_name = _str_entry(c, "NSBinding")
+        return (cls, label_val, dest_cls, src_cls, binding_name, binding_key, _frame_bytes(dest), _frame_bytes(src), _obj_scalars(src), _obj_scalars(dest))
     connectors.sort(key=conn_sort_key)
     collection[:] = non_connectors + connectors
 
