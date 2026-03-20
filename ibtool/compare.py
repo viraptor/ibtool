@@ -1,7 +1,32 @@
 from .ibdump import getNibSections, getNibSectionsFile, NibStructure
 import sys
 import os
+import re
 from typing import Any, Union, cast, Iterable, Optional
+
+SCROLLBAR_WIDTH = 17
+
+def _is_scrollbar_width_diff(path: str, lhs_val, rhs_val) -> bool:
+    """Return True if the difference is solely ±SCROLLBAR_WIDTH in the width component
+    of a scroll view's internal content/doc view dimensions."""
+    # NSTextContainer width inside a scroll view content hierarchy
+    if path.endswith("NSTextContainer->NSWidth") and isinstance(lhs_val, float) and isinstance(rhs_val, float):
+        if abs(lhs_val - rhs_val) == SCROLLBAR_WIDTH:
+            return True
+    # Frame size string like b'{471, 248}' on the doc view
+    if (path.endswith("NSDocView->NSFrameSize->NS.bytes") or
+        path.endswith("NSContentView->NSFrame->NS.bytes")):
+        if isinstance(lhs_val, bytes) and isinstance(rhs_val, bytes):
+            pat = rb'\{(\d+(?:\.\d+)?),\s*(\d+(?:\.\d+)?)\}'
+            lm = re.findall(pat, lhs_val)
+            rm = re.findall(pat, rhs_val)
+            if lm and rm:
+                # Compare the last width/height pair (the size component)
+                lw, lh = float(lm[-1][0]), float(lm[-1][1])
+                rw, rh = float(rm[-1][0]), float(rm[-1][1])
+                if lh == rh and abs(lw - rw) == SCROLLBAR_WIDTH:
+                    return True
+    return False
 
 class NibCollection:
     def __init__(self, classname: str, entries: list[Any], nibidx: int = -1):
@@ -187,7 +212,9 @@ def diff(lhs: Union[NibValue,NibCollection,NibObject], rhs: Union[NibValue,NibCo
 
         elif type(lhs.value) in [int, str, float, bytes, type(None)]:
             if lhs.value != rhs.value:
-                if (path.endswith("Flags") or path.endswith("Flags2") or path.endswith("Mask")) and isinstance(lhs.value, int) and isinstance(rhs.value, int):
+                if _is_scrollbar_width_diff(path, lhs.value, rhs.value):
+                    pass
+                elif (path.endswith("Flags") or path.endswith("Flags2") or path.endswith("Mask")) and isinstance(lhs.value, int) and isinstance(rhs.value, int):
                     lval = lhs.value if lhs.value >= 0 else lhs.value + 0x10000000000000000
                     rval = rhs.value if rhs.value >= 0 else rhs.value + 0x10000000000000000
                     yield f"{path} (in {parent_class}): difference {hex(lval)} != {hex(rval)}"
@@ -270,6 +297,8 @@ def diff(lhs: Union[NibValue,NibCollection,NibObject], rhs: Union[NibValue,NibCo
         all_keys = set(list(lhs.entries.keys()) + list(rhs.entries.keys()))
         if lhs.classname == "_NSCornerView":
             all_keys -= {"NSNextResponder", "NSSuperview", "NSvFlags"}
+        if lhs.classname == "NSScroller":
+            all_keys -= {"NSViewIsLayerTreeHost"}
         if lhs.classname == "NSScrollView":
             all_keys -= {"NSCornerView"}
         for key in sorted(all_keys):
