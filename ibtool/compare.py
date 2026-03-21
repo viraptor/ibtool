@@ -206,8 +206,10 @@ def diff(lhs: Union[NibValue,NibCollection,NibObject], rhs: Union[NibValue,NibCo
             nib_right_oids = nib_right_root.entries["IB.objectdata"].entries.get("NSOidsKeys")
             if nib_left_oids is not None:
                 fixup_layout_constrints(nib_left_oids.entries, nib_left_objects)
+                fixup_connections(nib_left_oids.entries)
             if nib_right_oids is not None:
                 fixup_layout_constrints(nib_right_oids.entries, nib_right_objects)
+                fixup_connections(nib_right_oids.entries)
             yield from diff(nib_left_root, nib_right_root, nib_left_objects, nib_right_objects, current_path + ["nib"], [], [], xibid_map=xibid_map)
 
         elif type(lhs.value) in [int, str, float, bytes, type(None)]:
