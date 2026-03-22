@@ -152,7 +152,10 @@ def _setup_hscroller_frame(obj, border, sv_h, clip_w):
     """Position and show HScroller at bottom of scroll view."""
     hs = obj["NSHScroller"]
     hs_standard_h = hs.extraContext.get("standard_scroller_width", 17)
-    hs["NSFrame"] = frame_string(border, int(sv_h) - border - hs_standard_h, clip_w, hs_standard_h)
+    hs_raw = hs.raw_frame()
+    hs_frame_h = hs_raw[3] if hs_raw else 0
+    hs_h = max(hs_standard_h, hs_frame_h + 1)
+    hs["NSFrame"] = frame_string(border, int(sv_h) - border - hs_h, clip_w, hs_h)
     hs.flagsAnd("NSvFlags", ~vFlags.HIDDEN)
     hs["NSEnabled"] = True
 
@@ -435,8 +438,6 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
                 new_h = elastic_h
             elif has_header and clip_computed_h is not None:
                 new_h = clip_computed_h - header_h
-                if not auto_hiding and hs_h_for_table > 0:
-                    new_h -= hs_h_for_table
             doc_view["NSFrameSize"] = size_string(new_w, new_h)
         # Expand header view width to match
         if has_header:
@@ -627,7 +628,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
         if not auto_hiding:
             vs_x = sv_w - border - vs_w
             vs_y = border + header_h
-            vs_h_val = sv_h - 2 * border - header_h - (hs_h if not hs_offscreen else 0)
+            vs_h_val = sv_h - 2 * border - header_h
             obj["NSVScroller"]["NSFrame"] = frame_string(vs_x, vs_y, vs_w, vs_h_val)
             obj["NSVScroller"].flagsAnd("NSvFlags", ~vFlags.HIDDEN)
         elastic_h = doc_view.extraContext.get("elastic_row_height")
@@ -644,7 +645,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
         if not hs_offscreen:
             hs_x = border
             hs_y = sv_h - border - hs_h
-            hs_w = sv_w - 2 * border - (vs_w if not auto_hiding else 0)
+            hs_w = sv_w - 2 * border
             obj["NSHScroller"]["NSFrame"] = frame_string(hs_x, hs_y, hs_w, hs_h)
             obj["NSHScroller"].flagsAnd("NSvFlags", ~vFlags.HIDDEN)
             clip_w = sv_w - 2 * border
@@ -653,8 +654,6 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
                 m = re.match(r'\{(\d+),', dv_frame_str._text)
                 if m:
                     table_w = int(m.group(1))
-                    if not auto_hiding:
-                        table_w += vs_w
                     if table_w > 0:
                         obj["NSHScroller"]["NSPercent"] = clip_w / table_w
     elif not vs_offscreen and not has_header and not is_table_sv:
