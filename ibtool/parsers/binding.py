@@ -18,11 +18,9 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
     ])
     data = []
     for x in elem.iter("dictionary"):
-        for k, v in x.attrib.items():
-            if k == "key":
-                continue
-            data.append(NibString.intern(k))
-            data.append(NibString.intern(v))
+        # Process child elements before attributes, since replace_string_attribures
+        # moves <string> children to attributes but Apple serializes them after
+        # <integer>/<bool>/<real> children.
         for o in x:
             if o.tag == "integer":
                 data.append(NibString.intern(o.attrib["key"]))
@@ -38,6 +36,11 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
                 data.append(NibNSNumber(o.attrib["value"] == "YES"))
             else:
                 raise Exception(f"unknown tag: {o.tag}")
+        for k, v in x.attrib.items():
+            if k == "key":
+                continue
+            data.append(NibString.intern(k))
+            data.append(NibString.intern(v))
     if data:
         obj["NSOptions"] = NibDictionary(data)
     if previousBinding:
