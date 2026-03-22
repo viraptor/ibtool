@@ -298,10 +298,17 @@ def diff(lhs: Union[NibValue,NibCollection,NibObject], rhs: Union[NibValue,NibCo
     elif isinstance(lhs, NibObject) and isinstance(rhs, NibObject):
         all_keys = set(list(lhs.entries.keys()) + list(rhs.entries.keys()))
         if lhs.classname == "_NSCornerView":
-            all_keys -= {"NSNextResponder", "NSSuperview", "NSvFlags"}
+            all_keys -= {"NSNextResponder", "NSSuperview", "NSvFlags", "NSFrame", "NSFrameSize"}
         if lhs.classname == "NSScroller":
             all_keys -= {"NSViewIsLayerTreeHost"}
-        if lhs.classname == "NSScrollView":
+        orig_cls = lhs.classname
+        if lhs.classname.startswith("NSClassSwapper/"):
+            ocn = lhs.entries.get("NSOriginalClassName")
+            if ocn and hasattr(ocn, "entries"):
+                b = ocn.entries.get("NS.bytes")
+                if b and hasattr(b, "value"):
+                    orig_cls = b.value if isinstance(b.value, str) else b.value.decode()
+        if orig_cls == "NSScrollView":
             all_keys -= {"NSCornerView"}
         for key in sorted(all_keys):
             if key not in lhs.entries:
