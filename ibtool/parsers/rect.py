@@ -16,8 +16,10 @@ def parse(ctx: ArchiveContext, elem: Element, parent: XibObject) -> None:
         y = int(float(elem.attrib["y"]))
         parent.extraContext["NSScreenRect"] = (x, y, w, h)
     elif key == "frame":
-        x = int(float(elem.attrib["x"]))
-        y = int(float(elem.attrib["y"]))
+        xf = float(elem.attrib["x"])
+        yf = float(elem.attrib["y"])
+        x = int(xf) if xf == int(xf) else xf
+        y = int(yf) if yf == int(yf) else yf
         parent.set_nib_frame(x, y, w, h)
     else:
         raise Exception(f"unknown rect key {key}")

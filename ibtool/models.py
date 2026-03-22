@@ -601,16 +601,28 @@ class XibObject(NibObject):
             return (int(f[0]), int(f[1]))
         return (0, 0)
 
-    def set_nib_frame(self, x: int, y: int, w: int, h: int) -> None:
+    @staticmethod
+    def _norm_coord(v):
+        if isinstance(v, float) and v != int(v):
+            return v
+        return int(v)
+
+    @staticmethod
+    def _fmt_coord(v) -> str:
+        if isinstance(v, float) and v != int(v):
+            return repr(v)
+        return str(int(v))
+
+    def set_nib_frame(self, x, y, w, h) -> None:
         """Write frame to both NIB property and extraContext consistently."""
-        x, y, w, h = int(x), int(y), int(w), int(h)
+        x, y, w, h = self._norm_coord(x), self._norm_coord(y), self._norm_coord(w), self._norm_coord(h)
         if x == 0 and y == 0:
-            self["NSFrameSize"] = NibString.intern(f"{{{w}, {h}}}")
+            self["NSFrameSize"] = NibString.intern(f"{{{self._fmt_coord(w)}, {self._fmt_coord(h)}}}")
             self.extraContext["NSFrameSize"] = (w, h)
             self.properties.pop("NSFrame", None)
             self.extraContext.pop("NSFrame", None)
         else:
-            self["NSFrame"] = NibString.intern(f"{{{{{x}, {y}}}, {{{w}, {h}}}}}")
+            self["NSFrame"] = NibString.intern(f"{{{{{self._fmt_coord(x)}, {self._fmt_coord(y)}}}, {{{self._fmt_coord(w)}, {self._fmt_coord(h)}}}}}")
             self.extraContext["NSFrame"] = (x, y, w, h)
             self.properties.pop("NSFrameSize", None)
             self.extraContext.pop("NSFrameSize", None)

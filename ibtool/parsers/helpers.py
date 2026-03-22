@@ -8,8 +8,13 @@ from dataclasses import dataclass
 import re as _re
 
 
-def frame_string(x: int, y: int, w: int, h: int) -> NibString:
-    return NibString.intern(f"{{{{{int(x)}, {int(y)}}}, {{{int(w)}, {int(h)}}}}}")
+def _fmt_coord(v) -> str:
+    if isinstance(v, float) and v != int(v):
+        return repr(v)
+    return str(int(v))
+
+def frame_string(x, y, w, h) -> NibString:
+    return NibString.intern(f"{{{{{_fmt_coord(x)}, {_fmt_coord(y)}}}, {{{_fmt_coord(w)}, {_fmt_coord(h)}}}}}")
 
 def size_string(w: int, h: int) -> NibString:
     return NibString.intern(f"{{{int(w)}, {int(h)}}}")
