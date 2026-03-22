@@ -172,7 +172,7 @@ def _init_sv_state(obj, auto_hiding, has_horizontal_scroller, uses_predominant_a
     vs_hidden = bool((vs.get("NSvFlags") or 0) & vFlags.HIDDEN)
 
     hs_orig = hs.raw_frame()
-    hs_offscreen = hs_orig is not None and hs_orig[0] < 0
+    hs_offscreen = hs_orig is not None and (hs_orig[0] < 0 or hs_orig[1] < 0 or hs_orig[1] + hs_orig[3] > sv_h)
     hs_hidden = bool((hs.get("NSvFlags") or 0) & vFlags.HIDDEN)
 
     cv = obj.get("NSContentView")
@@ -288,15 +288,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     hs_h_for_table = st.hs_h_for_table
     sv_w_raw = st.sv_w_raw
 
-    # For autohiding table/outline scroll views with hidden HScroller,
-    # reduce clip height by HScroller height (HScroller will be made visible later).
-    if auto_hiding and is_table_dv and hs_h_for_table > 0 and content_cv_tmp:
-        sv_size_tmp = content_cv_tmp.extraContext.get("scrollview_size")
-        if sv_size_tmp:
-            new_w_tmp, new_h_tmp = sv_size_tmp
-            new_h_tmp -= hs_h_for_table
-            content_cv_tmp.extraContext["scrollview_size"] = (new_w_tmp, new_h_tmp)
-            _rewrite_nib_frame(content_cv_tmp)
+    # Note: autohiding scroll views with hidden HScroller do not reduce clip height.
 
     # Post-processing: reduce clip view scrollview_size for visible scrollers
     if not auto_hiding and content_cv_tmp:

@@ -78,8 +78,8 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
     if "verticalHuggingPriority" in obj.extraContext or "horizontalHuggingPriority" in obj.extraContext:
         v, h = obj.extraContext.get("verticalHuggingPriority", 250), obj.extraContext.get("horizontalHuggingPriority", 250)
         obj["NSHuggingPriority"] = f"{{{h}, {v}}}"
-    if is_separator and not obj.extraContext.get("NSDoNotTranslateAutoresizingMask"):
-        obj.flagsOr("NSvFlags", 0x1000)
+    focus_ring = {"none": 0x1000, "exterior": 0x2000}.get(obj.extraContext.get("focusRingType"), 0)
+    obj.flagsOr("NSvFlags", focus_ring)
 
     if not obj.extraContext.get("parsed_autoresizing"):
         flags = vFlags.DEFAULT_VFLAGS_AUTOLAYOUT if ctx.useAutolayout else vFlags.DEFAULT_VFLAGS
