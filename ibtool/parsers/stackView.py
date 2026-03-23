@@ -23,9 +23,27 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
         obj.flagsOr("NSvFlags", vFlags.DEFAULT_VFLAGS_AUTOLAYOUT if ctx.useAutolayout else vFlags.DEFAULT_VFLAGS)
 
     if obj.get("NSSubviews") is not None:
+        # Priority decreases by 10 for each ancestor view above the
+        # immediate parent, up to the window content view or cell view root.
+        ancestor_depth = 0
+        immediate_parent = obj.xib_parent()
+        is_in_cellview = (immediate_parent is not None and hasattr(immediate_parent, 'originalclassname')
+                          and immediate_parent.originalclassname() == "NSTableCellView")
+        if not is_in_cellview:
+            p = immediate_parent
+            if p is not None:
+                p = p.xib_parent() if hasattr(p, 'xib_parent') else None
+            while p is not None:
+                if hasattr(p, 'extraContext') and p.extraContext.get("is_window_content_view"):
+                    break
+                if hasattr(p, 'originalclassname') and p.originalclassname() in ("NSWindowTemplate", "NSTableCellView"):
+                    break
+                ancestor_depth += 1
+                p = p.xib_parent() if hasattr(p, 'xib_parent') else None
+        priority = 999990 - ancestor_depth * 10
         ctx.connections.insert(0, NibObject("NSNibConnector", None, {
             "NSSource": obj,
-            "NSLabel": NibString.intern("Encoding NSStackView requires being decoded before other connections with an early decoding order priority of 999990."),
+            "NSLabel": NibString.intern(f"Encoding NSStackView requires being decoded before other connections with an early decoding order priority of {priority}."),
         }))
         if obj.extraContext.get("NSDoNotTranslateAutoresizingMask"):
             obj["NSDoNotTranslateAutoresizingMask"] = True
