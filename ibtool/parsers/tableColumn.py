@@ -6,6 +6,15 @@ from ..parsers_base import parse_children
 from ..genlib import CompileNibObjects
 from ..constants import LayoutAttribute
 
+def _get_nohs_expansion(table_view):
+    """Check if the scroll view ancestor has a _nohs_expansion set."""
+    p = table_view.xib_parent() if hasattr(table_view, 'xib_parent') else None
+    while p is not None:
+        if p.extraContext.get("_nohs_expansion"):
+            return p.extraContext["_nohs_expansion"]
+        p = p.xib_parent() if hasattr(p, 'xib_parent') else None
+    return None
+
 def _is_outline_column(column_elem, table_view):
     if table_view.originalclassname() != "NSOutlineView":
         return False
@@ -235,11 +244,20 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
                     last_end = parent.extraContext.get("_last_cell_view_end_x")
                     if last_end is not None:
                         new_x = last_end + int(ics_w)
+                    elif _get_nohs_expansion(parent):
+                        exp = _get_nohs_expansion(parent)
+                        cell_w = int(obj["NSWidth"]) + int(ics_w) * 3
+                        new_x = (int(obj["NSWidth"]) + exp - cell_w) // 2
                     else:
                         new_x = ec_frame[0] + int((ics_w + 3) // 2)
                 else:
                     new_x = ec_frame[0]
-                new_w = target_w if target_w is not None else ec_frame[2]
+                if target_w is not None:
+                    new_w = target_w
+                elif _get_nohs_expansion(parent):
+                    new_w = int(obj["NSWidth"]) + int(ics_w) * 3
+                else:
+                    new_w = ec_frame[2]
                 if new_x != ec_frame[0] or new_w != ec_frame[2]:
                     nib_view["NSFrame"] = NibString.intern(f"{{{{{new_x}, {ec_frame[1]}}}, {{{new_w}, {ec_frame[3]}}}}}")
                     nib_view.extraContext["NSFrame"] = (new_x, ec_frame[1], new_w, ec_frame[3])
@@ -253,7 +271,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
             # Generate autolayout constraints for subviews with translatesAutoresizingMaskIntoConstraints=NO
             subnib_constraints = []
             _restore_nsdntam = False
-            if hasattr(nib_sub, 'extraContext') and nib_sub.extraContext.get("NSDoNotTranslateAutoresizingMask") and not nib_sub.extraContext.get("fixedFrame") and not nib_sub.get("NSViewConstraints"):
+            if hasattr(nib_sub, 'extraContext') and nib_sub.extraContext.get("NSDoNotTranslateAutoresizingMask") and not nib_sub.extraContext.get("fixedFrame") and not nib_sub.get("NSViewConstraints") and _get_nohs_expansion(parent):
                 if nib_sub.get("NSDoNotTranslateAutoresizingMask") is None:
                     nib_sub["NSDoNotTranslateAutoresizingMask"] = True
                     _restore_nsdntam = True
@@ -312,6 +330,8 @@ def make_basic_nib(objects: list[NibObject], root=None, connections=None):
             return
         seen_ids.add(obj_id)
         if isinstance(obj, XibObject) and (obj.xibid is None or not obj.xibid.is_negative_id()):
+            oids_keys.append(obj)
+        elif isinstance(obj, NibObject) and obj.classname() == "NSLayoutConstraint":
             oids_keys.append(obj)
     for obj in objects:
         _collect_oids(obj)

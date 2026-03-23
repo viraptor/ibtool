@@ -254,6 +254,31 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
             if not vs_offscreen_pre and not vs_hidden_pre:
                 obj.extraContext["expected_vs_reduction"] = vs_std_w
 
+    # Pre-compute nohs expansion for cell view frame computation in tableColumn.py
+    if auto_hiding and not has_horizontal_scroller:
+        vs_elem = elem.find("scroller[@key='verticalScroller']")
+        if vs_elem is not None:
+            vs_rect = vs_elem.find("rect[@key='frame']")
+            vs_cs = vs_elem.attrib.get("controlSize")
+            vs_std_w_pre = {"small": 13, "mini": 11}.get(vs_cs, 17)
+            sv_frame_elem = elem.find("rect[@key='frame']")
+            sv_w_pre = int(float(sv_frame_elem.attrib.get("width", "0"))) if sv_frame_elem is not None else 0
+            vs_x_pre = int(float(vs_rect.attrib.get("x", "0"))) if vs_rect is not None else 0
+            if not (vs_x_pre < 0 or vs_x_pre >= sv_w_pre):
+                tv_elem = elem.find(".//tableView")
+                if tv_elem is not None:
+                    ics_elem = tv_elem.find("size[@key='intercellSpacing']")
+                    ics_w_pre = float(ics_elem.attrib.get("width", "3")) if ics_elem is not None else 3.0
+                    col_elems = tv_elem.findall(".//tableColumn")
+                    ncols = len(col_elems)
+                    sum_cols = sum(float(c.attrib.get("width", "0")) for c in col_elems)
+                    content_w = int(sum_cols + ncols * ics_w_pre)
+                    insets_pre = obj.extraContext.get("insets", (0, 0))
+                    clip_w_pre = sv_w_pre - insets_pre[0]
+                    if content_w > clip_w_pre:
+                        expansion_pre = int(vs_std_w_pre + ics_w_pre * (ncols + 4))
+                        obj.extraContext["_nohs_expansion"] = expansion_pre
+
     with __handle_view_chain(ctx, obj):
         parse_children(ctx, elem, obj)
 
@@ -474,6 +499,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
                 header_h_val = _get_header_h(obj) or 0
                 new_h = clip_h_val - header_h_val
                 doc_view["NSFrameSize"] = size_string(new_w, new_h)
+                doc_view.extraContext["_nohs_expansion"] = expansion
                 obj["NSHScroller"]["NSEnabled"] = True
                 obj.flagsOr("NSsFlags", sFlagsScrollView.COPY_ON_SCROLL)
                 doc_view.flagsOr("NSTvFlags", TVFLAGS.GRID_STYLE_BIT1)
