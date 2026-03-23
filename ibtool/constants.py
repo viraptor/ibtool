@@ -211,6 +211,20 @@ BEZEL_STYLE_MAP = {
     "texturedSquare": 8,
 }
 
+class LayoutAttribute(IntEnum):
+    LEFT = 1
+    RIGHT = 2
+    TOP = 3
+    BOTTOM = 4
+    LEADING = 5
+    TRAILING = 6
+    WIDTH = 7
+    HEIGHT = 8
+    CENTER_X = 9
+    CENTER_Y = 10
+    BASELINE = 11
+    FIRST_BASELINE = 12
+
 ATTRIBUTE_MAP = {
     "left": 1,
     "right": 2,

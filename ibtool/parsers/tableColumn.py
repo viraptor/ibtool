@@ -4,6 +4,7 @@ from typing import Optional
 from .helpers import make_xib_object, makeSystemColor
 from ..parsers_base import parse_children
 from ..genlib import CompileNibObjects
+from ..constants import LayoutAttribute
 
 def _is_outline_column(column_elem, table_view):
     if table_view.originalclassname() != "NSOutlineView":
@@ -259,22 +260,22 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
                 ics_w_val = parent.get("NSIntercellSpacingWidth")
                 leading_const = float(ics_w_val if ics_w_val is not None else 3.0)
                 c_top = NibObject("NSLayoutConstraint", nib_view, {
-                    "NSFirstAttribute": 10, "NSSecondAttribute": 10,
-                    "NSFirstAttributeV2": 10, "NSSecondAttributeV2": 10,
+                    "NSFirstAttribute": LayoutAttribute.CENTER_Y, "NSSecondAttribute": LayoutAttribute.CENTER_Y,
+                    "NSFirstAttributeV2": LayoutAttribute.CENTER_Y, "NSSecondAttributeV2": LayoutAttribute.CENTER_Y,
                     "NSFirstItem": nib_sub, "NSSecondItem": nib_view,
                     "NSShouldBeArchived": True,
                 })
                 c_bottom = NibObject("NSLayoutConstraint", nib_view, {
-                    "NSFirstAttribute": 6, "NSSecondAttribute": 6,
-                    "NSFirstAttributeV2": 6, "NSSecondAttributeV2": 6,
+                    "NSFirstAttribute": LayoutAttribute.TRAILING, "NSSecondAttribute": LayoutAttribute.TRAILING,
+                    "NSFirstAttributeV2": LayoutAttribute.TRAILING, "NSSecondAttributeV2": LayoutAttribute.TRAILING,
                     "NSFirstItem": nib_view, "NSSecondItem": nib_sub,
                     "NSShouldBeArchived": True,
                 })
                 subnib_constraints = [c_top, c_bottom]
                 if leading_const > 0:
                     c_leading = NibObject("NSLayoutConstraint", nib_view, {
-                        "NSFirstAttribute": 5, "NSSecondAttribute": 5,
-                        "NSFirstAttributeV2": 5, "NSSecondAttributeV2": 5,
+                        "NSFirstAttribute": LayoutAttribute.LEADING, "NSSecondAttribute": LayoutAttribute.LEADING,
+                        "NSFirstAttributeV2": LayoutAttribute.LEADING, "NSSecondAttributeV2": LayoutAttribute.LEADING,
                         "NSFirstItem": nib_sub, "NSSecondItem": nib_view,
                         "NSConstant": leading_const, "NSConstantV2": leading_const,
                         "NSShouldBeArchived": True,
