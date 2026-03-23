@@ -41,7 +41,8 @@ def _compile_prototype_cell_view(ctx, nested_ctx, column_elem, column_obj, table
     nib_appl = XibObject(nested_ctx, "NSCustomObject", None, nib_appl_parent)
     nib_appl["NSClassName"] = "NSApplication"
 
-    identifier = nib_view.extraContext.get("identifier", column_elem.attrib.get("identifier", ""))
+    identifier = nib_view.extraContext.get("identifier",
+        column_elem.attrib.get("_autoIdentifier", column_elem.attrib.get("identifier", "")))
     nib_view._parent = nib_appl_parent
     nib_view["NSNextResponder"] = NibNil()
     nib_view["NSReuseIdentifierKey"] = NibString.intern(identifier)
@@ -188,7 +189,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
         nib_view = obj.extraContext.get("prototypeCellView")
         if nib_view:
             if parent.get("NSTableViewArchivedReusableViewsKey") is not None:
-                parent["NSTableViewArchivedReusableViewsKey"].addItem(NibString.intern(elem.attrib.get("identifier", "")))
+                parent["NSTableViewArchivedReusableViewsKey"].addItem(NibString.intern(elem.attrib.get("_autoIdentifier", elem.attrib.get("identifier", ""))))
             # Compute cell view x offset from intercell spacing
             ics_w = parent.get("NSIntercellSpacingWidth")
             if ics_w is None:
@@ -213,7 +214,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
 
             nib_view._parent = nib_appl_parent
             nib_view["NSNextResponder"] = NibNil()
-            nib_view["NSReuseIdentifierKey"] = NibString.intern(elem.attrib.get("identifier", ""))
+            nib_view["NSReuseIdentifierKey"] = NibString.intern(elem.attrib.get("_autoIdentifier", elem.attrib.get("identifier", "")))
 
             nib_sub = nib_view["NSSubviews"][0]
             nib_sub_cell = nib_sub["NSCell"]
@@ -248,9 +249,43 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
                             nib_sub.extraContext["NSFrame"] = (nib_sub_frame[0], nib_sub_frame[1], new_w, nib_sub_frame[3])
                 parent.extraContext["_last_cell_view_end_x"] = new_x + new_w
 
-            objects = [nib_appl_parent, nib_view, nib_sub, nib_sub_cell, nib_appl, nib_outlet]
+            # Generate autolayout constraints for subviews with translatesAutoresizingMaskIntoConstraints=NO
+            subnib_constraints = []
+            _restore_nsdntam = False
+            if hasattr(nib_sub, 'extraContext') and nib_sub.extraContext.get("NSDoNotTranslateAutoresizingMask") and not nib_sub.extraContext.get("fixedFrame") and not nib_sub.get("NSViewConstraints"):
+                if nib_sub.get("NSDoNotTranslateAutoresizingMask") is None:
+                    nib_sub["NSDoNotTranslateAutoresizingMask"] = True
+                    _restore_nsdntam = True
+                ics_w_val = parent.get("NSIntercellSpacingWidth")
+                leading_const = float(ics_w_val if ics_w_val is not None else 3.0)
+                c_top = NibObject("NSLayoutConstraint", nib_view, {
+                    "NSFirstAttribute": 10, "NSSecondAttribute": 10,
+                    "NSFirstAttributeV2": 10, "NSSecondAttributeV2": 10,
+                    "NSFirstItem": nib_sub, "NSSecondItem": nib_view,
+                    "NSShouldBeArchived": True,
+                })
+                c_bottom = NibObject("NSLayoutConstraint", nib_view, {
+                    "NSFirstAttribute": 6, "NSSecondAttribute": 6,
+                    "NSFirstAttributeV2": 6, "NSSecondAttributeV2": 6,
+                    "NSFirstItem": nib_view, "NSSecondItem": nib_sub,
+                    "NSShouldBeArchived": True,
+                })
+                subnib_constraints = [c_top, c_bottom]
+                if leading_const > 0:
+                    c_leading = NibObject("NSLayoutConstraint", nib_view, {
+                        "NSFirstAttribute": 5, "NSSecondAttribute": 5,
+                        "NSFirstAttributeV2": 5, "NSSecondAttributeV2": 5,
+                        "NSFirstItem": nib_sub, "NSSecondItem": nib_view,
+                        "NSConstant": leading_const, "NSConstantV2": leading_const,
+                        "NSShouldBeArchived": True,
+                    })
+                    subnib_constraints.append(c_leading)
+
+            objects = [nib_appl_parent, nib_view, nib_sub, nib_sub_cell] + subnib_constraints + [nib_appl, nib_outlet]
             nib_data = CompileNibObjects([make_basic_nib(objects, root=nib_appl_parent, connections=[nib_outlet])])
 
+            if _restore_nsdntam:
+                del nib_sub["NSDoNotTranslateAutoresizingMask"]
             nib_view._parent = obj
             del nib_view["NSReuseIdentifierKey"]
 
