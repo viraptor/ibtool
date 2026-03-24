@@ -2,7 +2,8 @@ from ..models import ArchiveContext, NibObject, NibMutableList, NibString, NibNi
 from xml.etree.ElementTree import Element
 from .helpers import make_xib_object, makeSystemColor, _xibparser_common_translate_autoresizing, handle_props, PropSchema
 from ..parsers_base import parse_children
-from ..constants import vFlags, CellFlags, CellFlags2
+from ..constants import vFlags, CellFlags, CellFlags2, FontFlags
+from .font import to_flags_val
 
 BOX_TITLE_POSITION_MAP = {
     "noTitle": 0,
@@ -48,7 +49,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
         font = NibObject("NSFont", None, {
             "NSName": NibString.intern(".AppleSystemUIFont"),
             "NSSize": 11.0,
-            "NSfFlags": 0xc1c,
+            "NSfFlags": to_flags_val(FontFlags.ROLE_SMALL_SYSTEM_FONT.value),
         })
         title = "Title"
         title_position = 2
@@ -59,7 +60,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
             font = NibObject("NSFont", None, {
                 "NSName": NibString.intern(".AppleSystemUIFont"),
                 "NSSize": 11.0,
-                "NSfFlags": 0xc1c,
+                "NSfFlags": to_flags_val(FontFlags.ROLE_SMALL_SYSTEM_FONT.value),
             })
         title = elem.attrib.get("title", "" if elem.attrib.get("titlePosition") == "noTitle" else "Title")
         title_position = BOX_TITLE_POSITION_MAP.get(elem.attrib.get("titlePosition"), 2)
@@ -68,7 +69,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
 
     obj["NSTitleCell"] = NibObject("NSTextFieldCell", None, {
         "NSBackgroundColor": makeSystemColor("textBackgroundColor"),
-        "NSCellFlags": CellFlags.UNKNOWN_TEXT_FIELD,
+        "NSCellFlags": CellFlags.TYPE_TEXT_CELL,
         "NSCellFlags2": CellFlags2.TEXT_ALIGN_CENTER,
         "NSContents": NibString.intern(title),
         "NSControlView": NibNil(),
@@ -78,7 +79,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
     if "verticalHuggingPriority" in obj.extraContext or "horizontalHuggingPriority" in obj.extraContext:
         v, h = obj.extraContext.get("verticalHuggingPriority", 250), obj.extraContext.get("horizontalHuggingPriority", 250)
         obj["NSHuggingPriority"] = f"{{{h}, {v}}}"
-    focus_ring = {"none": 0x1000, "exterior": 0x2000}.get(obj.extraContext.get("focusRingType"), 0)
+    focus_ring = {"none": vFlags.FOCUS_RING_NONE, "exterior": vFlags.FOCUS_RING_EXTERIOR}.get(obj.extraContext.get("focusRingType"), 0)
     obj.flagsOr("NSvFlags", focus_ring)
 
     if not obj.extraContext.get("parsed_autoresizing"):

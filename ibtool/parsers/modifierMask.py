@@ -1,5 +1,6 @@
 from ..models import ArchiveContext, NibObject
 from xml.etree.ElementTree import Element
+from ..constants import EventModifierFlags
 
 def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
     key = elem.attrib.get('key')
@@ -9,13 +10,13 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
         if has_explicit_modifiers:
             mask = 0
             if elem.attrib.get('command') == 'YES':
-                mask |= 0x100000
+                mask |= EventModifierFlags.COMMAND
             if elem.attrib.get('control') == 'YES':
-                mask |= 0x40000
+                mask |= EventModifierFlags.CONTROL
             if elem.attrib.get('option') == 'YES':
-                mask |= 0x80000
+                mask |= EventModifierFlags.OPTION
             if elem.attrib.get('shift') == 'YES':
-                mask |= 0x20000
+                mask |= EventModifierFlags.SHIFT
             parent.extraContext['keyEquivalentModifierMaskValue'] = mask
     else:
         raise Exception(f"unknown key {key}")
