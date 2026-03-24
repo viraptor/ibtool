@@ -26,7 +26,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
         PropSchema(prop="NSControlView", const=parent),
     ]
     if has_font:
-        props.append(PropSchema(prop="NSCellFlags", or_mask=CellFlags.UNKNOWN_TEXT_FIELD))
+        props.append(PropSchema(prop="NSCellFlags", or_mask=CellFlags.TYPE_TEXT_CELL))
     if continuous:
         props.append(PropSchema(prop="NSCellFlags", or_mask=CellFlags.ACTION_ON_MOUSE_DOWN | CellFlags.ACTION_ON_MOUSE_DRAG))
     handle_props(ctx, elem, obj, props)

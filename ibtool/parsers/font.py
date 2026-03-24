@@ -27,35 +27,35 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> NibObject:
     elif meta_font == 'systemBold':
         item["NSName"] = NibString.intern(".AppleSystemUIFontBold")
         item["NSSize"] = float(elem.attrib.get("size", 13.0))
-        item["NSfFlags"] = to_flags_val(0x18)
+        item["NSfFlags"] = to_flags_val(FontFlags.ROLE_SYSTEM_BOLD_FONT.value)
     elif meta_font == 'smallSystem':
         item["NSName"] = NibString.intern(".AppleSystemUIFont")
         item["NSSize"] = float(elem.attrib.get("size", 11.0))
-        item["NSfFlags"] = to_flags_val(0x1c)
+        item["NSfFlags"] = to_flags_val(FontFlags.ROLE_SMALL_SYSTEM_FONT.value)
     elif meta_font == 'smallSystemBold':
         item["NSName"] = NibString.intern(".AppleSystemUIFontBold")
         item["NSSize"] = float(elem.attrib.get("size", 11.0))
-        item["NSfFlags"] = to_flags_val(0x1d)
+        item["NSfFlags"] = to_flags_val(FontFlags.ROLE_SMALL_SYSTEM_BOLD_FONT.value)
     elif meta_font == 'miniSystem':
         item["NSName"] = NibString.intern(".AppleSystemUIFont")
         item["NSSize"] = float(elem.attrib.get("size", 9.0))
-        item["NSfFlags"] = to_flags_val(0x1e)
+        item["NSfFlags"] = to_flags_val(FontFlags.ROLE_MINI_SYSTEM_FONT.value)
     elif meta_font == 'cellTitle':
         item["NSName"] = NibString.intern(".AppleSystemUIFont")
         item["NSSize"] = float(elem.attrib.get("size", 12.0))
-        item["NSfFlags"] = to_flags_val(0x13) | 0x1000
+        item["NSfFlags"] = to_flags_val(FontFlags.ROLE_CELL_TITLE_FONT.value) | 0x1000
     elif meta_font == 'label':
         item["NSName"] = NibString.intern(".AppleSystemUIFont")
         item["NSSize"] = float(elem.attrib.get("size", 10.0))
-        item["NSfFlags"] = to_flags_val(0x1b)
+        item["NSfFlags"] = to_flags_val(FontFlags.ROLE_LABEL_SMALL_FONT.value)
     elif meta_font == 'menu':
         item["NSName"] = NibString.intern(".AppleSystemUIFont")
         item["NSSize"] = float(elem.attrib.get("size", 13.0))
-        item["NSfFlags"] = to_flags_val(0x15)
+        item["NSfFlags"] = to_flags_val(FontFlags.ROLE_MENU_FONT.value)
     elif meta_font == 'message':
         item["NSName"] = NibString.intern(".AppleSystemUIFont")
         item["NSSize"] = float(elem.attrib.get("size", 13.0))
-        item["NSfFlags"] = to_flags_val(0x16)
+        item["NSfFlags"] = to_flags_val(FontFlags.ROLE_MESSAGE_FONT.value)
     else:
         raise Exception(f"missing font {meta_font}")
     

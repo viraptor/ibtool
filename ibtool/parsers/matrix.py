@@ -2,7 +2,7 @@ from ..models import ArchiveContext, NibObject, XibObject, NibString
 from xml.etree.ElementTree import Element
 from .helpers import make_xib_object, _xibparser_common_view_attributes, makeSystemColor, __xibparser_cell_options
 from ..parsers_base import parse_children
-from ..constants import CellFlags, CellFlags2, cvFlags
+from ..constants import CellFlags, CellFlags2, cvFlags, MatrixFlags
 
 MATRIX_MODE_MAP = {
     None: 2,       # default is radio
@@ -30,16 +30,16 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
 
     # Compute NSMatrixFlags
     mode = MATRIX_MODE_MAP.get(elem.attrib.get("mode"), 2)
-    mode_bits = {0: 0, 1: 0x80000000, 2: 0x40000000, 3: 0x20000000}[mode]
+    mode_bits = {0: 0, 1: MatrixFlags.MODE_HIGHLIGHT, 2: MatrixFlags.MODE_RADIO, 3: MatrixFlags.MODE_LIST}[mode]
     matrix_flags = mode_bits
     if elem.attrib.get("allowsEmptySelection", "YES") != "NO":
-        matrix_flags |= 0x10000000
+        matrix_flags |= MatrixFlags.ALLOWS_EMPTY_SELECTION
     if elem.attrib.get("selectionByRect", "YES") != "NO":
-        matrix_flags |= 0x04000000
+        matrix_flags |= MatrixFlags.SELECTION_BY_RECT
     if elem.attrib.get("autosizesCells", "YES") != "NO":
-        matrix_flags |= 0x00800000
+        matrix_flags |= MatrixFlags.AUTOSIZES_CELLS
     if elem.attrib.get("drawsBackground") == "YES":
-        matrix_flags |= 0x01000000
+        matrix_flags |= MatrixFlags.DRAWS_BACKGROUND
         # Propagate drawsBackground to parent clip view
         if parent.originalclassname() == "NSClipView":
             parent.flagsOr("NScvFlags", cvFlags.DRAW_BACKGROUND)
@@ -55,6 +55,6 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
     obj["NSSuperview"] = parent
     obj["NSCell"] = NibObject("NSActionCell", None, {
         "NSCellFlags": CellFlags.DONT_ACT_ON_MOUSE_UP,
-        "NSCellFlags2": CellFlags2.UNKNOWN_MATRIX_CELL,
+        "NSCellFlags2": CellFlags2.ALLOWS_EDITING_TEXT_ATTRIBUTES,
     })
     return obj

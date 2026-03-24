@@ -3,7 +3,8 @@ from ..constant_objects import MENU_ON_IMAGE, MENU_MIXED_IMAGE, GENERIC_GREY_COL
 from xml.etree.ElementTree import Element
 from typing import Optional
 from .helpers import make_xib_object, _xibparser_common_translate_autoresizing
-from ..constants import vFlags
+from ..constants import vFlags, FontFlags, NSNotFound, EventModifierFlags
+from .font import to_flags_val
 import math
 
 # SF Pro Text Regular glyph advances at 2048 UPM
@@ -198,7 +199,7 @@ def _build_popup_button(ctx, menu_elem, row_template, x, w, add_subviews=True):
     font = NibObject("NSFont")
     font["NSName"] = NibString.intern(".AppleSystemUIFont")
     font["NSSize"] = 11.0
-    font["NSfFlags"] = 0xc1c
+    font["NSfFlags"] = to_flags_val(FontFlags.ROLE_SMALL_SYSTEM_FONT.value)
     cell["NSSupport"] = font
     cell["NSControlView"] = popup
     cell["NSButtonFlags"] = -0x797fc000
@@ -225,8 +226,8 @@ def _build_popup_button(ctx, menu_elem, row_template, x, w, add_subviews=True):
             mi["NSAllowsKeyEquivalentMirroring"] = True
             mi["NSTitle"] = NibString.intern(mi_elem.attrib.get("title", ""))
             mi["NSKeyEquiv"] = NibString.intern("")
-            mi["NSKeyEquivModMask"] = 0x100000
-            mi["NSMnemonicLoc"] = 0x7fffffff
+            mi["NSKeyEquivModMask"] = EventModifierFlags.COMMAND
+            mi["NSMnemonicLoc"] = NSNotFound
             if mi_elem.attrib.get("state") == "on":
                 mi["NSState"] = 1
             mi["NSOnImage"] = MENU_ON_IMAGE
@@ -301,7 +302,7 @@ def _build_text_field(ctx, x, w, add_subviews=True):
     font = NibObject("NSFont")
     font["NSName"] = NibString.intern(".AppleSystemUIFont")
     font["NSSize"] = 11.0
-    font["NSfFlags"] = 0xc1c
+    font["NSfFlags"] = to_flags_val(FontFlags.ROLE_SMALL_SYSTEM_FONT.value)
     cell["NSSupport"] = font
     cell["NSControlView"] = tf
     cell["NSDrawsBackground"] = True
