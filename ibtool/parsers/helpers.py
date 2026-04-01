@@ -204,7 +204,7 @@ def __xibparser_button_flags(elem: Element, obj: XibObject, parent: NibObject) -
     imageScaling = elem.attrib.get("imageScaling")
     imageScalingMask = {None: 0, "proportionallyDown": ButtonFlags2.IMAGE_SCALING_PROPORTIONALLY_DOWN, "proportionallyUpOrDown": 0x40}[imageScaling]
     imagePosition = elem.attrib.get("imagePosition")
-    imagePositionMask = {None: 0, "left": ButtonFlags.IMAGE_LEFT, "right": ButtonFlags.IMAGE_RIGHT, "above": ButtonFlags.IMAGE_ABOVE, "below": ButtonFlags.IMAGE_BELOW, "only": ButtonFlags.IMAGE_ONLY}[imagePosition]
+    imagePositionMask = {None: 0, "left": ButtonFlags.IMAGE_LEFT, "right": ButtonFlags.IMAGE_RIGHT, "above": ButtonFlags.IMAGE_ABOVE, "below": ButtonFlags.IMAGE_BELOW, "only": ButtonFlags.IMAGE_ONLY, "overlaps": ButtonFlags.IMAGE_OVERLAPS}[imagePosition]
 
     obj.flagsOr("NSButtonFlags", inset | buttonTypeMask | borderStyleMask | imagePositionMask)
     obj.flagsOr("NSButtonFlags2", imageScalingMask | button_type_id)

@@ -64,6 +64,8 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
     item["NSWindowIsRestorable"] = elem.attrib.get("restorable", "YES") == "YES"
     item["NSMinFullScreenContentSize"] = NibString.intern('{0, 0}')
     item["NSMaxFullScreenContentSize"] = NibString.intern('{0, 0}')
+    if elem.attrib.get("titlebarAppearsTransparent") == "YES":
+        item["NSTitlebarAppearsTransparent"] = True
     if elem.attrib.get("tabbingMode"):
         item["NSWindowTabbingMode"] = {"disallowed": 2}[elem.attrib["tabbingMode"]]
     if elem.attrib.get("visibleAtLaunch", "YES") == "YES":
