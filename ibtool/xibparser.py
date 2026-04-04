@@ -11,6 +11,7 @@ from .models import (
     NibMutableDictionary,
     NibMutableSet,
     NibString,
+    NibLocalizableString,
     NibMutableString,
     NibNil,
     XibId,
@@ -173,6 +174,59 @@ def createTopLevel(toplevelObjects: list["XibObject"], context) -> NibObject:
     })
 
 
+_LOCALIZABLE_PROP_SUFFIX = {
+    "NSContents": "title",
+    "NSTitle": "title",
+    "NSWindowTitle": "title",
+}
+_LOCALIZABLE_LABEL_CLASSES = frozenset({"NSTabViewItem"})
+_NO_LOCALIZE_CONTENTS_CLASSES = frozenset({"NSPopUpButtonCell"})
+
+_STORYBOARD_BOOL_TRUE_PROPS = frozenset({"NSAllowsLogicalLayoutDirection", "NSAnimates"})
+
+def _storyboard_fixups(root: NibObject) -> None:
+    visited: set[int] = set()
+    _storyboard_walk(root, visited)
+
+def _storyboard_walk(obj: NibObject, visited: set[int]) -> None:
+    obj_id = id(obj)
+    if obj_id in visited:
+        return
+    visited.add(obj_id)
+
+    from .models import ArrayLike, NibDictionaryImpl
+    xibid = getattr(obj, 'xibid', None)
+
+    for key, val in list(obj.properties.items()):
+        if isinstance(val, NibString):
+            suffix = _LOCALIZABLE_PROP_SUFFIX.get(key)
+            if key == "NSContents" and obj.classname() in _NO_LOCALIZE_CONTENTS_CLASSES:
+                suffix = None
+            if suffix is None and key == "NSLabel" and obj.classname() in _LOCALIZABLE_LABEL_CLASSES:
+                suffix = "label"
+            if suffix is not None and xibid is not None and val._text:
+                loc_key = f"{xibid._val}.{suffix}"
+                obj.properties[key] = NibLocalizableString(val._text, key=loc_key)
+        elif key in _STORYBOARD_BOOL_TRUE_PROPS and val is False:
+            obj.properties[key] = True
+        elif isinstance(val, NibObject):
+            _storyboard_walk(val, visited)
+
+    if isinstance(obj, NibDictionaryImpl):
+        for item in obj._objects:
+            if isinstance(item, NibObject):
+                _storyboard_walk(item, visited)
+    elif isinstance(obj, ArrayLike):
+        for item in obj._items:
+            if isinstance(item, NibObject):
+                _storyboard_walk(item, visited)
+
+
+def _compile_storyboard_nib(genlib, nibroot):
+    _storyboard_fixups(nibroot)
+    return genlib.CompileNibObjects([nibroot])
+
+
 def CompileStoryboard(tree, outpath):
     from . import genlib
 
@@ -218,7 +272,7 @@ def CompileStoryboard(tree, outpath):
                 root, objects_elem, vc_elem, first_responder_elem,
                 use_autolayout, tools_version, custom_instantiation,
             )
-            outbytes = genlib.CompileNibObjects([nibroot])
+            outbytes = _compile_storyboard_nib(genlib, nibroot)
             with open(os.path.join(outpath, nib_name + ".nib"), "wb") as f:
                 f.write(outbytes)
 
@@ -256,14 +310,14 @@ def CompileStoryboard(tree, outpath):
                                     root, vc_scene_vc_elem, view_elem,
                                     use_autolayout, tools_version, custom_instantiation,
                                 )
-                                view_nib_bytes = genlib.CompileNibObjects([view_nib_root])
+                                view_nib_bytes = _compile_storyboard_nib(genlib, view_nib_root)
 
             nibroot = _compile_window_controller_scene(
                 root, objects_elem, vc_elem, first_responder_elem,
                 use_autolayout, tools_version, custom_instantiation,
                 wc_uuid, content_vc_id, view_nib_name, scenes,
             )
-            outbytes = genlib.CompileNibObjects([nibroot])
+            outbytes = _compile_storyboard_nib(genlib, nibroot)
             with open(os.path.join(outpath, nib_name + ".nib"), "wb") as f:
                 f.write(outbytes)
 
@@ -286,7 +340,7 @@ def CompileStoryboard(tree, outpath):
                         root, vc_elem, view_elem,
                         use_autolayout, tools_version, custom_instantiation,
                     )
-                    view_nib_bytes = genlib.CompileNibObjects([view_nib_root])
+                    view_nib_bytes = _compile_storyboard_nib(genlib, view_nib_root)
                     with open(os.path.join(outpath, view_nib_name + ".nib"), "wb") as f:
                         f.write(view_nib_bytes)
 
@@ -296,7 +350,7 @@ def CompileStoryboard(tree, outpath):
                         root, vc_elem, view_nib_name, storyboard_id,
                         vc_uuid, use_autolayout, tools_version, custom_instantiation,
                     )
-                    ctrl_nib_bytes = genlib.CompileNibObjects([ctrl_nib_root])
+                    ctrl_nib_bytes = _compile_storyboard_nib(genlib, ctrl_nib_root)
                     with open(os.path.join(outpath, storyboard_id + ".nib"), "wb") as f:
                         f.write(ctrl_nib_bytes)
 
@@ -606,7 +660,7 @@ def _build_tab_view_controller_for_wc(ctx, vc_elem, scenes, parent,
         child_swapper["NSClassName"] = NibString.intern(class_name)
         child_swapper["NSOriginalClassName"] = NibString.intern("NSViewController")
         child_swapper["NSNibName"] = NibString.intern(child_view_nib)
-        child_swapper["NSExternalObjectsTableForViewLoading"] = NibDictionary([
+        child_swapper["NSExternalObjectsTableForViewLoading"] = NibMutableDictionary([
             NibString.intern("UpstreamPlaceholder-1"), child_swapper,
         ])
         child_swapper["connectionsRequireClassSwapperForStoryboardCompilation"] = True
@@ -766,8 +820,15 @@ def _compile_window_controller_scene(root, objects_elem, vc_elem, first_responde
         content_view["NSNextResponder"] = NibNil()
         content_view["NSNibTouchBar"] = NibNil()
         content_view["NSvFlags"] = 0x100
-        frame_size = window_template.get("NSWindowContentMinSize") or NibString.intern("{0, 0}")
-        content_view["NSFrameSize"] = frame_size
+        frame_size_str = "{0, 0}"
+        win_rect = window_template.get("NSWindowRect")
+        if isinstance(win_rect, NibString):
+            m = re.search(r'\{([\d.]+),\s*([\d.]+)\}\}$', win_rect._text)
+            if m:
+                w = int(float(m.group(1))) if float(m.group(1)) == int(float(m.group(1))) else float(m.group(1))
+                h = int(float(m.group(2))) if float(m.group(2)) == int(float(m.group(2))) else float(m.group(2))
+                frame_size_str = f"{{{w}, {h}}}"
+        content_view["NSFrameSize"] = NibString.intern(frame_size_str)
         content_view["NSViewWantsBestResolutionOpenGLSurface"] = True
         content_view["IBNSSafeAreaLayoutGuide"] = NibNil()
         content_view["IBNSLayoutMarginsGuide"] = NibNil()
@@ -804,15 +865,34 @@ def _compile_window_controller_scene(root, objects_elem, vc_elem, first_responde
         wc_obj["IBWindowTemplateContentViewController"] = content_vc_obj
     elif vc_elem_in_scene is not None and view_nib_name:
         original_class = _vc_tag_to_class.get(vc_elem_in_scene.tag, "NSViewController")
-        custom_class = vc_elem_in_scene.get("customClass", original_class)
-        content_vc_obj = NibObject("NSClassSwapper", window_template)
-        content_vc_obj["NSClassName"] = NibString.intern(custom_class)
-        content_vc_obj["NSOriginalClassName"] = NibString.intern(original_class)
-        content_vc_obj["NSNibName"] = NibString.intern(view_nib_name)
-        content_vc_obj["NSExternalObjectsTableForViewLoading"] = NibMutableDictionary()
-        content_vc_obj["showSeguePresentationStyle"] = 0
-        vc_uuid = str(uuid.uuid4()).upper()
-        content_vc_obj["uniqueIdentifierForStoryboardCompilation"] = NibString.intern(vc_uuid)
+        custom_class = vc_elem_in_scene.get("customClass")
+        custom_module = vc_elem_in_scene.get("customModule")
+        if custom_class:
+            if custom_module:
+                class_name = f"_TtC{len(custom_module)}{custom_module}{len(custom_class)}{custom_class}"
+            else:
+                class_name = custom_class
+            content_vc_obj = NibObject("NSClassSwapper", window_template)
+            content_vc_obj["NSClassName"] = NibString.intern(class_name)
+            content_vc_obj["NSOriginalClassName"] = NibString.intern(original_class)
+            content_vc_obj["NSNibName"] = NibString.intern(view_nib_name)
+            sb_id = vc_elem_in_scene.get("storyboardIdentifier")
+            if sb_id:
+                content_vc_obj["NSStoryboardIdentifier"] = NibString.intern(sb_id)
+            content_vc_obj["NSExternalObjectsTableForViewLoading"] = NibMutableDictionary([
+                NibString.intern("UpstreamPlaceholder-1"), content_vc_obj,
+            ])
+            content_vc_obj["showSeguePresentationStyle"] = 0
+            vc_uuid = str(uuid.uuid4()).upper()
+            content_vc_obj["uniqueIdentifierForStoryboardCompilation"] = NibString.intern(vc_uuid)
+            content_vc_obj["connectionsRequireClassSwapperForStoryboardCompilation"] = True
+        else:
+            content_vc_obj = NibObject(original_class, window_template)
+            content_vc_obj["NSNibName"] = NibString.intern(view_nib_name)
+            content_vc_obj["NSExternalObjectsTableForViewLoading"] = NibMutableDictionary()
+            content_vc_obj["showSeguePresentationStyle"] = 0
+            vc_uuid = str(uuid.uuid4()).upper()
+            content_vc_obj["uniqueIdentifierForStoryboardCompilation"] = NibString.intern(vc_uuid)
         wc_obj["IBWindowTemplateContentViewController"] = content_vc_obj
 
     # Create storyboard external placeholder objects
@@ -843,16 +923,20 @@ def _compile_window_controller_scene(root, objects_elem, vc_elem, first_responde
     ordered.extend(tab_vc_extra_placeholders)
     ctx.extraNibObjects = ordered
 
+    # Remove parsed connections - they'll be replaced with storyboard-specific ones
+    parsed_connections = ctx.connections[:]
+    ctx.connections.clear()
+
     # Add tab VC connections before storyboard connections
     ctx.connections.extend(tab_vc_extra_connections)
 
-    # Add storyboard-specific connections
+    # Add storyboard-specific connections in Apple's order
     conn_scene = NibObject("NSNibOutletConnector")
     conn_scene["NSSource"] = files_owner
     conn_scene["NSDestination"] = wc_obj
     conn_scene["NSLabel"] = NibString.intern("sceneController")
     conn_scene["NSChildControllerCreationSelectorName"] = NibNil()
-    ctx.connections.insert(0, conn_scene)
+    ctx.connections.append(conn_scene)
 
     conn_wc_sb = NibObject("NSNibOutletConnector")
     conn_wc_sb["NSSource"] = wc_obj
@@ -870,7 +954,6 @@ def _compile_window_controller_scene(root, objects_elem, vc_elem, first_responde
         ctx.connections.append(conn_window)
 
     if not tab_vc_extra_connections and content_vc_obj:
-        # Simple NSClassSwapper case: storyboard connection from VC to placeholder
         conn_vc_sb = NibObject("NSNibOutletConnector")
         conn_vc_sb["NSSource"] = content_vc_obj
         conn_vc_sb["NSDestination"] = placeholder1
@@ -988,7 +1071,7 @@ def _compile_viewcontroller_scene(root, vc_elem, view_nib_name, storyboard_id,
     vc_swapper["NSOriginalClassName"] = NibString.intern(original_class)
     vc_swapper["NSNibName"] = NibString.intern(view_nib_name)
     vc_swapper["NSStoryboardIdentifier"] = NibString.intern(storyboard_id)
-    vc_swapper["NSExternalObjectsTableForViewLoading"] = NibDictionary([
+    vc_swapper["NSExternalObjectsTableForViewLoading"] = NibMutableDictionary([
         NibString.intern("UpstreamPlaceholder-1"), vc_swapper,
     ])
     show_segue = vc_elem.get("showSeguePresentationStyle")

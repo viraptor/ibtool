@@ -171,6 +171,20 @@ class NibString(NibObject):
         return f"<{self.classname()} \"{self._text}\">"
 
 
+class NibLocalizableString(NibObject):
+    def __init__(self, text: str, key: str = "", dev: str = "") -> None:
+        NibObject.__init__(self, "NSLocalizableString")
+        self._text = text
+        self["NSKey"] = NibString.intern(key)
+        self["NSDev"] = NibString.intern(dev or text)
+
+    def getKeyValuePairs(self) -> list[PropPair]:
+        return [("NS.bytes", self._text)] + list(self.properties.items())
+
+    def __repr__(self) -> str:
+        return f"<{self.classname()} \"{self._text}\">"
+
+
 class NibMutableString(NibObject):
     def __init__(self, text: str = "Hello World") -> None:
         NibObject.__init__(self, "NSMutableString")
