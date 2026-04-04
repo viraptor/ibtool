@@ -3,6 +3,7 @@ from xml.etree.ElementTree import Element
 from .helpers import make_xib_object, make_image
 from ..parsers_base import parse_children
 from ..constant_objects import MENU_MIXED_IMAGE, MENU_ON_IMAGE
+from ..constants import NSNotFound, EventModifierFlags
 
 STATES = {
     "on": 1,
@@ -22,7 +23,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
     else:
         obj["NSKeyEquiv"] = NibString.intern('')
     obj["NSMixedImage"] = MENU_MIXED_IMAGE
-    obj["NSMnemonicLoc"] = 0x7fffffff
+    obj["NSMnemonicLoc"] = NSNotFound
     obj["NSOnImage"] = MENU_ON_IMAGE
     obj["NSTitle"] = NibString.intern(elem.attrib.get("title", ""))
     if (is_separator := elem.attrib.get("isSeparatorItem") == "YES"):
@@ -30,7 +31,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
     if obj.extraContext.get('keyEquivalentModifierMaskValue') is not None:
         obj["NSKeyEquivModMask"] = obj.extraContext['keyEquivalentModifierMaskValue']
     elif not is_separator and not obj.extraContext.get('keyEquivalentModifierMask'):
-        obj["NSKeyEquivModMask"] = 0x100000
+        obj["NSKeyEquivModMask"] = EventModifierFlags.COMMAND
     if tag := elem.attrib.get("tag"):
         obj["NSTag"] = int(tag)
     if elem.attrib.get("hidden"):

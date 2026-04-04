@@ -108,7 +108,7 @@ def __xibparser_cell_flags(elem: Element, obj: NibObject, parent: NibObject) -> 
     textAlignmentMask = {None: CellFlags2.TEXT_ALIGN_NONE, "left": CellFlags2.TEXT_ALIGN_LEFT, "center": CellFlags2.TEXT_ALIGN_CENTER, "right": CellFlags2.TEXT_ALIGN_RIGHT}[textAlignment]
     selectable = (CellFlags.SELECTABLE + 1) if elem.attrib.get("selectable") == "YES" else 0
     state_on = CellFlags.STATE_ON if (elem.attrib.get("state") == "on") else 0
-    text_field_flag = CellFlags.UNKNOWN_TEXT_FIELD if obj.originalclassname() in ["NSTextFieldCell", "NSButtonCell", "NSSearchFieldCell", "NSPopUpButtonCell", "NSTableHeaderCell", "NSSegmentedCell", "NSDatePickerCell", "NSSecureTextFieldCell", "NSPathCell"] else 0
+    text_field_flag = CellFlags.TYPE_TEXT_CELL if obj.originalclassname() in ["NSTextFieldCell", "NSButtonCell", "NSSearchFieldCell", "NSPopUpButtonCell", "NSTableHeaderCell", "NSSegmentedCell", "NSDatePickerCell", "NSSecureTextFieldCell", "NSPathCell"] else 0
     refuses_first_responder = elem.attrib.get("refusesFirstResponder", "NO") == "YES"
     refuses_first_responder_mask = CellFlags2.REFUSES_FIRST_RESPONDER if refuses_first_responder else 0
     scrollable = CellFlags.SCROLLABLE if elem.attrib.get("scrollable", "NO") == "YES" else 0
@@ -127,7 +127,7 @@ def __xibparser_cell_flags(elem: Element, obj: NibObject, parent: NibObject) -> 
     }[elem.attrib.get("controlSize")]
     allows_mixed_state = CellFlags2.ALLOWS_MIXED_STATE if elem.attrib.get("allowsMixedState") == "YES" else 0
     focus_ring_type = elem.attrib.get("focusRingType")
-    focus_ring_none = 0x8000 if focus_ring_type == "none" else (0x10000 if focus_ring_type == "exterior" else 0)
+    focus_ring_none = CellFlags2.FOCUS_RING_NONE if focus_ring_type == "none" else (CellFlags2.FOCUS_RING_EXTERIOR if focus_ring_type == "exterior" else 0)
     truncates_last_visible = CellFlags2.TRUNCATES_LAST_VISIBLE_LINE if elem.attrib.get("truncatesLastVisibleLine") == "YES" else 0
 
     obj.flagsOr("NSCellFlags", lineBreakModeMask | text_field_flag | selectable | state_on | scrollable | disabled | editable | bezeled | border)

@@ -282,17 +282,17 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     with __handle_view_chain(ctx, obj):
         parse_children(ctx, elem, obj)
 
-    # GRID_STYLE_BIT1 for table/outline scroll views when usesPredominantAxisScrolling or hasHorizontalScroller is active
+    # GRID_STYLE_SOLID for table/outline scroll views when usesPredominantAxisScrolling or hasHorizontalScroller is active
     if uses_predominant_axis_scrolling or has_horizontal_scroller:
         content_cv = obj.get("NSContentView")
         if content_cv:
             dv = content_cv.get("NSDocView")
             if _is_table_or_outline(dv):
-                dv.flagsOr("NSTvFlags", TVFLAGS.GRID_STYLE_BIT1)
+                dv.flagsOr("NSTvFlags", TVFLAGS.GRID_STYLE_SOLID)
 
     if not obj.extraContext.get("parsed_autoresizing"):
         obj.flagsOr("NSvFlags", vFlags.DEFAULT_VFLAGS_AUTOLAYOUT if ctx.useAutolayout else vFlags.DEFAULT_VFLAGS)
-    focus_ring = {"none": 0x1000, "exterior": 0x2000}.get(obj.extraContext.get("focusRingType"), 0)
+    focus_ring = {"none": vFlags.FOCUS_RING_NONE, "exterior": vFlags.FOCUS_RING_EXTERIOR}.get(obj.extraContext.get("focusRingType"), 0)
     if focus_ring:
         obj.flagsOr("NSvFlags", focus_ring)
     obj["NSGestureRecognizers"] = NibList([default_pan_recognizer(obj)])
@@ -375,8 +375,8 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     border_col_reduced = False
     if border_deficit > 0 and _is_table_or_outline(doc_view):
         if doc_view.get("NSGridStyleMask"):
-            doc_view.flagsAnd("NSTvFlags", ~TVFLAGS.GRID_STYLE_BIT0)
-            doc_view.flagsOr("NSTvFlags", TVFLAGS.GRID_STYLE_BIT1)
+            doc_view.flagsAnd("NSTvFlags", ~TVFLAGS.GRID_STYLE_DASHED)
+            doc_view.flagsOr("NSTvFlags", TVFLAGS.GRID_STYLE_SOLID)
             _reduce_column_widths(doc_view, _get_ics_w(doc_view) * 3)
             border_col_reduced = True
         elif auto_hiding and obj.get("NSHeaderClipView") is not None and not is_small_offscreen:
@@ -384,8 +384,8 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
             _reduce_column_widths(doc_view, reduction)
             border_col_reduced = True
     elif border > 0 and _is_table_or_outline(doc_view) and not obj.get("NSHeaderClipView") and (vs_offscreen or (auto_hiding and is_regular_scroller and has_horizontal_scroller)):
-        doc_view.flagsAnd("NSTvFlags", ~TVFLAGS.GRID_STYLE_BIT0)
-        doc_view.flagsOr("NSTvFlags", TVFLAGS.GRID_STYLE_BIT1)
+        doc_view.flagsAnd("NSTvFlags", ~TVFLAGS.GRID_STYLE_DASHED)
+        doc_view.flagsOr("NSTvFlags", TVFLAGS.GRID_STYLE_SOLID)
         _reduce_column_widths(doc_view, _get_ics_w(doc_view) * 3)
         border_col_reduced = True
     # Autohiding scroll views without headers: reduce column widths when VScroller is not offscreen
@@ -421,8 +421,8 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
             total_content = sum_cols + n_cols * ics_w
             target_sum = clip_computed_w - (n_cols + 3) * ics_w
             if total_content > clip_computed_w - ics_w * 3 - vs_standard_w:
-                doc_view.flagsAnd("NSTvFlags", ~TVFLAGS.GRID_STYLE_BIT0)
-                doc_view.flagsOr("NSTvFlags", TVFLAGS.GRID_STYLE_BIT1)
+                doc_view.flagsAnd("NSTvFlags", ~TVFLAGS.GRID_STYLE_DASHED)
+                doc_view.flagsOr("NSTvFlags", TVFLAGS.GRID_STYLE_SOLID)
                 col_change = int(target_sum - sum_cols)
                 if col_change > 0:
                     _reduce_column_widths(doc_view, -col_change)
@@ -502,7 +502,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
                 doc_view.extraContext["_nohs_expansion"] = expansion
                 obj["NSHScroller"]["NSEnabled"] = True
                 obj.flagsOr("NSsFlags", sFlagsScrollView.COPY_ON_SCROLL)
-                doc_view.flagsOr("NSTvFlags", TVFLAGS.GRID_STYLE_BIT1)
+                doc_view.flagsOr("NSTvFlags", TVFLAGS.GRID_STYLE_SOLID)
 
     # Horizontal scroller gets NSEnabled for table/outline scroll views (regular size, not autohiding)
     is_table_sv = _is_table_or_outline(doc_view)
@@ -578,7 +578,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
                 if dv_raw:
                     doc_view["NSFrameSize"] = size_string(clip_w_sm, dv_raw[3])
                 _set_header_view_width(obj, clip_w_sm)
-                doc_view.flagsAnd("NSTvFlags", ~TVFLAGS.GRID_STYLE_BIT1)
+                doc_view.flagsAnd("NSTvFlags", ~TVFLAGS.GRID_STYLE_SOLID)
                 obj["NSHScroller"].flagsOr("NSvFlags", vFlags.HIDDEN)
 
     # Small scroller handling for table/outline scroll views with offscreen VScroller (non-autohiding)
@@ -614,7 +614,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
                     doc_view["NSFrameSize"] = size_string(clip_w_sm, dv_raw[3])
                 _set_header_view_width(obj, clip_w_sm)
                 obj.flagsAnd("NSsFlags", ~sFlagsScrollView.COPY_ON_SCROLL)
-                doc_view.flagsAnd("NSTvFlags", ~TVFLAGS.GRID_STYLE_BIT1)
+                doc_view.flagsAnd("NSTvFlags", ~TVFLAGS.GRID_STYLE_SOLID)
                 obj["NSHScroller"].flagsOr("NSvFlags", vFlags.HIDDEN)
 
     obj["NSSubviews"].addItem(obj["NSHScroller"])

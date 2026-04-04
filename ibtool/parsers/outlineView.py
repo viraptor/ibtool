@@ -101,12 +101,12 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     obj["NSTableViewGroupRowStyle"] = 1
 
     handle_props(ctx, elem, obj, [
-        PropSchema(prop="NSTvFlags", const=TVFLAGS.UNKNOWN_2 | TVFLAGS.GRID_STYLE_BIT0),
+        PropSchema(prop="NSTvFlags", const=TVFLAGS.ALLOWS_TYPE_SELECT | TVFLAGS.GRID_STYLE_DASHED),
         PropSchema(prop="NSTvFlags", attrib="columnResizing", default="YES", map=MAP_YES_NO, or_mask=TVFLAGS.ALLOWS_COLUMN_RESIZING),
         PropSchema(prop="NSTvFlags", attrib="alternatingRowBackgroundColors", default="NO", map=MAP_YES_NO, or_mask=TVFLAGS.ALTERNATING_ROW_BACKGROUND_COLORS),
         PropSchema(prop="NSTvFlags", attrib="columnSelection", default="NO", map=MAP_YES_NO, or_mask=TVFLAGS.ALLOWS_COLUMN_SELECTION),
         PropSchema(prop="NSTvFlags", attrib="multipleSelection", default="YES", map=MAP_YES_NO, or_mask=TVFLAGS.ALLOWS_MULTIPLE_SELECTION),
-        PropSchema(prop="NSTvFlags", attrib="columnReordering", default="YES", map=MAP_YES_NO, or_mask=TVFLAGS.ALLOWS_COLUMN_REORDERING | TVFLAGS.UNKNOWN_1),
+        PropSchema(prop="NSTvFlags", attrib="columnReordering", default="YES", map=MAP_YES_NO, or_mask=TVFLAGS.ALLOWS_COLUMN_REORDERING | TVFLAGS.COLUMN_REORDERING_LEGACY),
         PropSchema(prop="NSTvFlags", attrib="emptySelection", default="YES", map=MAP_YES_NO, or_mask=TVFLAGS.ALLOWS_EMPTY_SELECTION),
         PropSchema(prop="NSTableViewShouldFloatGroupRows", attrib="floatsGroupRows", default="YES", map=MAP_YES_NO),
         PropSchema(prop="NSAllowsTypeSelect", attrib="typeSelect", default="YES", map=MAP_YES_NO, skip_default=False),
@@ -114,23 +114,23 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
         PropSchema(prop="NSRowHeight", attrib="rowHeight", default="17", filter=float, skip_default=False),
     ])
 
-    # GRID_STYLE_BIT1 when multipleSelection=YES AND (columnResizing=YES OR 3+ columns)
+    # GRID_STYLE_SOLID when multipleSelection=YES AND (columnResizing=YES OR 3+ columns)
     columns = obj.get("NSTableColumns")
     num_cols = len(columns) if columns else 0
     if elem.attrib.get("multipleSelection", "YES") == "YES":
         if elem.attrib.get("columnResizing", "YES") == "YES" or num_cols >= 3:
-            obj.flagsOr("NSTvFlags", TVFLAGS.GRID_STYLE_BIT1)
-    # Swap BIT0 → BIT1 when columnResizing=NO and any column has resizeWithTable
+            obj.flagsOr("NSTvFlags", TVFLAGS.GRID_STYLE_SOLID)
+    # Swap DASHED → SOLID when columnResizing=NO and any column has resizeWithTable
     if elem.attrib.get("columnResizing", "YES") == "NO" and columns:
         for col in columns:
             if col.get("NSIsResizeable"):
-                obj.flagsAnd("NSTvFlags", ~TVFLAGS.GRID_STYLE_BIT0)
-                obj.flagsOr("NSTvFlags", TVFLAGS.GRID_STYLE_BIT1)
+                obj.flagsAnd("NSTvFlags", ~TVFLAGS.GRID_STYLE_DASHED)
+                obj.flagsOr("NSTvFlags", TVFLAGS.GRID_STYLE_SOLID)
                 break
 
-    # UNKNOWN_4 when columnReordering=YES and autosaveColumns is not explicitly "NO"
+    # NO_AUTOSAVE_COLUMNS when columnReordering=YES and autosaveColumns is not explicitly "NO"
     if elem.attrib.get("columnReordering", "YES") == "YES" and "autosaveColumns" not in elem.attrib:
-        obj.flagsOr("NSTvFlags", TVFLAGS.UNKNOWN_4)
+        obj.flagsOr("NSTvFlags", TVFLAGS.NO_AUTOSAVE_COLUMNS)
 
     if cas_val == 1:  # uniform → AUTORESIZE_ALL_COLUMNS_TO_FIT
         obj.flagsOr("NSTvFlags", TVFLAGS.AUTORESIZE_ALL_COLUMNS_TO_FIT)

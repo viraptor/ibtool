@@ -3,7 +3,8 @@ from xml.etree.ElementTree import Element
 from ..parsers_base import parse_children
 from .helpers import __xibparser_button_flags, __xibparser_cell_options, __xibparser_cell_flags
 from .imageCell import _make_inline_image
-from ..constants import BEZEL_STYLE_MAP
+from ..constants import BEZEL_STYLE_MAP, ButtonFlags2, FontFlags
+from .font import to_flags_val
 
 def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
     obj = XibObject(ctx, "NSButtonCell", elem, parent)
@@ -34,7 +35,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
                 NibNSNumber(11.0),
             ]),
         })
-        obj["NSSupport"]["NSfFlags"] = 0x10
+        obj["NSSupport"]["NSfFlags"] = to_flags_val(FontFlags.ROLE_CONTROL_CONTENT_FONT.value)
     else:
         obj["NSAlternateContents"] = NibString.intern(elem.attrib.get("alternateTitle", ""))
 
@@ -46,7 +47,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
     if (key_equiv := elem.attrib.get("keyEquivalent")) is not None:
         obj["NSKeyEquivalent"] = NibString.intern(key_equiv)
         if key_equiv and key_equiv not in ("\r", "\x1b"):
-            obj.flagsOr("NSButtonFlags2", 0x10000000)
+            obj.flagsOr("NSButtonFlags2", ButtonFlags2.HAS_KEY_EQUIVALENT)
     else:
         obj["NSKeyEquivalent"] = NibString.intern('')
     obj.setIfEmpty("NSAlternateContents", NibString.intern(elem.attrib.get("alternateTitle", "")))
@@ -61,7 +62,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
         obj.setIfEmpty("NSSupport", NibObject("NSFont", obj, {
             "NSName": ".AppleSystemUIFont",
             "NSSize": 13.0,
-            "NSfFlags": 1044,
+            "NSfFlags": to_flags_val(FontFlags.ROLE_LABEL_FONT.value),
         }))
 
         obj.setIfEmpty("NSAuxButtonType", 7)
