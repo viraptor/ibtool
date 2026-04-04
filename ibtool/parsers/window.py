@@ -51,7 +51,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
     item["NSWindowClass"] = item.get("NSClassName") or NibString.intern("NSWindow")
     if item.get("NSClassName"):
         del item["NSClassName"]
-    item["NSViewClass"] = NibNil() # TODO
+    item.setIfEmpty("NSViewClass", NibNil())
     if window_id := elem.attrib.get("identifier"):
         item["NSUserInterfaceItemIdentifier"] = NibString.intern(window_id)
     else:
