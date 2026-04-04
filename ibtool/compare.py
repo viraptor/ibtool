@@ -428,7 +428,7 @@ def fixup_connections(collection):
 
 def _is_uuid_diff(issue_str):
     import re
-    return bool(re.search(r"uniqueIdentifierForStoryboardCompilation.*difference b'[0-9A-F-]+'", issue_str))
+    return bool(re.search(r"(uniqueIdentifierForStoryboardCompilation|NSStoryboardSegueDestinationOptions).*difference b'[0-9A-F-]+'", issue_str))
 
 
 def _compare_nib(orig_path, test_path, xib_path=None, skip_uuids=False):
