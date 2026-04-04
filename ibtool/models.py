@@ -779,12 +779,13 @@ def _xibparser_handle_custom_class(ctx: ArchiveContext, elem: Element, obj: "Xib
                 obj["NSClassName"] = NibString.intern(f"_TtC{len(custom_module)}{custom_module}{len(custom_class)}{custom_class}")
             else:
                 obj["NSClassName"] = NibString.intern(custom_class)
-            if obj.classname() not in ("NSView", "NSCustomView", "NSButton", "NSTextField", "NSOutlineView", "NSScrollView", "NSClipView", "NSColorWell", "NSStackView", "NSTextView", "NSProgressIndicator", "NSTableView", "NSTableHeaderView", "NSPopUpButtonCell", "NSLevelIndicatorCell", "NSSegmentedControl", "NSSegmentedCell", "NSImageView", "NSTableCellView", "NSCustomFormatter", "NSNumberFormatter", "NSSplitView"):
+            if obj.classname() not in ("NSView", "NSCustomView", "NSButton", "NSTextField", "NSOutlineView", "NSScrollView", "NSClipView", "NSColorWell", "NSStackView", "NSTextView", "NSProgressIndicator", "NSTableView", "NSTableHeaderView", "NSPopUpButtonCell", "NSLevelIndicatorCell", "NSSegmentedControl", "NSSegmentedCell", "NSImageView", "NSTableCellView", "NSCustomFormatter", "NSNumberFormatter", "NSSplitView", "NSWindowController"):
                 obj["NSInitializeWithInit"] = True
             final_original_class = {
                 "NSCustomObject": "NSObject",
                 "NSCustomView": "NSView",
                 "NSCustomFormatter": "IBCustomFormatter",
+                "NSWindowController": "IBNSWindowController",
             }.get(obj.classname(), obj.classname())
             obj["NSOriginalClassName"] = NibString.intern(final_original_class)
             obj.setclassname("NSClassSwapper")
