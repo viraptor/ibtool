@@ -174,15 +174,7 @@ def createTopLevel(toplevelObjects: list["XibObject"], context) -> NibObject:
     })
 
 
-_LOCALIZABLE_PROP_SUFFIX = {
-    "NSContents": "title",
-    "NSTitle": "title",
-    "NSWindowTitle": "title",
-}
-_LOCALIZABLE_LABEL_CLASSES = frozenset({"NSTabViewItem"})
-_NO_LOCALIZE_CONTENTS_CLASSES = frozenset({"NSPopUpButtonCell"})
-
-_STORYBOARD_BOOL_TRUE_PROPS = frozenset({"NSAllowsLogicalLayoutDirection", "NSAnimates"})
+_STORYBOARD_BOOL_TRUE_PROPS = frozenset({"NSAnimates"})
 
 def _storyboard_fixups(root: NibObject) -> None:
     visited: set[int] = set()
@@ -195,19 +187,9 @@ def _storyboard_walk(obj: NibObject, visited: set[int]) -> None:
     visited.add(obj_id)
 
     from .models import ArrayLike, NibDictionaryImpl
-    xibid = getattr(obj, 'xibid', None)
 
     for key, val in list(obj.properties.items()):
-        if isinstance(val, NibString):
-            suffix = _LOCALIZABLE_PROP_SUFFIX.get(key)
-            if key == "NSContents" and obj.classname() in _NO_LOCALIZE_CONTENTS_CLASSES:
-                suffix = None
-            if suffix is None and key == "NSLabel" and obj.classname() in _LOCALIZABLE_LABEL_CLASSES:
-                suffix = "label"
-            if suffix is not None and xibid is not None and val._text:
-                loc_key = f"{xibid._val}.{suffix}"
-                obj.properties[key] = NibLocalizableString(val._text, key=loc_key)
-        elif key in _STORYBOARD_BOOL_TRUE_PROPS and val is False:
+        if key in _STORYBOARD_BOOL_TRUE_PROPS and val is False:
             obj.properties[key] = True
         elif isinstance(val, NibObject):
             _storyboard_walk(val, visited)
@@ -244,6 +226,11 @@ def CompileStoryboard(tree, outpath):
     nib_names = {}  # scene identifier -> nib name
     vc_identifiers_to_uuids = {}  # scene identifier -> UUID
     main_menu_nib = None
+    has_app_scene = any(
+        child.tag == "application"
+        for s in scenes if (objs := s.find("objects")) is not None
+        for child in objs
+    )
 
     for scene_elem in scenes:
         objects_elem = scene_elem.find("objects")
@@ -316,6 +303,7 @@ def CompileStoryboard(tree, outpath):
                 root, objects_elem, vc_elem, first_responder_elem,
                 use_autolayout, tools_version, custom_instantiation,
                 wc_uuid, content_vc_id, view_nib_name, scenes,
+                has_app_scene=has_app_scene,
             )
             outbytes = _compile_storyboard_nib(genlib, nibroot)
             with open(os.path.join(outpath, nib_name + ".nib"), "wb") as f:
@@ -765,9 +753,15 @@ def _build_tab_view_controller_for_wc(ctx, vc_elem, scenes, parent,
     return tab_vc
 
 
+
+    walk(toolbar)
+    return result
+
+
 def _compile_window_controller_scene(root, objects_elem, vc_elem, first_responder_elem,
                                       use_autolayout, tools_version, custom_instantiation,
-                                      wc_uuid, content_vc_id, view_nib_name, scenes):
+                                      wc_uuid, content_vc_id, view_nib_name, scenes,
+                                      has_app_scene=False):
     ctx = _make_scene_context(root, use_autolayout, tools_version, custom_instantiation)
 
     first_responder_id = first_responder_elem.get("id") if first_responder_elem is not None else None
@@ -879,13 +873,18 @@ def _compile_window_controller_scene(root, objects_elem, vc_elem, first_responde
             sb_id = vc_elem_in_scene.get("storyboardIdentifier")
             if sb_id:
                 content_vc_obj["NSStoryboardIdentifier"] = NibString.intern(sb_id)
-            content_vc_obj["NSExternalObjectsTableForViewLoading"] = NibMutableDictionary([
-                NibString.intern("UpstreamPlaceholder-1"), content_vc_obj,
-            ])
+            vc_has_connections = vc_elem_in_scene.find("connections") is not None
+            if sb_id or vc_has_connections:
+                content_vc_obj["NSExternalObjectsTableForViewLoading"] = NibMutableDictionary([
+                    NibString.intern("UpstreamPlaceholder-1"), content_vc_obj,
+                ])
+            else:
+                content_vc_obj["NSExternalObjectsTableForViewLoading"] = NibMutableDictionary()
             content_vc_obj["showSeguePresentationStyle"] = 0
             vc_uuid = str(uuid.uuid4()).upper()
             content_vc_obj["uniqueIdentifierForStoryboardCompilation"] = NibString.intern(vc_uuid)
-            content_vc_obj["connectionsRequireClassSwapperForStoryboardCompilation"] = True
+            if sb_id:
+                content_vc_obj["connectionsRequireClassSwapperForStoryboardCompilation"] = True
         else:
             content_vc_obj = NibObject(original_class, window_template)
             content_vc_obj["NSNibName"] = NibString.intern(view_nib_name)
@@ -918,13 +917,21 @@ def _compile_window_controller_scene(root, objects_elem, vc_elem, first_responde
     if content_vc_obj:
         ordered.append(content_vc_obj)
     ordered.extend(tab_vc_extra_objects)
+    # Include remaining parsed objects (e.g. toolbar items) not yet in ordered
+    ordered_set = set(id(o) for o in ordered)
+    ordered_set.add(id(app_object))
+    remaining = [o for o in ctx.extraNibObjects if id(o) not in ordered_set]
+    ordered.extend(remaining)
     ordered.append(app_object)
     ordered.append(placeholder2)
     ordered.extend(tab_vc_extra_placeholders)
     ctx.extraNibObjects = ordered
 
     # Remove parsed connections - they'll be replaced with storyboard-specific ones
+    # But preserve action connections from parsed elements (e.g. toolbar items)
     parsed_connections = ctx.connections[:]
+    preserved_connections = [c for c in parsed_connections
+                             if c.classname() == "NSNibControlConnector"]
     ctx.connections.clear()
 
     # Add tab VC connections before storyboard connections
@@ -953,6 +960,19 @@ def _compile_window_controller_scene(root, objects_elem, vc_elem, first_responde
         conn_window["NSChildControllerCreationSelectorName"] = NibNil()
         ctx.connections.append(conn_window)
 
+    has_explicit_delegate = any(
+        c.classname() == "NSNibOutletConnector"
+        and isinstance(c.get("NSLabel"), NibString) and c.get("NSLabel")._text == "delegate"
+        for c in parsed_connections
+    )
+    if window_template and (has_app_scene or has_explicit_delegate):
+        conn_delegate = NibObject("NSNibOutletConnector")
+        conn_delegate["NSSource"] = window_template
+        conn_delegate["NSDestination"] = wc_obj
+        conn_delegate["NSLabel"] = NibString.intern("delegate")
+        conn_delegate["NSChildControllerCreationSelectorName"] = NibNil()
+        ctx.connections.append(conn_delegate)
+
     if not tab_vc_extra_connections and content_vc_obj:
         conn_vc_sb = NibObject("NSNibOutletConnector")
         conn_vc_sb["NSSource"] = content_vc_obj
@@ -961,13 +981,8 @@ def _compile_window_controller_scene(root, objects_elem, vc_elem, first_responde
         conn_vc_sb["NSChildControllerCreationSelectorName"] = NibNil()
         ctx.connections.append(conn_vc_sb)
 
-    if window_template:
-        conn_delegate = NibObject("NSNibOutletConnector")
-        conn_delegate["NSSource"] = window_template
-        conn_delegate["NSDestination"] = wc_obj
-        conn_delegate["NSLabel"] = NibString.intern("delegate")
-        conn_delegate["NSChildControllerCreationSelectorName"] = NibNil()
-        ctx.connections.append(conn_delegate)
+    # Add preserved parsed connections (e.g. toolbar actions)
+    ctx.connections.extend(preserved_connections)
 
     if content_vc_obj and window_template:
         runtime_conn = NibObject("NSIBUserDefinedRuntimeAttributesConnector")
@@ -1021,7 +1036,15 @@ def _compile_view_nib(root, vc_elem, view_elem,
     app_object["NSClassName"] = NibString.intern("NSApplication")
     ctx.addObject(app_object.xibid, app_object)
     ctx.extraNibObjects.append(app_object)
-    ctx.extraNibObjects.append(vc_placeholder)
+
+    vc_xibid = XibId(vc_id) if vc_id else None
+    has_vc_connections = any(
+        c.get("NSSource") is vc_placeholder or c.get("NSDestination") is vc_placeholder
+        or c.get("NSSource") == vc_xibid or c.get("NSDestination") == vc_xibid
+        for c in ctx.connections
+    )
+    if has_vc_connections:
+        ctx.extraNibObjects.append(vc_placeholder)
 
     # Connection: root -> view
     conn = NibObject("NSNibOutletConnector")
