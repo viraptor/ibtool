@@ -14,6 +14,8 @@ def parse(_ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
     }
     if struts["bottom"] and struts["left"] and struts["top"] and struts["right"]:
         flags = WTFlags.STRUTS_ALL
+    elif struts["top"] and struts["bottom"]:
+        flags = WTFlags.STRUTS_TOP | WTFlags.STRUTS_BOTTOM
     elif struts["bottom"] and struts["left"]:
         flags = WTFlags.STRUTS_BOTTOM_LEFT
     elif struts["bottom"] and struts["right"]:

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="22505" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
+    <dependencies><deployment identifier="macosx"/><plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="22505"/></dependencies>
+    <objects>
+        <customObject id="-2" userLabel="File's Owner" customClass="NSApplication"/>
+        <customObject id="-1" className="FirstResponder" userLabel="First Responder" customModuleProvider=""/>
+        <customObject id="-3" userLabel="Application" customClass="NSObject"/>
+        <window title="T" allowsToolTipsWhenApplicationIsInactive="NO" autorecalculatesKeyViewLoop="NO" releasedWhenClosed="NO" animationBehavior="default" id="w1">
+            <windowStyleMask key="styleMask" titled="YES" closable="YES"/>
+            <rect key="contentRect" x="100" y="100" width="300" height="200"/>
+            <rect key="screenRect" x="0.0" y="0.0" width="1920" height="1080"/>
+            <view key="contentView" id="v1">
+                <rect key="frame" x="0" y="0" width="300" height="200"/>
+                <autoresizingMask key="autoresizingMask"/>
+                <subviews>
+                    <customView translatesAutoresizingMaskIntoConstraints="NO" id="cv1">
+                        <rect key="frame" x="20" y="20" width="100" height="50"/>
+                        <autoresizingMask key="autoresizingMask"/>
+                    </customView>
+                </subviews>
+            </view>
+        </window>
+    </objects>
+</document>

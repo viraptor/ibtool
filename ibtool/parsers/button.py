@@ -38,8 +38,11 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
                 in_cell_view = True
                 break
             p = p.xib_parent() if hasattr(p, 'xib_parent') else None
+        _SUPPRESS_DEFAULT_HUGGING_BEZELS = (None, 1, 11, 12, 13)
         is_check_or_radio = obj.extraContext.get("button_type") in ("check", "radio")
-        if hp != default_hp or vp != default_vp or in_cell_view or is_check_or_radio:
+        is_swapper = obj.classname() == "NSClassSwapper"
+        is_bevel = obj.extraContext.get("button_type") == "bevel"
+        if hp != default_hp or vp != default_vp or in_cell_view or is_check_or_radio or is_bevel or (bezel not in _SUPPRESS_DEFAULT_HUGGING_BEZELS and not is_swapper):
             obj["NSHuggingPriority"] = NibString.intern(f"{{{hp}, {vp}}}")
     if not obj.extraContext.get("parsed_autoresizing"):
         obj.flagsOr("NSvFlags", vFlags.DEFAULT_VFLAGS_AUTOLAYOUT if ctx.useAutolayout else vFlags.DEFAULT_VFLAGS)

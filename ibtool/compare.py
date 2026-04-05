@@ -169,6 +169,54 @@ def _xib_annotation(obj: Union[NibValue,NibCollection,NibObject], xibid_map: Opt
         return f" [xib:{xibid_map[nibidx]}]"
     return ""
 
+def _sv_child_sort_key(obj):
+    """Stable sort key for stack view container children.
+    Apple's ibtool places stack view children in non-deterministic order.
+    Use content-based keys (text labels, image names, tags) rather than
+    position-dependent data (frames) for comparison."""
+    cn = obj.classname if hasattr(obj, 'classname') else ''
+    entries = obj.entries if hasattr(obj, 'entries') else {}
+
+    def _extract_text(o):
+        """Recursively extract first text content from an object's cell hierarchy."""
+        e = o.entries if hasattr(o, 'entries') else {}
+        cell = e.get('NSCell')
+        if cell and hasattr(cell, 'entries'):
+            contents = cell.entries.get('NSContents')
+            if contents and hasattr(contents, 'entries'):
+                b = contents.entries.get('NS.bytes')
+                if b and hasattr(b, 'value'):
+                    return str(b.value)
+                rn = contents.entries.get('NSResourceName')
+                if rn and hasattr(rn, 'entries'):
+                    b2 = rn.entries.get('NS.bytes')
+                    if b2 and hasattr(b2, 'value'):
+                        return str(b2.value)
+        # Recurse into stack view's own container children
+        for container_key in ('NSStackViewBeginningContainer',):
+            container = e.get(container_key)
+            if container and hasattr(container, 'entries'):
+                items = container.entries.get('NSStackViewContainerNonDroppedViews')
+                if items and hasattr(items, 'entries'):
+                    for child in items.entries:
+                        t = _extract_text(child)
+                        if t:
+                            return t
+        # Recurse into subviews
+        subviews = e.get('NSSubviews')
+        if subviews and hasattr(subviews, 'entries'):
+            for child in subviews.entries:
+                t = _extract_text(child)
+                if t:
+                    return t
+        return ''
+
+    text = _extract_text(obj)
+    tag = entries.get('NSTag')
+    tag_val = tag.value if tag and hasattr(tag, 'value') else 0
+    return (cn, text, tag_val)
+
+
 def diff(lhs: Union[NibValue,NibCollection,NibObject], rhs: Union[NibValue,NibCollection,NibObject], lhs_root: list[Union[NibValue,NibCollection,NibObject]], rhs_root: list[Union[NibValue,NibCollection,NibObject]], current_path: list[str]=[], lhs_path: list[int]=[], rhs_path: list[int]=[], parent_class: Optional[str] = None, xibid_map: Optional[dict[int,str]] = None) -> Iterable[str]:
     if (id(lhs), id(rhs)) in already_seen:
         return
@@ -291,6 +339,9 @@ def diff(lhs: Union[NibValue,NibCollection,NibObject], rhs: Union[NibValue,NibCo
         if path.endswith("NSSubviews"):
             l_entries = [e for e in l_entries if not (isinstance(e, NibObject) and e.classname == "_NSCornerView")]
             r_entries = [e for e in r_entries if not (isinstance(e, NibObject) and e.classname == "_NSCornerView")]
+        if path.endswith("NSStackViewContainerNonDroppedViews"):
+            l_entries = sorted(l_entries, key=_sv_child_sort_key)
+            r_entries = sorted(r_entries, key=_sv_child_sort_key)
         if len(l_entries) != len(r_entries):
             yield f"{path}{annotation} Mismatched length: {len(l_entries)} != {len(r_entries)}"
         for i, (left, right) in enumerate(zip(l_entries, r_entries)):
@@ -336,10 +387,13 @@ def fixup_layout_constrints(collection, all_objects):
     def constraint_sort_key(obj):
         def _item_key(item):
             if item is None:
-                return ("", b"")
+                return ("", b"", -1, "")
             frame = item.entries.get("NSFrame")
             frame_bytes = frame.entries.get("NS.bytes").value if frame is not None and hasattr(frame, "entries") and frame.entries.get("NS.bytes") is not None else b""
-            return (item.classname, frame_bytes)
+            tag = item.entries.get("NSTag")
+            tag_val = tag.value if tag is not None and hasattr(tag, "value") else -1
+            content = _sv_child_sort_key(item)[1] if hasattr(item, 'entries') else ""
+            return (item.classname, content, tag_val, frame_bytes)
         first = obj.entries.get("NSFirstAttribute").value if obj.entries.get("NSFirstAttribute") is not None else -1
         firstv2 = obj.entries.get("NSFirstAttributeV2").value if obj.entries.get("NSFirstAttributeV2") is not None else -1
         second = obj.entries.get("NSSecondAttribute").value if obj.entries.get("NSSecondAttribute") is not None else -1
@@ -419,16 +473,21 @@ def fixup_connections(collection):
                 if svs is not None and hasattr(svs, "entries"):
                     return len(svs.entries)
             return -1
+        def _content_key(obj):
+            """Extract stable content (text, image) from an object for sorting."""
+            if obj is None:
+                return b""
+            return _sv_child_sort_key(obj)[1].encode() if isinstance(_sv_child_sort_key(obj)[1], str) else b""
         rt_obj = c.entries.get("NSObject")
         rt_cls = rt_obj.classname if rt_obj is not None else ""
         rt_subviews = _subview_count(rt_obj) if rt_obj is not None else -1
-        return (cls, label_val, dest_cls, src_cls, binding_name, binding_key, _frame_bytes(dest), _frame_bytes(src), _obj_scalars(src), _obj_scalars(dest), rt_cls, rt_subviews)
+        return (cls, label_val, dest_cls, src_cls, binding_name, binding_key, _content_key(src), _content_key(dest), _frame_bytes(dest), _frame_bytes(src), _obj_scalars(src), _obj_scalars(dest), rt_cls, rt_subviews)
     connectors.sort(key=conn_sort_key)
     collection[:] = non_connectors + connectors
 
 def _is_uuid_diff(issue_str):
     import re
-    return bool(re.search(r"uniqueIdentifierForStoryboardCompilation.*difference b'[0-9A-F-]+'", issue_str))
+    return bool(re.search(r"(uniqueIdentifierForStoryboardCompilation|NSStoryboardSegueDestinationOptions).*difference b'[0-9A-F-]+'", issue_str))
 
 
 def _compare_nib(orig_path, test_path, xib_path=None, skip_uuids=False):

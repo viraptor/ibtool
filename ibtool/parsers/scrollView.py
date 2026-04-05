@@ -377,7 +377,8 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     # Note: autohiding scroll views with hidden HScroller do not reduce clip height.
 
     # Post-processing: reduce clip view scrollview_size for visible scrollers
-    if not auto_hiding and cv:
+    is_textview_dv = doc_view is not None and doc_view.originalclassname() == "NSTextView"
+    if not auto_hiding and cv and not is_textview_dv:
         sv_size = cv.extraContext.get("scrollview_size")
         if sv_size:
             new_w, new_h = sv_size

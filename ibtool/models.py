@@ -171,6 +171,20 @@ class NibString(NibObject):
         return f"<{self.classname()} \"{self._text}\">"
 
 
+class NibLocalizableString(NibObject):
+    def __init__(self, text: str, key: str = "", dev: str = "") -> None:
+        NibObject.__init__(self, "NSLocalizableString")
+        self._text = text
+        self["NSKey"] = NibString.intern(key)
+        self["NSDev"] = NibString.intern(dev or text)
+
+    def getKeyValuePairs(self) -> list[PropPair]:
+        return [("NS.bytes", self._text)] + list(self.properties.items())
+
+    def __repr__(self) -> str:
+        return f"<{self.classname()} \"{self._text}\">"
+
+
 class NibMutableString(NibObject):
     def __init__(self, text: str = "Hello World") -> None:
         NibObject.__init__(self, "NSMutableString")
@@ -750,6 +764,10 @@ def _xibparser_handle_custom_class(ctx: ArchiveContext, elem: Element, obj: "Xib
     custom_module_provider = elem.attrib.get("customModuleProvider")
     custom_class = elem.attrib.get("customClass")
 
+    # In "direct" mode, <customView> without customClass gets identity-swapped to NSClassSwapper
+    if custom_class is None and ctx.customObjectInstantitationMethod == "direct" and obj.originalclassname() == "NSCustomView":
+        custom_class = "NSView"
+
     if obj.xibid.is_negative_id():
         if obj.xibid == XibId("-2"):
             obj["NSClassName"] = NibString.intern(custom_class or "NSApplication")
@@ -765,12 +783,13 @@ def _xibparser_handle_custom_class(ctx: ArchiveContext, elem: Element, obj: "Xib
                 obj["NSClassName"] = NibString.intern(f"_TtC{len(custom_module)}{custom_module}{len(custom_class)}{custom_class}")
             else:
                 obj["NSClassName"] = NibString.intern(custom_class)
-            if obj.classname() not in ("NSView", "NSCustomView", "NSButton", "NSTextField", "NSOutlineView", "NSScrollView", "NSClipView", "NSColorWell", "NSStackView", "NSTextView", "NSProgressIndicator", "NSTableView", "NSTableHeaderView", "NSPopUpButtonCell", "NSLevelIndicatorCell", "NSSegmentedControl", "NSSegmentedCell", "NSImageView", "NSTableCellView", "NSCustomFormatter", "NSNumberFormatter", "NSSplitView"):
+            if obj.classname() not in ("NSView", "NSCustomView", "NSButton", "NSTextField", "NSOutlineView", "NSScrollView", "NSClipView", "NSColorWell", "NSStackView", "NSTextView", "NSProgressIndicator", "NSTableView", "NSTableHeaderView", "NSPopUpButtonCell", "NSLevelIndicatorCell", "NSSegmentedControl", "NSSegmentedCell", "NSImageView", "NSTableCellView", "NSCustomFormatter", "NSNumberFormatter", "NSSplitView", "NSWindowController"):
                 obj["NSInitializeWithInit"] = True
             final_original_class = {
                 "NSCustomObject": "NSObject",
                 "NSCustomView": "NSView",
                 "NSCustomFormatter": "IBCustomFormatter",
+                "NSWindowController": "IBNSWindowController",
             }.get(obj.classname(), obj.classname())
             obj["NSOriginalClassName"] = NibString.intern(final_original_class)
             obj.setclassname("NSClassSwapper")

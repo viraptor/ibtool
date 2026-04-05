@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.Cocoa.Storyboard.XIB" version="3.0" toolsVersion="22505" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" initialViewController="wc1-00-010">
+    <dependencies>
+        <deployment identifier="macosx"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="22505"/>
+    </dependencies>
+    <scenes>
+        <scene sceneID="sc1-00-010">
+            <objects>
+                <application id="app-00-010" sceneMemberID="viewController">
+                    <menu key="mainMenu" title="Main Menu" systemMenu="main" id="mm1-00-010">
+                        <items>
+                            <menuItem title="App" id="mi1-00-010">
+                                <modifierMask key="keyEquivalentModifierMask"/>
+                                <menu key="submenu" title="App" systemMenu="apple" id="sm1-00-010">
+                                    <items>
+                                        <menuItem title="Quit" keyEquivalent="q" id="mi2-00-010">
+                                            <connections>
+                                                <action selector="terminate:" target="fr1-00-010" id="cn1-00-010"/>
+                                            </connections>
+                                        </menuItem>
+                                    </items>
+                                </menu>
+                            </menuItem>
+                        </items>
+                    </menu>
+                </application>
+                <customObject id="fr1-00-010" userLabel="First Responder" customClass="NSResponder" sceneMemberID="firstResponder"/>
+            </objects>
+        </scene>
+        <scene sceneID="sc2-00-010">
+            <objects>
+                <windowController storyboardIdentifier="ToolbarWC" id="wc1-00-010" customClass="ToolbarWindowController" customModule="TestApp" customModuleProvider="target" sceneMemberID="viewController">
+                    <window key="window" title="Toolbar Test" allowsToolTipsWhenApplicationIsInactive="NO" autorecalculatesKeyViewLoop="NO" releasedWhenClosed="NO" visibleAtLaunch="NO" animationBehavior="default" id="win-00-010">
+                        <windowStyleMask key="styleMask" titled="YES" closable="YES" miniaturizable="YES" resizable="YES"/>
+                        <rect key="contentRect" x="200" y="200" width="480" height="270"/>
+                        <rect key="screenRect" x="0.0" y="0.0" width="1680" height="1027"/>
+                        <value key="minSize" type="size" width="100" height="50"/>
+                        <toolbar key="toolbar" implicitIdentifier="TestToolbar-ID" autosavesConfiguration="NO" allowsUserCustomization="NO" displayMode="iconOnly" sizeMode="regular" id="tb1-00-010">
+                            <allowedToolbarItems>
+                                <toolbarItem implicitItemIdentifier="ClearItem-ID" label="Clear" paletteLabel="Clear" tag="-1" image="NSTrashEmpty" id="ti1-00-010">
+                                    <size key="minSize" width="72" height="72"/>
+                                    <size key="maxSize" width="72" height="72"/>
+                                    <connections>
+                                        <action selector="clearClicked:" target="wc1-00-010" id="cn2-00-010"/>
+                                    </connections>
+                                </toolbarItem>
+                                <toolbarItem implicitItemIdentifier="NSToolbarSpaceItem" id="ti2-00-010"/>
+                                <toolbarItem implicitItemIdentifier="NSToolbarFlexibleSpaceItem" id="ti3-00-010"/>
+                            </allowedToolbarItems>
+                            <defaultToolbarItems>
+                                <toolbarItem reference="ti1-00-010"/>
+                            </defaultToolbarItems>
+                        </toolbar>
+                        <connections>
+                            <outlet property="delegate" destination="wc1-00-010" id="cn3-00-010"/>
+                        </connections>
+                    </window>
+                    <connections>
+                        <segue destination="vc1-00-010" kind="relationship" relationship="window.shadowedContentViewController" id="sg1-00-010"/>
+                    </connections>
+                </windowController>
+                <customObject id="fr2-00-010" userLabel="First Responder" customClass="NSResponder" sceneMemberID="firstResponder"/>
+            </objects>
+        </scene>
+        <scene sceneID="sc3-00-010">
+            <objects>
+                <viewController id="vc1-00-010" customClass="ToolbarContentVC" customModule="TestApp" customModuleProvider="target" sceneMemberID="viewController">
+                    <view key="view" id="vw1-00-010">
+                        <rect key="frame" x="0.0" y="0.0" width="480" height="270"/>
+                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                    </view>
+                </viewController>
+                <customObject id="fr3-00-010" userLabel="First Responder" customClass="NSResponder" sceneMemberID="firstResponder"/>
+            </objects>
+        </scene>
+    </scenes>
+</document>

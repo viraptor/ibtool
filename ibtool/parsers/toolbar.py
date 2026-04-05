@@ -1,4 +1,4 @@
-from ..models import ArchiveContext, NibObject, NibNil, NibString, NibList, NibMutableList, NibMutableDictionary, NibNSNumber, XibObject
+from ..models import ArchiveContext, NibObject, NibNil, NibString, NibInlineString, NibList, NibMutableList, NibMutableDictionary, NibNSNumber, XibObject
 from ..constant_objects import GENERIC_GREY_COLOR_SPACE
 from ..parsers_base import parse_children
 from xml.etree.ElementTree import Element
@@ -41,6 +41,17 @@ STANDARD_ITEMS = {
         "imageSize": "{19, 16}",
         "imageAlignmentRect": "{{0, 0.1875}, {1, 0.5625}}",
     },
+    "NSToolbarShowColorsItem": {
+        "class": "NSToolbarItem",
+        "label": "Colors",
+        "paletteLabel": "Colors",
+        "toolTip": "Show Color Panel",
+        "bordered": True,
+        "action": "orderFrontColorPanel:",
+        "minSize": "{44, 42}",
+        "maxSize": "{44, 42}",
+        "resourceImageName": "NSToolbarShowColors",
+    },
     "NSToolbarSpaceItem": {
         "class": "NSToolbarSpaceItem",
         "label": "",
@@ -69,10 +80,10 @@ STANDARD_ITEMS = {
 def _make_toolbar_image(name, size_str, alignment_rect_str, toolbar):
     color = NibObject("NSColor", None, {
         "NSColorSpace": 3,
-        "NSWhite": b'0 0\x00',
+        "NSWhite": NibInlineString(b'0 0\x00'),
         "NSCustomColorSpace": GENERIC_GREY_COLOR_SPACE,
-        "NSComponents": b'0 0',
-        "NSLinearExposure": b'1',
+        "NSComponents": NibInlineString(b'0 0'),
+        "NSLinearExposure": NibInlineString(b'1'),
     })
     img = NibObject("NSImage", toolbar)
     img["NSImageFlags"] = 0x20c00000
@@ -88,6 +99,7 @@ def _make_toolbar_image(name, size_str, alignment_rect_str, toolbar):
 
 
 def _make_separator_menu_item(toolbar):
+    from ..constant_objects import MENU_MIXED_IMAGE, MENU_ON_IMAGE
     item = NibObject("NSMenuItem", toolbar)
     item["NSIsDisabled"] = True
     item["NSIsSeparator"] = True
@@ -95,6 +107,11 @@ def _make_separator_menu_item(toolbar):
     item["NSAllowsKeyEquivalentMirroring"] = True
     item["NSTitle"] = NibString.intern("")
     item["NSKeyEquiv"] = NibString.intern("")
+    item["NSKeyEquivModMask"] = 0x100000
+    item["NSMnemonicLoc"] = 0x7fffffff
+    item["NSOnImage"] = MENU_ON_IMAGE
+    item["NSMixedImage"] = MENU_MIXED_IMAGE
+    item["NSHiddenInRepresentation"] = False
     return item
 
 
@@ -114,6 +131,17 @@ def _make_standard_item(identifier, info, toolbar, ctx):
     if "imageName" in info:
         item["NSToolbarItemImage"] = _make_toolbar_image(
             info["imageName"], info["imageSize"], info["imageAlignmentRect"], toolbar)
+    elif "resourceImageName" in info:
+        res_img = NibObject("NSCustomResource", item)
+        res_img["NSResourceName"] = NibString.intern(info["resourceImageName"])
+        res_img["NSClassName"] = NibString.intern("NSImage")
+        res_img["IBNamespaceID"] = NibNil()
+        design_size = NibObject("NSValue", res_img)
+        design_size["NS.sizeval"] = NibString.intern("{32, 32}")
+        design_size["NS.special"] = 2
+        res_img["IBDesignSize"] = design_size
+        res_img["IBDesignImageConfiguration"] = NibNil()
+        item["NSToolbarItemImage"] = res_img
     else:
         item["NSToolbarItemImage"] = NibNil()
     item["NSToolbarItemTitle"] = NibString.intern("")
@@ -142,7 +170,9 @@ def _make_custom_item(ctx, elem, toolbar):
     custom_class = elem.attrib.get("customClass")
     classname = "NSToolbarItem"
 
-    item = XibObject(ctx, classname, elem, None)
+    item = XibObject(ctx, classname, elem, toolbar)
+    if item.get("NSTag") is not None:
+        del item["NSTag"]
     if item.xibid is not None:
         ctx.addObject(item.xibid, item)
     ctx.extraNibObjects.append(item)
@@ -170,7 +200,7 @@ def _make_custom_item(ctx, elem, toolbar):
             from . import connections as connections_mod
             connections_mod.parse(ctx, child, item)
 
-    item.setIfEmpty("NSToolbarItemToolTip", NibNil())
+    item.setIfEmpty("NSToolbarItemToolTip", NibString.intern(""))
 
     if view_elem is not None:
         from ..parsers_base import __xibparser_ParseXIBObject
@@ -179,14 +209,12 @@ def _make_custom_item(ctx, elem, toolbar):
     else:
         item["NSToolbarItemView"] = NibNil()
 
-    item["NSToolbarItemBordered"] = False
-
     image_name = elem.attrib.get("image")
+    item["NSToolbarItemBordered"] = elem.attrib.get("bordered") == "YES"
     if image_name:
         from .helpers import make_image
         img = make_image(image_name, item, ctx)
         item["NSToolbarItemImage"] = img
-        item["NSToolbarItemBordered"] = True
     else:
         item["NSToolbarItemImage"] = NibNil()
 
@@ -204,7 +232,8 @@ def _make_custom_item(ctx, elem, toolbar):
     item["NSToolbarItemIgnoreMinMaxSizes"] = False
     item["NSToolbarItemEnabled"] = True
     item["NSToolbarItemAutovalidates"] = True
-    item["NSToolbarItemTag"] = 0
+    tag = int(elem.attrib.get("tag", "0"))
+    item["NSToolbarItemTag"] = tag
     item["NSToolbarItemVisibilityPriority"] = 0
     item["NSToolbarItemNavigational"] = False
     item["NSToolbarIsUserRemovable"] = True
@@ -226,8 +255,8 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
     toolbar["NSToolbarIdentifier"] = NibString.intern(identifier)
     toolbar["NSToolbarDelegate"] = NibNil()
     toolbar["NSToolbarPrefersToBeShown"] = True
-    toolbar["NSToolbarAllowsUserCustomization"] = True
-    toolbar["NSToolbarAutosavesConfiguration"] = True
+    toolbar["NSToolbarAllowsUserCustomization"] = elem.attrib.get("allowsUserCustomization", "YES") == "YES"
+    toolbar["NSToolbarAutosavesConfiguration"] = elem.attrib.get("autosavesConfiguration", "YES") == "YES"
     toolbar["NSToolbarDisplayMode"] = DISPLAY_MODE_MAP.get(elem.attrib.get("displayMode"), 0)
     toolbar["NSToolbarSizeMode"] = SIZE_MODE_MAP.get(elem.attrib.get("sizeMode"), 0)
     toolbar["NSToolbarCenteredItemIdentifier"] = NibNil()
@@ -243,7 +272,8 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
                     continue
                 ref = child.attrib.get("reference")
                 if ref:
-                    obj = ctx.getObject(ref)
+                    from ..models import XibId
+                    obj = ctx.getObject(XibId(ref))
                     if obj:
                         allowed_items.append(obj)
                     continue
@@ -267,17 +297,19 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
                     continue
                 ref = child.attrib.get("reference")
                 if ref:
-                    obj = ctx.getObject(ref)
+                    from ..models import XibId
+                    obj = ctx.getObject(XibId(ref))
                     if obj:
                         default_items.append(obj)
 
     dict_items = []
-    for item_id, item in identified_items.items():
+    for item_id, item in sorted(identified_items.items()):
         dict_items.append(NibString.intern(item_id))
         dict_items.append(item)
     toolbar["NSToolbarIBIdentifiedItems"] = NibMutableDictionary(dict_items)
     toolbar["NSToolbarIBAllowedItems"] = NibList(allowed_items)
-    toolbar["NSToolbarIBDefaultItems"] = NibList(default_items)
+    if default_items:
+        toolbar["NSToolbarIBDefaultItems"] = NibList(default_items)
     toolbar["NSToolbarIBSelectableItems"] = NibMutableList()
 
     parent["NSViewClass"] = toolbar

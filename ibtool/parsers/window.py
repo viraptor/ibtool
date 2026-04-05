@@ -51,7 +51,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
     item["NSWindowClass"] = item.get("NSClassName") or NibString.intern("NSWindow")
     if item.get("NSClassName"):
         del item["NSClassName"]
-    item["NSViewClass"] = NibNil() # TODO
+    item.setIfEmpty("NSViewClass", NibNil())
     if window_id := elem.attrib.get("identifier"):
         item["NSUserInterfaceItemIdentifier"] = NibString.intern(window_id)
     else:
@@ -60,10 +60,21 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
         item["NSWindowView"] = NibNil()
     if not item.extraContext.get("NSScreenRect"):
         item.extraContext["NSScreenRect"] = (0, 0, 0, 0)
-    item.setIfEmpty("NSMaxSize", '{10000000000000, 10000000000000}')
+    has_toolbar = isinstance(item.get("NSViewClass"), NibObject) and not isinstance(item.get("NSViewClass"), NibNil)
+    if has_toolbar:
+        if item.get("NSMinSize") is not None:
+            del item["NSMinSize"]
+        if item.get("NSMaxSize") is not None:
+            del item["NSMaxSize"]
+    else:
+        item.setIfEmpty("NSMaxSize", '{10000000000000, 10000000000000}')
     item["NSWindowIsRestorable"] = elem.attrib.get("restorable", "YES") == "YES"
     item["NSMinFullScreenContentSize"] = NibString.intern('{0, 0}')
     item["NSMaxFullScreenContentSize"] = NibString.intern('{0, 0}')
+    if elem.attrib.get("titlebarAppearsTransparent") == "YES":
+        item["NSTitlebarAppearsTransparent"] = True
+    if elem.attrib.get("titleVisibility") == "hidden":
+        item["NSWindowTitleVisibility"] = 1
     if elem.attrib.get("tabbingMode"):
         item["NSWindowTabbingMode"] = {"disallowed": 2}[elem.attrib["tabbingMode"]]
     if elem.attrib.get("visibleAtLaunch", "YES") == "YES":

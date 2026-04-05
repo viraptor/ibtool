@@ -197,14 +197,14 @@ def __xibparser_button_flags(elem: Element, obj: XibObject, parent: NibObject) -
         "roundRect": 0x4|0x20,
         "recessed": 0x1|0x4|0x8|0x20,
         "inline": 0x1|0x2|0x4|0x20,
-        "bevel": 0x2,
+        "bevel": 0x1 if bezelStyle == "rounded" else 0x2,
     }[buttonType]
     borderStyle = elem.attrib.get("borderStyle")
     borderStyleMask = {None: 0, "border": ButtonFlags.BORDERED, "bezel": ButtonFlags.BEZEL, "borderAndBezel": ButtonFlags.BORDERED | ButtonFlags.BEZEL}[borderStyle]
     imageScaling = elem.attrib.get("imageScaling")
     imageScalingMask = {None: 0, "proportionallyDown": ButtonFlags2.IMAGE_SCALING_PROPORTIONALLY_DOWN, "proportionallyUpOrDown": 0x40}[imageScaling]
     imagePosition = elem.attrib.get("imagePosition")
-    imagePositionMask = {None: 0, "left": ButtonFlags.IMAGE_LEFT, "right": ButtonFlags.IMAGE_RIGHT, "above": ButtonFlags.IMAGE_ABOVE, "below": ButtonFlags.IMAGE_BELOW, "only": ButtonFlags.IMAGE_ONLY}[imagePosition]
+    imagePositionMask = {None: 0, "left": ButtonFlags.IMAGE_LEFT, "right": ButtonFlags.IMAGE_RIGHT, "above": ButtonFlags.IMAGE_ABOVE, "below": ButtonFlags.IMAGE_BELOW, "only": ButtonFlags.IMAGE_ONLY, "overlaps": ButtonFlags.IMAGE_OVERLAPS}[imagePosition]
 
     obj.flagsOr("NSButtonFlags", inset | buttonTypeMask | borderStyleMask | imagePositionMask)
     obj.flagsOr("NSButtonFlags2", imageScalingMask | button_type_id)
@@ -271,7 +271,9 @@ def make_image(name: str, parent: NibObject, ctx: "ArchiveContext") -> NibObject
         obj["IBNamespaceID"] = NibString.intern("system")
     else:
         obj["IBNamespaceID"] = NibNil()
-    if catalog == "system":
+    if is_system and ctx.isStoryboard:
+        size_str = "{32, 32}"
+    elif catalog == "system":
         size_str = "{32, 32}"
     elif res and is_system:
         w = min(int(float(res[0])), 32)
