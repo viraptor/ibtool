@@ -197,7 +197,7 @@ def __xibparser_button_flags(elem: Element, obj: XibObject, parent: NibObject) -
         "roundRect": 0x4|0x20,
         "recessed": 0x1|0x4|0x8|0x20,
         "inline": 0x1|0x2|0x4|0x20,
-        "bevel": 0x2,
+        "bevel": 0x1 if bezelStyle == "rounded" else 0x2,
     }[buttonType]
     borderStyle = elem.attrib.get("borderStyle")
     borderStyleMask = {None: 0, "border": ButtonFlags.BORDERED, "bezel": ButtonFlags.BEZEL, "borderAndBezel": ButtonFlags.BORDERED | ButtonFlags.BEZEL}[borderStyle]
