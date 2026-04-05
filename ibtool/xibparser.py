@@ -407,6 +407,49 @@ def _inject_synthetic_objects(ctx):
     return files_owner, app_object
 
 
+def _forward_menu_children(child_objs):
+    """Like _reverse_menu_children but items are in forward (XML) order."""
+    if not child_objs:
+        return
+    menu_items = {}
+    item_submenu = {}
+    for obj in child_objs:
+        cn = obj.classname() if hasattr(obj, 'classname') else ""
+        if cn == "NSMenu":
+            items_list = obj.get("NSMenuItems")
+            if items_list and hasattr(items_list, '_items'):
+                menu_items[id(obj)] = items_list._items[:]
+        if cn == "NSMenuItem":
+            submenu = obj.get("NSSubmenu")
+            if submenu is not None:
+                item_submenu[id(obj)] = submenu
+    if not menu_items:
+        return
+    visited = set()
+    result = []
+    def visit_menu(menu):
+        if id(menu) in visited:
+            return
+        visited.add(id(menu))
+        result.append(menu)
+        for item in menu_items.get(id(menu), []):
+            if id(item) in visited:
+                continue
+            visited.add(id(item))
+            result.append(item)
+            submenu = item_submenu.get(id(item))
+            if submenu:
+                visit_menu(submenu)
+    for obj in child_objs:
+        cn = obj.classname() if hasattr(obj, 'classname') else ""
+        if cn == "NSMenu" and id(obj) in menu_items:
+            visit_menu(obj)
+    for obj in child_objs:
+        if id(obj) not in visited:
+            result.append(obj)
+    child_objs[:] = result
+
+
 def _reverse_menu_children(child_objs):
     if not child_objs:
         return
@@ -545,10 +588,41 @@ def _compile_application_scene(root, objects_elem, vc_elem, first_responder_elem
     app_object["NSClassName"] = NibString.intern("NSApplication")
     ctx.addObject(app_object.xibid, app_object)
 
-    # In storyboard compilation, menu children are in reverse DFS order
-    _reverse_menu_children(child_objs)
+    # Separate standalone menus (top-level <menu> without key) from non-menu top-level objects
+    standalone_menus = []
+    non_menu_top = []
+    for o in top_level_objs:
+        if o.classname() == "NSMenu":
+            standalone_menus.append(o)
+        else:
+            non_menu_top.append(o)
 
-    ctx.extraNibObjects = top_level_objs + [app_object] + child_objs
+    # Extract standalone menus and their descendant items from child_objs
+    standalone_menu_ids = set(id(m) for m in standalone_menus)
+    standalone_items = set()
+    def _collect_menu_items(menu_obj):
+        items = menu_obj.get("NSMenuItems")
+        if items and hasattr(items, '_items'):
+            for item in items._items:
+                standalone_items.add(id(item))
+                submenu = item.get("NSSubmenu") if hasattr(item, 'get') else None
+                if submenu:
+                    standalone_items.add(id(submenu))
+                    _collect_menu_items(submenu)
+    for m in standalone_menus:
+        _collect_menu_items(m)
+
+    standalone_child = [o for o in child_objs if id(o) in standalone_items]
+    main_child = [o for o in child_objs if id(o) not in standalone_items]
+
+    # Order standalone menus and their items (forward DFS)
+    standalone_all = standalone_menus + standalone_child
+    _forward_menu_children(standalone_all)
+
+    # In storyboard compilation, main menu children are in reverse DFS order
+    _reverse_menu_children(main_child)
+
+    ctx.extraNibObjects = non_menu_top + standalone_all + [app_object] + main_child
 
     _resolve_storyboard_connections(ctx, first_responder_id)
     ctx.processConstraints()
@@ -576,7 +650,7 @@ def _build_tab_view_controller_for_wc(ctx, vc_elem, scenes, parent,
 
     # Create the NSTabView
     tab_view_elem = vc_elem.find("tabView")
-    tab_view = NibObject("NSTabView")
+    tab_view = NibObject("NSTabView", tab_vc)
     tab_view["NSNextResponder"] = NibNil()
     tab_view["NSNibTouchBar"] = NibNil()
     tab_view["NSvFlags"] = 0x100
@@ -651,7 +725,7 @@ def _build_tab_view_controller_for_wc(ctx, vc_elem, scenes, parent,
             class_name = child_default_class
 
         # NSClassSwapper for child VC
-        child_swapper = NibObject("NSClassSwapper", tab_vc)
+        child_swapper = NibObject("NSClassSwapper")
         child_swapper["NSClassName"] = NibString.intern(class_name)
         child_swapper["NSOriginalClassName"] = NibString.intern("NSViewController")
         child_swapper["NSNibName"] = NibString.intern(child_view_nib)
@@ -675,7 +749,7 @@ def _build_tab_view_controller_for_wc(ctx, vc_elem, scenes, parent,
             child_swapper["NSStoryboardIdentifier"] = NibString.intern(sb_id)
 
         # NSTabViewItem
-        tab_item = NibObject("NSTabViewItem")
+        tab_item = NibObject("NSTabViewItem", tab_vc)
         label = tab_item_elem.get("label", "")
         tab_item["NSLabel"] = NibString.intern(label)
         tab_item["NSColor"] = makeSystemColor("controlColor")
@@ -915,14 +989,26 @@ def _compile_window_controller_scene(root, objects_elem, vc_elem, first_responde
 
     # Reorder extraNibObjects to match reference
     content_view_obj = window_template.get("NSWindowView") if window_template else None
-    ordered = [placeholder1, wc_obj]
+    ordered = []
+    if tab_vc_extra_connections:
+        # TabVC embedding: placeholders and swappers go first, then items, then tab view
+        ordered.extend(tab_vc_extra_placeholders)
+        tab_swappers = [o for o in tab_vc_extra_objects if o.classname() == "NSClassSwapper"]
+        tab_items = [o for o in tab_vc_extra_objects if o.classname() == "NSTabViewItem"]
+        tab_views = [o for o in tab_vc_extra_objects if o.classname() == "NSTabView"]
+        tab_non_swappers = tab_items + tab_views
+        ordered.extend(tab_swappers)
+    else:
+        ordered.append(placeholder1)
+    ordered.append(wc_obj)
     if window_template:
         ordered.append(window_template)
     if content_view_obj:
         ordered.append(content_view_obj)
     if content_vc_obj:
         ordered.append(content_vc_obj)
-    ordered.extend(tab_vc_extra_objects)
+    if tab_vc_extra_connections:
+        ordered.extend(tab_non_swappers)
     # Include remaining parsed objects (e.g. toolbar items) not yet in ordered
     ordered_set = set(id(o) for o in ordered)
     ordered_set.add(id(app_object))
@@ -930,7 +1016,6 @@ def _compile_window_controller_scene(root, objects_elem, vc_elem, first_responde
     ordered.extend(remaining)
     ordered.append(app_object)
     ordered.append(placeholder2)
-    ordered.extend(tab_vc_extra_placeholders)
     ctx.extraNibObjects = ordered
 
     # Remove parsed connections - they'll be replaced with storyboard-specific ones
