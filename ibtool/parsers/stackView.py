@@ -1,9 +1,56 @@
-from ..models import ArchiveContext, NibObject, XibObject, NibNil, NibString, NibMutableList, NibFloat
+from ..models import ArchiveContext, NibObject, XibObject, NibNil, NibNSNumber, NibString, NibMutableList, NibFloat
 from xml.etree.ElementTree import Element
 from typing import Optional
 from .helpers import make_xib_object, _xibparser_common_translate_autoresizing
 from ..parsers_base import parse_children
 from ..constants import vFlags
+
+def _build_visibility_map(obj, children):
+    """Build NSMapTable for stack view container visibility priorities.
+    Returns NibNil if no visibility data needed, or NSMapTable with entries
+    for children whose explicitly-set priority differs from 1000."""
+    from ..constants import vFlags as _vFlags
+    vis_prios = obj.extraContext.get("visibility_priorities")
+    # Check if any child is hidden
+    import ctypes as _ctypes
+    def _is_hidden(c):
+        flags = c.get("NSvFlags") if hasattr(c, 'get') else None
+        if flags is None or not isinstance(flags, int):
+            return False
+        return bool(_ctypes.c_uint32(flags).value & 0x80000000)
+    has_hidden = any(_is_hidden(c) for c in children)
+    if not has_hidden:
+        return NibNil()
+    # Build map entries: explicit non-1000 priorities + hidden children
+    map_entries = []
+    seen = set()
+    if vis_prios is not None:
+        for i, child in enumerate(children):
+            prio = vis_prios[i] if i < len(vis_prios) else 1000
+            if prio != 1000:
+                map_entries.append(child)
+                map_entries.append(NibNSNumber(prio))
+                seen.add(id(child))
+    # Add hidden stack view children not already in the map
+    for child in children:
+        cn = child.originalclassname() if hasattr(child, 'originalclassname') else (child.classname() if hasattr(child, 'classname') else '')
+        if id(child) not in seen and _is_hidden(child) and cn == "NSStackView":
+            map_entries.append(child)
+            map_entries.append(NibNSNumber(0))
+            seen.add(id(child))
+    map_table = NibObject("NSMapTable")
+    map_table["$0"] = 517
+    map_table["$1"] = 0
+    if map_entries:
+        for j in range(0, len(map_entries), 2):
+            map_table[f"${j+2}"] = map_entries[j]
+            map_table[f"${j+3}"] = map_entries[j+1]
+        map_table[f"${len(map_entries)+2}"] = NibNil()
+    else:
+        map_table["$2"] = NibNil()
+    map_table["NS.count"] = len(map_entries) // 2
+    return map_table
+
 
 def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> XibObject:
     obj = make_xib_object(ctx, "NSStackView", elem, parent)
@@ -50,6 +97,8 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
         for child in obj["NSSubviews"]._items:
             if hasattr(child, 'extraContext') and child.extraContext.get("NSDoNotTranslateAutoresizingMask"):
                 child["NSDoNotTranslateAutoresizingMask"] = True
+        children = [] if (distribution is None or obj.get("NSSubviews") is None) else obj["NSSubviews"]._items
+        vis_prio = _build_visibility_map(obj, children)
         obj["NSStackViewBeginningContainer"] = NibObject("NSStackViewContainer", obj, {
             "IBNSClipsToBounds": 0,
             "IBNSLayoutMarginsGuide": NibNil(),
@@ -58,9 +107,9 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
             "NSFrameSize": NibString.intern("{0, 0}"),
             "NSNextResponder": NibNil(),
             "NSNibTouchBar": NibNil(),
-            "NSStackViewContainerNonDroppedViews": NibMutableList([] if (distribution is None or obj.get("NSSubviews") is None) else obj["NSSubviews"]._items),
+            "NSStackViewContainerNonDroppedViews": NibMutableList(children),
             "NSStackViewContainerStackView": obj,
-            "NSStackViewContainerVisibilityPriorities": NibNil(),
+            "NSStackViewContainerVisibilityPriorities": vis_prio,
             "NSStackViewContainerViewToCustomAfterSpaceMap": NibNil(),
             "NSViewWantsBestResolutionOpenGLSurface": True,
             "NSvFlags": vFlags.AUTORESIZES_SUBVIEWS,
