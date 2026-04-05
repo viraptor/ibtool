@@ -368,10 +368,11 @@ class NibProxyObject(NibObject):
 
 
 class ArchiveContext:
-    def __init__(self, useAutolayout: bool=False, customObjectInstantitationMethod: Optional[str]=None, toolsVersion: Optional[int]=None) -> None:
+    def __init__(self, useAutolayout: bool=False, customObjectInstantitationMethod: Optional[str]=None, toolsVersion: Optional[int]=None, module: Optional[str]=None) -> None:
         self.useAutolayout = useAutolayout
         self.customObjectInstantitationMethod = customObjectInstantitationMethod
         self.toolsVersion = toolsVersion
+        self.module = module
         self.connections: list[NibObject] = []
         self.bindingConnectors: dict[str, NibObject] = {}
 
@@ -415,7 +416,7 @@ class ArchiveContext:
         self.accessibilityConnections: list[tuple[NibObject, str]] = []
     
     def nested_context(self) -> 'ArchiveContext':
-        ctx = ArchiveContext(self.useAutolayout, self.customObjectInstantitationMethod, self.toolsVersion)
+        ctx = ArchiveContext(self.useAutolayout, self.customObjectInstantitationMethod, self.toolsVersion, module=self.module)
         ctx.parentContext = self
         return ctx
 
@@ -764,17 +765,24 @@ def _xibparser_handle_custom_class(ctx: ArchiveContext, elem: Element, obj: "Xib
     custom_module_provider = elem.attrib.get("customModuleProvider")
     custom_class = elem.attrib.get("customClass")
 
+    if custom_module_provider == "target" and ctx.module:
+        custom_module = ctx.module
+
     # In "direct" mode, <customView> without customClass gets identity-swapped to NSClassSwapper
     if custom_class is None and ctx.customObjectInstantitationMethod == "direct" and obj.originalclassname() == "NSCustomView":
         custom_class = "NSView"
 
     if obj.xibid.is_negative_id():
         if obj.xibid == XibId("-2"):
-            obj["NSClassName"] = NibString.intern(custom_class or "NSApplication")
+            class_name = custom_class or "NSApplication"
+            if custom_class and custom_module:
+                obj["NSClassName"] = NibString.intern(f"_TtC{len(custom_module)}{custom_module}{len(custom_class)}{custom_class}")
+            else:
+                obj["NSClassName"] = NibString.intern(class_name)
         else:
             obj["NSClassName"] = NibString.intern("NSApplication")
         if custom_class:
-            obj["IBClassReference"] = make_class_reference(custom_class or "NSApplication", None, None)
+            obj["IBClassReference"] = make_class_reference(custom_class, custom_module, custom_module_provider)
     elif custom_class:
         #print(obj.xibid, obj.originalclassname(), obj.classname(), custom_class)
         if (ctx.customObjectInstantitationMethod == "direct" and not (obj.originalclassname() == "NSWindowTemplate" and not custom_module) and not (obj.originalclassname() == "NSCustomObject" and not custom_module and custom_class in _CUSTOM_OBJECT_NO_SWAP)) or obj.originalclassname() in ("NSView", "NSOutlineView", "NSButton", "NSTextField", "NSTextView", "NSProgressIndicator", "NSTableView", "NSTableHeaderView", "NSPopUpButtonCell", "NSScrollView", "NSLevelIndicatorCell", "NSImageView", "NSTableCellView", "NSCustomFormatter", "NSNumberFormatter", "NSSplitView"):

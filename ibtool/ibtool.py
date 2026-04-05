@@ -9,7 +9,7 @@ from . import ibdump
 from . import xibparser
 
 
-def ib_compile(inpath, outpath):
+def ib_compile(inpath, outpath, module=None):
     suffix = None
     if inpath.endswith(".xib"):
         suffix = "xib"
@@ -20,15 +20,15 @@ def ib_compile(inpath, outpath):
         sys.exit("ib_compile: Only .xib and .storyboard files are currently supported.")
 
     if suffix == "xib":
-        ib_compile_xib(inpath, outpath)
+        ib_compile_xib(inpath, outpath, module=module)
     elif suffix == "storyboard":
-        ib_compile_storyboard(inpath, outpath)
+        ib_compile_storyboard(inpath, outpath, module=module)
 
 
-def ib_compile_xib(inpath, outpath):
+def ib_compile_xib(inpath, outpath, module=None):
     tree = ET.parse(inpath)
     root = tree.getroot()
-    context, nibroot = xibparser.ParseXIBObjects(root)
+    context, nibroot = xibparser.ParseXIBObjects(root, module=module)
     outbytes = genlib.CompileNibObjects([nibroot])
 
     if context.deployment:
@@ -40,6 +40,6 @@ def ib_compile_xib(inpath, outpath):
         fl.write(outbytes)
 
 
-def ib_compile_storyboard(inpath, outpath):
+def ib_compile_storyboard(inpath, outpath, module=None):
     tree = ET.parse(inpath)
-    xibparser.CompileStoryboard(tree, outpath)
+    xibparser.CompileStoryboard(tree, outpath, module=module)

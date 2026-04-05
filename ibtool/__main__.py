@@ -43,13 +43,15 @@ def run():
     parser.add_argument("--notices", action="store_true", help="Include document notice messages in plist output")
     parser.add_argument("--output-format", choices=["xml1", "binary1", "human-readable-text"],
                         help="Output format for diagnostics (default: xml1)")
+    parser.add_argument("--module", metavar="MODULE",
+                        help="Target module name for Swift class name mangling")
     args = parser.parse_args()
 
     if args.xibmap:
         xibmap_mod.print_xibmap(args.input)
 
     elif args.compile:
-        ibtool.ib_compile(args.input, args.compile)
+        ibtool.ib_compile(args.input, args.compile, module=args.module)
         _output_diagnostics(args)
 
     elif args.compare:

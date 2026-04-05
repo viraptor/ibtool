@@ -46,7 +46,7 @@ def replace_string_attribures(elem: Element):
 # element: The element containing the objects to be included in the nib.
 #          For standalone XIBs, this is typically document->objects
 #          For storyboards, this is typically document->scenes->scene->objects
-def ParseXIBObjects(root: Element, context: Optional[ArchiveContext]=None, resolveConnections: bool=True, parent: Optional[NibObject]=None) -> tuple[ArchiveContext, NibObject]:
+def ParseXIBObjects(root: Element, context: Optional[ArchiveContext]=None, resolveConnections: bool=True, parent: Optional[NibObject]=None, module: Optional[str]=None) -> tuple[ArchiveContext, NibObject]:
     replace_string_attribures(root)
 
     objects = next(root.iter("objects"))
@@ -56,6 +56,7 @@ def ParseXIBObjects(root: Element, context: Optional[ArchiveContext]=None, resol
         useAutolayout=(root.attrib.get("useAutolayout") == "YES"),
         customObjectInstantitationMethod=root.attrib.get("customObjectInstantitationMethod"),
         toolsVersion=int(root.attrib.get("toolsVersion", "0").split(".")[0]),
+        module=module,
         )
     
     dependencies = [x for x in root.iter("dependencies")]
@@ -214,7 +215,7 @@ def _compile_storyboard_nib(genlib, nibroot):
     return genlib.CompileNibObjects([nibroot])
 
 
-def CompileStoryboard(tree, outpath):
+def CompileStoryboard(tree, outpath, module=None):
     from . import genlib
 
     root = tree.getroot()
@@ -263,6 +264,7 @@ def CompileStoryboard(tree, outpath):
             nibroot = _compile_application_scene(
                 root, objects_elem, vc_elem, first_responder_elem,
                 use_autolayout, tools_version, custom_instantiation,
+                module=module,
             )
             outbytes = _compile_storyboard_nib(genlib, nibroot)
             with open(os.path.join(outpath, nib_name + ".nib"), "wb") as f:
@@ -301,6 +303,7 @@ def CompileStoryboard(tree, outpath):
                                 view_nib_root = _compile_view_nib(
                                     root, vc_scene_vc_elem, view_elem,
                                     use_autolayout, tools_version, custom_instantiation,
+                                    module=module,
                                 )
                                 view_nib_bytes = _compile_storyboard_nib(genlib, view_nib_root)
 
@@ -308,7 +311,7 @@ def CompileStoryboard(tree, outpath):
                 root, objects_elem, vc_elem, first_responder_elem,
                 use_autolayout, tools_version, custom_instantiation,
                 wc_uuid, content_vc_id, view_nib_name, scenes,
-                has_app_scene=has_app_scene,
+                has_app_scene=has_app_scene, module=module,
             )
             outbytes = _compile_storyboard_nib(genlib, nibroot)
             with open(os.path.join(outpath, nib_name + ".nib"), "wb") as f:
@@ -332,6 +335,7 @@ def CompileStoryboard(tree, outpath):
                     view_nib_root = _compile_view_nib(
                         root, vc_elem, view_elem,
                         use_autolayout, tools_version, custom_instantiation,
+                        module=module,
                     )
                     view_nib_bytes = _compile_storyboard_nib(genlib, view_nib_root)
                     with open(os.path.join(outpath, view_nib_name + ".nib"), "wb") as f:
@@ -342,6 +346,7 @@ def CompileStoryboard(tree, outpath):
                     ctrl_nib_root = _compile_viewcontroller_scene(
                         root, vc_elem, view_nib_name, storyboard_id,
                         vc_uuid, use_autolayout, tools_version, custom_instantiation,
+                        module=module,
                     )
                     ctrl_nib_bytes = _compile_storyboard_nib(genlib, ctrl_nib_root)
                     with open(os.path.join(outpath, storyboard_id + ".nib"), "wb") as f:
@@ -370,11 +375,12 @@ def _find_scene_for_vc(scenes, vc_id):
     return None
 
 
-def _make_scene_context(root, use_autolayout, tools_version, custom_instantiation):
+def _make_scene_context(root, use_autolayout, tools_version, custom_instantiation, module=None):
     ctx = ArchiveContext(
         useAutolayout=use_autolayout,
         customObjectInstantitationMethod=custom_instantiation or "direct",
         toolsVersion=tools_version,
+        module=module,
     )
     ctx.isStoryboard = True
 
@@ -544,8 +550,8 @@ def _resolve_storyboard_connections(ctx, first_responder_id=None):
 
 
 def _compile_application_scene(root, objects_elem, vc_elem, first_responder_elem,
-                                use_autolayout, tools_version, custom_instantiation):
-    ctx = _make_scene_context(root, use_autolayout, tools_version, custom_instantiation)
+                                use_autolayout, tools_version, custom_instantiation, module=None):
+    ctx = _make_scene_context(root, use_autolayout, tools_version, custom_instantiation, module=module)
 
     first_responder_id = first_responder_elem.get("id") if first_responder_elem is not None else None
 
@@ -841,8 +847,8 @@ def _build_tab_view_controller_for_wc(ctx, vc_elem, scenes, parent,
 def _compile_window_controller_scene(root, objects_elem, vc_elem, first_responder_elem,
                                       use_autolayout, tools_version, custom_instantiation,
                                       wc_uuid, content_vc_id, view_nib_name, scenes,
-                                      has_app_scene=False):
-    ctx = _make_scene_context(root, use_autolayout, tools_version, custom_instantiation)
+                                      has_app_scene=False, module=None):
+    ctx = _make_scene_context(root, use_autolayout, tools_version, custom_instantiation, module=module)
 
     first_responder_id = first_responder_elem.get("id") if first_responder_elem is not None else None
 
@@ -1089,8 +1095,8 @@ def _compile_window_controller_scene(root, objects_elem, vc_elem, first_responde
 
 
 def _compile_view_nib(root, vc_elem, view_elem,
-                       use_autolayout, tools_version, custom_instantiation):
-    ctx = _make_scene_context(root, use_autolayout, tools_version, custom_instantiation)
+                       use_autolayout, tools_version, custom_instantiation, module=None):
+    ctx = _make_scene_context(root, use_autolayout, tools_version, custom_instantiation, module=module)
 
     files_owner = XibObject(ctx, "NSCustomObject", None, None)
     files_owner.xibid = XibId("-2")
@@ -1157,8 +1163,8 @@ def _compile_view_nib(root, vc_elem, view_elem,
 
 
 def _compile_viewcontroller_scene(root, vc_elem, view_nib_name, storyboard_id,
-                                   vc_uuid, use_autolayout, tools_version, custom_instantiation):
-    ctx = _make_scene_context(root, use_autolayout, tools_version, custom_instantiation)
+                                   vc_uuid, use_autolayout, tools_version, custom_instantiation, module=None):
+    ctx = _make_scene_context(root, use_autolayout, tools_version, custom_instantiation, module=module)
 
     files_owner = XibObject(ctx, "NSCustomObject", None, None)
     files_owner.xibid = XibId("-2")
