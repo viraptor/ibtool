@@ -599,11 +599,13 @@ def _build_tab_view_controller_for_wc(ctx, vc_elem, scenes, parent,
     if tab_view_elem is not None:
         frame_elem = tab_view_elem.find("rect[@key='frame']")
         if frame_elem is not None:
-            x = frame_elem.get("x", "0")
-            y = frame_elem.get("y", "0")
-            w = frame_elem.get("width", "453")
-            h = frame_elem.get("height", "261")
-            tab_view["NSFrame"] = NibString.intern(f"{{{{{x}, {y}}}, {{{w}, {h}}}}}")
+            from .parsers.helpers import frame_string as _frame_string
+            x = int(float(frame_elem.get("x", "0")))
+            y_f = float(frame_elem.get("y", "0"))
+            y = int(y_f) if y_f == int(y_f) else y_f
+            w = int(frame_elem.get("width", "453"))
+            h = int(frame_elem.get("height", "261"))
+            tab_view["NSFrame"] = _frame_string(x, y, w, h)
 
     tab_vc["NSTabView"] = tab_view
 
@@ -681,9 +683,8 @@ def _build_tab_view_controller_for_wc(ctx, vc_elem, scenes, parent,
         img_name = tab_item_elem.get("image")
         img_obj = None
         if img_name:
-            img_obj = NibObject("NSCustomResource")
-            img_obj["NSClassName"] = NibString.intern("NSImage")
-            img_obj["NSResourceName"] = NibString.intern(img_name)
+            from .parsers.helpers import make_image
+            img_obj = make_image(img_name, tab_item, ctx)
             tab_item["NSImage"] = img_obj
 
         # Outlet: tab item -> child swapper (viewController)
