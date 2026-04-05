@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.Cocoa.Storyboard.XIB" version="3.0" toolsVersion="22505" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" initialViewController="wc1-00-040">
+    <dependencies>
+        <deployment identifier="macosx"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="22505"/>
+    </dependencies>
+    <scenes>
+        <scene sceneID="sc1-00-040">
+            <objects>
+                <application id="app-00-040" sceneMemberID="viewController">
+                    <menu key="mainMenu" title="Main Menu" systemMenu="main" id="mm1-00-040">
+                        <items>
+                            <menuItem title="Quit" keyEquivalent="q" id="mi1-00-040">
+                                <connections>
+                                    <action selector="terminate:" target="fr1-00-040" id="cn1-00-040"/>
+                                </connections>
+                            </menuItem>
+                        </items>
+                    </menu>
+                </application>
+                <customObject id="fr1-00-040" userLabel="First Responder" customClass="NSResponder" sceneMemberID="firstResponder"/>
+            </objects>
+        </scene>
+        <scene sceneID="sc2-00-040">
+            <objects>
+                <windowController id="wc1-00-040" sceneMemberID="viewController">
+                    <window key="window" title="ImageCell" allowsToolTipsWhenApplicationIsInactive="NO" autorecalculatesKeyViewLoop="NO" releasedWhenClosed="NO" visibleAtLaunch="NO" animationBehavior="default" id="win-00-040">
+                        <windowStyleMask key="styleMask" titled="YES" closable="YES"/>
+                        <rect key="contentRect" x="200" y="200" width="200" height="150"/>
+                        <rect key="screenRect" x="0.0" y="0.0" width="1920" height="1080"/>
+                    </window>
+                    <connections>
+                        <segue destination="vc1-00-040" kind="relationship" relationship="window.shadowedContentViewController" id="sg1-00-040"/>
+                    </connections>
+                </windowController>
+                <customObject id="fr2-00-040" userLabel="First Responder" customClass="NSResponder" sceneMemberID="firstResponder"/>
+            </objects>
+        </scene>
+        <scene sceneID="sc3-00-040">
+            <objects>
+                <viewController id="vc1-00-040" customClass="ImageCellVC" sceneMemberID="viewController">
+                    <view key="view" id="vw1-00-040">
+                        <rect key="frame" x="0.0" y="0.0" width="200" height="150"/>
+                        <autoresizingMask key="autoresizingMask"/>
+                        <subviews>
+                            <imageView horizontalHuggingPriority="251" verticalHuggingPriority="251" translatesAutoresizingMaskIntoConstraints="NO" id="iv1-00-040">
+                                <rect key="frame" x="20" y="100" width="21" height="14"/>
+                                <imageCell key="cell" refusesFirstResponder="YES" alignment="left" imageScaling="proportionallyDown" image="NSTrashEmpty" id="ic1-00-040"/>
+                            </imageView>
+                        </subviews>
+                    </view>
+                </viewController>
+                <customObject id="fr3-00-040" userLabel="First Responder" customClass="NSResponder" sceneMemberID="firstResponder"/>
+            </objects>
+        </scene>
+    </scenes>
+    <resources>
+        <image name="NSTrashEmpty" width="16" height="16"/>
+    </resources>
+</document>
