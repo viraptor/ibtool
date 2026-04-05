@@ -17,7 +17,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
         obj["NSFrameSize"] = NibString.intern(f"{{{w}, {h}}}")
     else:
         obj["NSFrame"] = NibString.intern(f"{{{{{x}, {y}}}, {{{w}, {h}}}}}")
-    obj["NSAllowsLogicalLayoutDirection"] = False
+    obj["NSAllowsLogicalLayoutDirection"] = ctx.isBaseLocalization
     obj["NSEnabled"] = True
     obj["NSControlSendActionMask"] = 4
     obj["NSControlUsesSingleLineMode"] = obj.extraContext.get("usesSingleLineMode", False)

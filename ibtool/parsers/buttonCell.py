@@ -1,4 +1,4 @@
-from ..models import ArchiveContext, NibObject, XibObject, NibString, NibNil, NibDictionary, NibNSNumber
+from ..models import ArchiveContext, NibObject, XibObject, NibString, NibNil, NibDictionary, NibNSNumber, NibLocalizableString
 from xml.etree.ElementTree import Element
 from ..parsers_base import parse_children
 from .helpers import __xibparser_button_flags, __xibparser_cell_options, __xibparser_cell_flags
@@ -11,7 +11,10 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
     ctx.extraNibObjects.append(obj)
 
     parse_children(ctx, elem, obj)
-    if title := elem.attrib.get("title"):
+    title = elem.attrib.get("title", "")
+    if ctx.isBaseLocalization:
+        obj["NSContents"] = NibLocalizableString(title, key=f"{elem.attrib.get('id', '')}.title")
+    elif title:
         obj["NSContents"] = title
     else:
         obj["NSContents"] = NibString.intern('')

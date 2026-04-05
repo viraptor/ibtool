@@ -377,6 +377,7 @@ class ArchiveContext:
         self.bindingConnectors: dict[str, NibObject] = {}
 
         self.deployment = False
+        self.isBaseLocalization = False
 
         # We need the list of constraints to be able to set the NSDoNotTranslateAutoresizingMask prop correctly
         self.constraints: list[XibObject] = []
@@ -418,6 +419,7 @@ class ArchiveContext:
     def nested_context(self) -> 'ArchiveContext':
         ctx = ArchiveContext(self.useAutolayout, self.customObjectInstantitationMethod, self.toolsVersion, module=self.module)
         ctx.parentContext = self
+        ctx.isBaseLocalization = self.isBaseLocalization
         return ctx
 
     def contextForSegues(self) -> 'ArchiveContext':

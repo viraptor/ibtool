@@ -1,4 +1,4 @@
-from ..models import ArchiveContext, NibObject, NibMutableList, XibObject, NibNil, NibString
+from ..models import ArchiveContext, NibObject, NibMutableList, XibObject, NibNil, NibString, NibLocalizableString
 from xml.etree.ElementTree import Element
 from typing import Optional
 from .helpers import make_xib_object, parse_interfacebuilder_properties, __handle_view_chain, _xibparser_common_view_attributes, _xibparser_common_translate_autoresizing
@@ -186,7 +186,11 @@ def _parse_tab_view_item(ctx, elem, tab_view):
     if obj.xibid:
         ctx.addObject(obj.xibid, obj)
 
-    obj["NSLabel"] = NibString.intern(elem.attrib.get("label", ""))
+    label = elem.attrib.get("label", "")
+    if ctx.isBaseLocalization and label:
+        obj["NSLabel"] = NibLocalizableString(label, key=f"{elem.attrib.get('id', '')}.label")
+    else:
+        obj["NSLabel"] = NibString.intern(label)
     obj["NSTabView"] = tab_view
     identifier = elem.attrib.get("identifier", "")
     if identifier:

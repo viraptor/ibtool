@@ -22,7 +22,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
     obj["NSEnabled"] = True
     obj.setIfEmpty("NSCell", NibNil())
     obj["NSAllowsWritingTools"] = True
-    obj["NSAllowsLogicalLayoutDirection"] = False
+    obj["NSAllowsLogicalLayoutDirection"] = ctx.isBaseLocalization
     obj.setIfEmpty("NSControlRefusesFirstResponder", elem.attrib.get("refusesFirstResponder", "NO") == "YES")
     obj["NSControlUsesSingleLineMode"] = obj.extraContext.get("usesSingleLineMode", False)
     obj.setIfEmpty("NSControlLineBreakMode", 0)

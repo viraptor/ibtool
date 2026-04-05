@@ -94,7 +94,7 @@ def main():
     if len(sys.argv) > 1:
         xibs = sys.argv[1:]
     else:
-        xibs = sorted(glob.glob("samples/correct/*.xib") + glob.glob("samples/correct/*.storyboard"))
+        xibs = sorted(glob.glob("samples/correct/*.xib") + glob.glob("samples/correct/*.storyboard") + glob.glob("samples/correct/Base.lproj/*.storyboard"))
 
     workers = int(os.environ.get("IBTOOL_TEST_WORKERS", 8))
 

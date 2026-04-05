@@ -9,6 +9,10 @@ from . import ibdump
 from . import xibparser
 
 
+def _is_base_localization(path):
+    return "/Base.lproj/" in os.path.abspath(path)
+
+
 def ib_compile(inpath, outpath, module=None):
     suffix = None
     if inpath.endswith(".xib"):
@@ -28,7 +32,7 @@ def ib_compile(inpath, outpath, module=None):
 def ib_compile_xib(inpath, outpath, module=None):
     tree = ET.parse(inpath)
     root = tree.getroot()
-    context, nibroot = xibparser.ParseXIBObjects(root, module=module)
+    context, nibroot = xibparser.ParseXIBObjects(root, module=module, isBaseLocalization=_is_base_localization(inpath))
     outbytes = genlib.CompileNibObjects([nibroot])
 
     if context.deployment:
@@ -42,4 +46,4 @@ def ib_compile_xib(inpath, outpath, module=None):
 
 def ib_compile_storyboard(inpath, outpath, module=None):
     tree = ET.parse(inpath)
-    xibparser.CompileStoryboard(tree, outpath, module=module)
+    xibparser.CompileStoryboard(tree, outpath, module=module, isBaseLocalization=_is_base_localization(inpath))

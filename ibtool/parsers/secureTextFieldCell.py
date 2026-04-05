@@ -1,4 +1,4 @@
-from ..models import ArchiveContext, NibObject, XibObject, NibString, NibNil
+from ..models import ArchiveContext, NibObject, XibObject, NibString, NibNil, NibLocalizableString
 from xml.etree.ElementTree import Element
 from .helpers import __xibparser_cell_flags, __xibparser_cell_options, handle_props, PropSchema, MAP_YES_NO
 from ..parsers_base import parse_children
@@ -11,6 +11,9 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
         PropSchema(prop="NSContents", attrib="title", default="", filter=NibString.intern, skip_default=False),
         PropSchema(prop="NSTextBezelStyle", attrib="bezelStyle", default="default_placeholder", map={"default_placeholder": 0, "round": 1}, skip_default=True),
     ])
+    if ctx.isBaseLocalization:
+        title = elem.attrib.get("title", "")
+        obj["NSContents"] = NibLocalizableString(title, key=f"{elem.attrib.get('id', '')}.title")
 
     key = elem.attrib.get("key")
     if key == "cell":

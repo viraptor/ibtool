@@ -12,7 +12,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
         parse_children(ctx, elem, obj)
     _xibparser_common_translate_autoresizing(ctx, elem, parent, obj)
     obj["IBNSShadowedSymbolConfiguration"] = NibNil()
-    obj["NSAllowsLogicalLayoutDirection"] = False
+    obj["NSAllowsLogicalLayoutDirection"] = ctx.isBaseLocalization
     obj["NSControlContinuous"] = False
     obj["NSControlUsesSingleLineMode"] = False
     obj["NSDragTypes"] = default_drag_types()

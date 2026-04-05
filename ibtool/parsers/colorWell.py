@@ -12,7 +12,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     obj["NSNextResponder"] = obj.xib_parent()
     obj.setIfEmpty("NSFrame", NibNil())
     obj["NSEnabled"] = True
-    obj["NSAllowsLogicalLayoutDirection"] = False
+    obj["NSAllowsLogicalLayoutDirection"] = ctx.isBaseLocalization
     obj["NSControlContinuous"] = False
     obj["NSControlRefusesFirstResponder"] = elem.attrib.get("refusesFirstResponder", "NO") == "YES"
     obj["NSControlUsesSingleLineMode"] = False

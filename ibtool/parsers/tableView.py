@@ -67,7 +67,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     if obj.get("NSNextKeyView") is not None:
         del obj["NSNextKeyView"]
 
-    obj["NSAllowsLogicalLayoutDirection"] = False
+    obj["NSAllowsLogicalLayoutDirection"] = ctx.isBaseLocalization
     cas_str = elem.attrib.get("columnAutoresizingStyle")
     cas_val = COLUMN_AUTORESIZE_STYLE_MAP.get(cas_str, 1)  # default is uniform (1)
     obj["NSColumnAutoresizingStyle"] = cas_val

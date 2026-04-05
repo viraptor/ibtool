@@ -1,4 +1,4 @@
-from ..models import ArchiveContext, NibObject, XibObject, NibNil, NibString, NibMutableList
+from ..models import ArchiveContext, NibObject, XibObject, NibNil, NibString, NibMutableList, NibLocalizableString
 from xml.etree.ElementTree import Element
 from .helpers import make_xib_object
 from ..parsers_base import parse_children
@@ -16,7 +16,11 @@ SYSTEM_MENUS = {
 def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
     obj = make_xib_object(ctx, "NSMenu", elem, parent, view_attributes=False)
     parse_children(ctx, elem, obj)
-    obj["NSTitle"] = NibString.intern(elem.attrib.get("title", ""))
+    title = elem.attrib.get("title", "")
+    if ctx.isBaseLocalization and title:
+        obj["NSTitle"] = NibLocalizableString(title, key=f"{elem.attrib.get('id', '')}.title")
+    else:
+        obj["NSTitle"] = NibString.intern(title)
     if elem.attrib.get("key") == "submenu":
         parent["NSAction"] = NibString.intern("submenuAction:")
         obj.setIfEmpty("NSMenuItems", NibMutableList())
