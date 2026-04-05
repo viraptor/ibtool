@@ -387,12 +387,13 @@ def fixup_layout_constrints(collection, all_objects):
     def constraint_sort_key(obj):
         def _item_key(item):
             if item is None:
-                return ("", b"", -1)
+                return ("", b"", -1, "")
             frame = item.entries.get("NSFrame")
             frame_bytes = frame.entries.get("NS.bytes").value if frame is not None and hasattr(frame, "entries") and frame.entries.get("NS.bytes") is not None else b""
             tag = item.entries.get("NSTag")
             tag_val = tag.value if tag is not None and hasattr(tag, "value") else -1
-            return (item.classname, frame_bytes, tag_val)
+            content = _sv_child_sort_key(item)[1] if hasattr(item, 'entries') else ""
+            return (item.classname, content, tag_val, frame_bytes)
         first = obj.entries.get("NSFirstAttribute").value if obj.entries.get("NSFirstAttribute") is not None else -1
         firstv2 = obj.entries.get("NSFirstAttributeV2").value if obj.entries.get("NSFirstAttributeV2") is not None else -1
         second = obj.entries.get("NSSecondAttribute").value if obj.entries.get("NSSecondAttribute") is not None else -1
