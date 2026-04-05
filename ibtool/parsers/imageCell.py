@@ -3,6 +3,7 @@ from xml.etree.ElementTree import Element
 from typing import Optional
 from .helpers import __xibparser_cell_options, __xibparser_cell_flags, make_image
 from ..parsers_base import parse_children
+from ..constants import CellFlags
 
 IMAGECELL_CELLFLAGS_THRESHOLD = 2494
 
@@ -94,7 +95,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     if key == "cell":
         __xibparser_cell_options(elem, obj, parent)
         if ctx.toolsVersion <= IMAGECELL_CELLFLAGS_THRESHOLD:
-            obj.flagsOr("NSCellFlags", 0x8000000)
+            obj.flagsOr("NSCellFlags", CellFlags.TYPE_IMAGE_CELL)
 
         alignment_value = {None: 4, "left": 0, "center": 1, "right": 2}[elem.attrib.get("alignment")]
         obj["NSAlign"] = alignment_value
@@ -117,8 +118,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     elif key == "dataCell":
         __xibparser_cell_flags(elem, obj, parent)
         if obj.get("NSSupport") is not None:
-            from ..constants import CellFlags
-            obj.flagsOr("NSCellFlags", CellFlags.UNKNOWN_TEXT_FIELD)
+            obj.flagsOr("NSCellFlags", CellFlags.TYPE_TEXT_CELL)
 
         image_alignment = elem.attrib.get("imageAlignment")
         IMAGE_ALIGNMENT_MAP = {

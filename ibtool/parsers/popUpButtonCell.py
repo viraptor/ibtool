@@ -99,14 +99,14 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
         else:
             obj["NSArrowPosition"] = ARROW_POSITION_MAP[arrow_pos]
 
-    # Popup button cells use ROLE_TITLE_BAR_FONT for their font (only for default controlSize
+    # Popup button cells use the message font role (only for default controlSize
     # and system fonts, not explicitly named fonts)
     font = obj.get("NSSupport")
     if font is not None and elem.attrib.get("controlSize") is None:
         font_name = font.get("NSName")
         is_system_font = font_name is not None and hasattr(font_name, '_text') and font_name._text.startswith(".")
         if is_system_font:
-            font["NSfFlags"] = to_flags_val(FontFlags.ROLE_TITLE_BAR_FONT.value)
+            font["NSfFlags"] = to_flags_val(FontFlags.ROLE_MESSAGE_FONT.value)
 
     obj["NSMenuItemRespectAlignment"] = True
 

@@ -51,7 +51,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
         else:
             obj["NSvFlags"] = vFlags.AUTORESIZES_SUBVIEWS
     if elem.attrib.get("copiesOnScroll", "YES") == "NO":
-        obj.flagsOr("NScvFlags", 0x2)
+        obj.flagsOr("NScvFlags", cvFlags.NOT_COPIES_ON_SCROLL)
     if is_main_view:
         obj.flagsOr("NScvFlags", cvFlags.DRAW_BACKGROUND)
     elif elem.attrib.get("drawsBackground", "YES" if ctx.toolsVersion >= 14269 else "NO") == "YES":

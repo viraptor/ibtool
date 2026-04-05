@@ -1,5 +1,6 @@
 from ..models import ArchiveContext, NibObject, XibObject, XibId, NibString, NibMutableDictionary, NibNSNumber
 from xml.etree.ElementTree import Element
+from ..constants import CellFlags2
 import ctypes
 import ctypes.util
 import sys
@@ -171,5 +172,5 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
 
     parent["NSFormatter"] = obj
     if parent.extraContext.get("key") == "cell":
-        flags2 = (parent.get("NSCellFlags2") or 0) | 0x80000000
+        flags2 = (parent.get("NSCellFlags2") or 0) | CellFlags2.SELECTABLE
         parent["NSCellFlags2"] = flags2 - 0x100000000 if flags2 >= 0x80000000 else flags2

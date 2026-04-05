@@ -87,6 +87,44 @@ def default_pan_recognizer(scrollView: XibObject) -> NibObject:
     return obj
 
 @dataclass
+class ScrollLayout:
+    """Single source of truth for scroll view geometry.
+
+    vs_active / hs_active: scroller takes up layout space (not hidden, not offscreen, not autohiding)
+    vs_w / hs_h: effective scroller dimension used for layout reduction
+    """
+    sv_w: int
+    sv_h: int
+    border: int
+    vs_active: bool
+    vs_w: int
+    hs_active: bool
+    hs_h: int
+    header_h: int
+
+    @property
+    def inner_w(self): return self.sv_w - 2 * self.border
+    @property
+    def inner_h(self): return self.sv_h - 2 * self.border
+    @property
+    def clip_w(self): return self.inner_w - (self.vs_w if self.vs_active else 0)
+    @property
+    def clip_h(self): return self.inner_h - self.header_h - (self.hs_h if self.hs_active else 0)
+
+    def clip_frame(self):
+        return (self.border, self.border + self.header_h, self.clip_w, self.clip_h)
+    def vs_frame(self):
+        return (self.border + self.inner_w - self.vs_w, self.border + self.header_h,
+                self.vs_w, self.inner_h - self.header_h)
+    def hs_frame(self):
+        return (self.border, self.border + self.inner_h - self.hs_h, self.inner_w, self.hs_h)
+    def header_clip_frame(self):
+        return (self.border, self.border, self.clip_w, self.header_h)
+    def corner_frame(self):
+        return (self.border + self.inner_w - self.vs_w, self.border, self.vs_w, self.header_h)
+
+
+@dataclass
 class _SVState:
     """Computed geometry state for scroll view post-processing."""
     obj: Any
@@ -114,6 +152,7 @@ class _SVState:
     cv_already_accounts_for_scroller: bool
     small_scroller_should_expand: bool
     border_col_reduced: bool = False
+    layout: 'ScrollLayout' = field(default=None)
 
 def _rewrite_nib_frame(obj):
     """Recompute frame via frame() and write to NIB property (not extraContext)."""
@@ -198,6 +237,19 @@ def _init_sv_state(obj, auto_hiding, has_horizontal_scroller, uses_predominant_a
                                      and not auto_hiding and not parent_uses_autolayout
                                      and _is_table_or_outline(cv.get("NSDocView") if cv else None))
 
+    vs_active = not auto_hiding and not vs_offscreen and not vs_hidden
+    hs_active = not auto_hiding and not hs_offscreen and not hs_hidden
+    effective_vs_w = vs_standard_w if (is_table_dv and vs_standard_w != 17) else 17
+    hs_standard_w = hs.extraContext.get("standard_scroller_width", 17)
+    effective_hs_h = hs_standard_w if (is_table_dv and hs_standard_w != 17) else 17
+    header_h = _get_header_h(obj)
+    layout = ScrollLayout(
+        sv_w=sv_w_raw, sv_h=sv_h, border=border,
+        vs_active=vs_active, vs_w=effective_vs_w,
+        hs_active=hs_active, hs_h=effective_hs_h,
+        header_h=header_h,
+    )
+
     return _SVState(
         obj=obj, cv=cv, doc_view=doc_view,
         sv_w=sv_w_raw, sv_h=sv_h, border=border, insets=insets,
@@ -215,6 +267,7 @@ def _init_sv_state(obj, auto_hiding, has_horizontal_scroller, uses_predominant_a
         sv_w_raw=sv_w_raw,
         cv_already_accounts_for_scroller=cv_already_accounts_for_scroller,
         small_scroller_should_expand=small_scroller_should_expand,
+        layout=layout,
     )
 
 def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> XibObject:
@@ -282,17 +335,17 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     with __handle_view_chain(ctx, obj):
         parse_children(ctx, elem, obj)
 
-    # GRID_STYLE_BIT1 for table/outline scroll views when usesPredominantAxisScrolling or hasHorizontalScroller is active
+    # GRID_STYLE_SOLID for table/outline scroll views when usesPredominantAxisScrolling or hasHorizontalScroller is active
     if uses_predominant_axis_scrolling or has_horizontal_scroller:
         content_cv = obj.get("NSContentView")
         if content_cv:
             dv = content_cv.get("NSDocView")
             if _is_table_or_outline(dv):
-                dv.flagsOr("NSTvFlags", TVFLAGS.GRID_STYLE_BIT1)
+                dv.flagsOr("NSTvFlags", TVFLAGS.GRID_STYLE_SOLID)
 
     if not obj.extraContext.get("parsed_autoresizing"):
         obj.flagsOr("NSvFlags", vFlags.DEFAULT_VFLAGS_AUTOLAYOUT if ctx.useAutolayout else vFlags.DEFAULT_VFLAGS)
-    focus_ring = {"none": 0x1000, "exterior": 0x2000}.get(obj.extraContext.get("focusRingType"), 0)
+    focus_ring = {"none": vFlags.FOCUS_RING_NONE, "exterior": vFlags.FOCUS_RING_EXTERIOR}.get(obj.extraContext.get("focusRingType"), 0)
     if focus_ring:
         obj.flagsOr("NSvFlags", focus_ring)
     obj["NSGestureRecognizers"] = NibList([default_pan_recognizer(obj)])
@@ -302,44 +355,46 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     obj["NSSubviews"] = NibMutableList([])
     obj["NSSubviews"].addItem(obj["NSContentView"])
     st = _init_sv_state(obj, auto_hiding, has_horizontal_scroller, uses_predominant_axis_scrolling)
+    layout = st.layout
+    border = st.border
+    cv = st.cv
+    doc_view = st.doc_view
     vs_offscreen = st.vs_offscreen
+    vs_hidden = st.vs_hidden
     vs_standard_w = st.vs_standard_w
     vs_frame_w = st.vs_frame_w
     is_regular_scroller = st.is_regular_scroller
     is_small_offscreen = st.is_small_offscreen
     hs_offscreen = st.hs_offscreen
-    vs_hidden = st.vs_hidden
     hs_hidden = st.hs_hidden
-    content_cv_tmp = st.cv
-    dv_tmp = st.doc_view
-    is_table_dv = st.is_table_dv
     hs_h_for_table = st.hs_h_for_table
+    is_table_dv = st.is_table_dv
     sv_w_raw = st.sv_w_raw
+    sv_h = st.sv_h
+    cv_already_accounts_for_scroller = st.cv_already_accounts_for_scroller
+    small_scroller_should_expand = st.small_scroller_should_expand
 
     # Note: autohiding scroll views with hidden HScroller do not reduce clip height.
 
     # Post-processing: reduce clip view scrollview_size for visible scrollers
-    is_textview_dv = dv_tmp is not None and dv_tmp.originalclassname() == "NSTextView"
-    if not auto_hiding and content_cv_tmp and not is_textview_dv:
-        sv_size = content_cv_tmp.extraContext.get("scrollview_size")
+    is_textview_dv = doc_view is not None and doc_view.originalclassname() == "NSTextView"
+    if not auto_hiding and cv and not is_textview_dv:
+        sv_size = cv.extraContext.get("scrollview_size")
         if sv_size:
             new_w, new_h = sv_size
-            if not vs_offscreen and not vs_hidden:
-                vs_reduction = vs_standard_w if (vs_standard_w != 17 and is_table_dv) else 17
-                new_w -= vs_reduction
-            if not hs_offscreen and not hs_hidden:
-                hs_standard_w = obj["NSHScroller"].extraContext.get("standard_scroller_width", 17)
-                hs_reduction = hs_standard_w if (hs_standard_w != 17 and is_table_dv) else 17
-                new_h -= hs_reduction
+            if layout.vs_active:
+                new_w -= layout.vs_w
+            if layout.hs_active:
+                new_h -= layout.hs_h
             if (new_w, new_h) != sv_size:
-                content_cv_tmp.extraContext["scrollview_size"] = (new_w, new_h)
-                _rewrite_nib_frame(content_cv_tmp)
-                if dv_tmp and not is_table_dv:
-                    dv_frame = dv_tmp.frame()
+                cv.extraContext["scrollview_size"] = (new_w, new_h)
+                _rewrite_nib_frame(cv)
+                if doc_view and not is_table_dv:
+                    dv_frame = doc_view.frame()
                     if dv_frame:
-                        dv_tmp["NSFrameSize"] = size_string(dv_frame[2], dv_frame[3])
-                        dv_tmp.extraContext["_has_computed_size"] = True
-                        for child_obj in (dv_tmp.get("NSSubviews") or []):
+                        doc_view["NSFrameSize"] = size_string(dv_frame[2], dv_frame[3])
+                        doc_view.extraContext["_has_computed_size"] = True
+                        for child_obj in (doc_view.get("NSSubviews") or []):
                             if hasattr(child_obj, 'frame') and hasattr(child_obj, 'extraContext'):
                                 _rewrite_nib_frame(child_obj)
 
@@ -360,24 +415,18 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
             header_h = _get_header_h(obj) or 23
             cv["NSBounds"] = frame_string(0, -header_h, cv_w, cv_h)
 
-    content_cv = st.cv
-    cv_already_accounts_for_scroller = st.cv_already_accounts_for_scroller
-    small_scroller_should_expand = st.small_scroller_should_expand
-    cv_raw = content_cv.raw_frame() if content_cv else None
-    if not small_scroller_should_expand and not vs_offscreen and not is_regular_scroller and cv_already_accounts_for_scroller and content_cv:
-        content_cv["NSFrame"] = frame_string(*cv_raw)
+    cv_raw = cv.raw_frame() if cv else None
+    if not small_scroller_should_expand and not vs_offscreen and not is_regular_scroller and cv_already_accounts_for_scroller and cv:
+        cv["NSFrame"] = frame_string(*cv_raw)
 
-    border = st.border
-    cv = st.cv
     cv_frame = cv.extraContext.get("NSFrame")
     clip_y = cv_frame[1] if cv_frame and len(cv_frame) == 4 else border
     border_deficit = border - clip_y
-    doc_view = st.doc_view
     border_col_reduced = False
     if border_deficit > 0 and _is_table_or_outline(doc_view):
         if doc_view.get("NSGridStyleMask"):
-            doc_view.flagsAnd("NSTvFlags", ~TVFLAGS.GRID_STYLE_BIT0)
-            doc_view.flagsOr("NSTvFlags", TVFLAGS.GRID_STYLE_BIT1)
+            doc_view.flagsAnd("NSTvFlags", ~TVFLAGS.GRID_STYLE_DASHED)
+            doc_view.flagsOr("NSTvFlags", TVFLAGS.GRID_STYLE_SOLID)
             _reduce_column_widths(doc_view, _get_ics_w(doc_view) * 3)
             border_col_reduced = True
         elif auto_hiding and obj.get("NSHeaderClipView") is not None and not is_small_offscreen:
@@ -385,8 +434,8 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
             _reduce_column_widths(doc_view, reduction)
             border_col_reduced = True
     elif border > 0 and _is_table_or_outline(doc_view) and not obj.get("NSHeaderClipView") and (vs_offscreen or (auto_hiding and is_regular_scroller and has_horizontal_scroller)):
-        doc_view.flagsAnd("NSTvFlags", ~TVFLAGS.GRID_STYLE_BIT0)
-        doc_view.flagsOr("NSTvFlags", TVFLAGS.GRID_STYLE_BIT1)
+        doc_view.flagsAnd("NSTvFlags", ~TVFLAGS.GRID_STYLE_DASHED)
+        doc_view.flagsOr("NSTvFlags", TVFLAGS.GRID_STYLE_SOLID)
         _reduce_column_widths(doc_view, _get_ics_w(doc_view) * 3)
         border_col_reduced = True
     # Autohiding scroll views without headers: reduce column widths when VScroller is not offscreen
@@ -422,8 +471,8 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
             total_content = sum_cols + n_cols * ics_w
             target_sum = clip_computed_w - (n_cols + 3) * ics_w
             if total_content > clip_computed_w - ics_w * 3 - vs_standard_w:
-                doc_view.flagsAnd("NSTvFlags", ~TVFLAGS.GRID_STYLE_BIT0)
-                doc_view.flagsOr("NSTvFlags", TVFLAGS.GRID_STYLE_BIT1)
+                doc_view.flagsAnd("NSTvFlags", ~TVFLAGS.GRID_STYLE_DASHED)
+                doc_view.flagsOr("NSTvFlags", TVFLAGS.GRID_STYLE_SOLID)
                 col_change = int(target_sum - sum_cols)
                 if col_change > 0:
                     _reduce_column_widths(doc_view, -col_change)
@@ -503,7 +552,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
                 doc_view.extraContext["_nohs_expansion"] = expansion
                 obj["NSHScroller"]["NSEnabled"] = True
                 obj.flagsOr("NSsFlags", sFlagsScrollView.COPY_ON_SCROLL)
-                doc_view.flagsOr("NSTvFlags", TVFLAGS.GRID_STYLE_BIT1)
+                doc_view.flagsOr("NSTvFlags", TVFLAGS.GRID_STYLE_SOLID)
 
     # Horizontal scroller gets NSEnabled for table/outline scroll views (regular size, not autohiding)
     is_table_sv = _is_table_or_outline(doc_view)
@@ -530,11 +579,10 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     if is_table_sv and vs_offscreen and not is_regular_scroller and auto_hiding:
         hs_vflags = obj["NSHScroller"].get("NSvFlags")
         hs_is_hidden = (hs_vflags or 0) & vFlags.HIDDEN
-        border_sm = st.border
         sv_raw = obj.raw_frame()
         if sv_raw:
             sv_w_sm, sv_h_sm = sv_raw[2], sv_raw[3]
-            clip_w_sm = int(sv_w_sm - 2 * border_sm)
+            clip_w_sm = int(sv_w_sm - 2 * border)
             ics_w = _get_ics_w(doc_view)
             hs_raw = obj["NSHScroller"].raw_frame()
             hs_frame_h = hs_raw[3] if hs_raw else 14
@@ -560,7 +608,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
                                     new_h = visible_h
                     doc_view["NSFrameSize"] = size_string(new_w, new_h)
                 _set_header_view_width(obj, new_w)
-                _setup_hscroller_frame(obj, border_sm, sv_h_sm, clip_w_sm)
+                _setup_hscroller_frame(obj, border, sv_h_sm, clip_w_sm)
                 obj["NSHScroller"]["NSPercent"] = clip_w_sm / new_w
                 if has_horizontal_scroller:
                     obj.flagsOr("NSsFlags", sFlagsScrollView.COPY_ON_SCROLL)
@@ -569,7 +617,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
                 if dv_raw:
                     doc_view["NSFrameSize"] = size_string(natural_w, dv_raw[3])
                 _set_header_view_width(obj, natural_w)
-                _setup_hscroller_frame(obj, border_sm, sv_h_sm, clip_w_sm)
+                _setup_hscroller_frame(obj, border, sv_h_sm, clip_w_sm)
                 obj["NSHScroller"]["NSPercent"] = clip_w_sm / natural_w
                 obj.flagsOr("NSsFlags", sFlagsScrollView.COPY_ON_SCROLL)
             elif not hs_is_hidden:
@@ -579,18 +627,17 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
                 if dv_raw:
                     doc_view["NSFrameSize"] = size_string(clip_w_sm, dv_raw[3])
                 _set_header_view_width(obj, clip_w_sm)
-                doc_view.flagsAnd("NSTvFlags", ~TVFLAGS.GRID_STYLE_BIT1)
+                doc_view.flagsAnd("NSTvFlags", ~TVFLAGS.GRID_STYLE_SOLID)
                 obj["NSHScroller"].flagsOr("NSvFlags", vFlags.HIDDEN)
 
     # Small scroller handling for table/outline scroll views with offscreen VScroller (non-autohiding)
     if is_table_sv and vs_offscreen and not is_regular_scroller and not auto_hiding:
         hs_vflags = obj["NSHScroller"].get("NSvFlags")
         hs_is_hidden = (hs_vflags or 0) & vFlags.HIDDEN
-        border_sm = st.border
         sv_raw = obj.raw_frame()
         if sv_raw:
             sv_w_sm, sv_h_sm = sv_raw[2], sv_raw[3]
-            clip_w_sm = int(sv_w_sm - 2 * border_sm)
+            clip_w_sm = int(sv_w_sm - 2 * border)
             if hs_is_hidden:
                 expansion = 20
                 dv_raw = doc_view.raw_frame()
@@ -600,7 +647,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
                     hv_raw = obj.get("NSHeaderClipView").get("NSDocView").raw_frame()
                     if hv_raw:
                         obj.get("NSHeaderClipView").get("NSDocView")["NSFrameSize"] = size_string(hv_raw[2] + expansion, hv_raw[3])
-                _setup_hscroller_frame(obj, border_sm, sv_h_sm, clip_w_sm)
+                _setup_hscroller_frame(obj, border, sv_h_sm, clip_w_sm)
                 dv_frame_str = doc_view.get("NSFrameSize")
                 if dv_frame_str:
                     m = re.match(r'\{(\d+),', dv_frame_str._text)
@@ -615,7 +662,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
                     doc_view["NSFrameSize"] = size_string(clip_w_sm, dv_raw[3])
                 _set_header_view_width(obj, clip_w_sm)
                 obj.flagsAnd("NSsFlags", ~sFlagsScrollView.COPY_ON_SCROLL)
-                doc_view.flagsAnd("NSTvFlags", ~TVFLAGS.GRID_STYLE_BIT1)
+                doc_view.flagsAnd("NSTvFlags", ~TVFLAGS.GRID_STYLE_SOLID)
                 obj["NSHScroller"].flagsOr("NSvFlags", vFlags.HIDDEN)
 
     obj["NSSubviews"].addItem(obj["NSHScroller"])
@@ -624,18 +671,16 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     if is_table_sv:
         corner_view = doc_view.get("NSCornerView")
         if corner_view:
-            border_cv = st.border
-            sv_w_cv = st.sv_w
             if auto_hiding:
                 corner_view["NSvFlags"] = 0x100 | vFlags.HIDDEN
             elif not vs_offscreen:
                 header_h_cv = _get_header_h(obj)
                 corner_h = header_h_cv if has_header else 28
                 corner_w = 18
-                corner_x = int(sv_w_cv) - corner_w
+                corner_x = int(sv_w_raw) - corner_w
                 if "NSFrameSize" in corner_view.properties:
                     del corner_view.properties["NSFrameSize"]
-                corner_view["NSFrame"] = frame_string(corner_x, border_cv, corner_w, corner_h)
+                corner_view["NSFrame"] = frame_string(corner_x, border, corner_w, corner_h)
             if has_header:
                 corner_view["NSSuperview"] = obj
                 corner_view["NSNextResponder"] = obj
@@ -668,22 +713,15 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     hs_orig_raw = obj["NSHScroller"].raw_frame()
     hs_offscreen = hs_orig_raw is not None and hs_orig_raw[0] < 0
     if not vs_offscreen and is_table_sv and (is_regular_scroller or small_scroller_should_expand or not cv_already_accounts_for_scroller):
-        border = st.border
-        sv_w, sv_h = st.sv_w, st.sv_h
-        vs_w = vs_standard_w
-        hs_h = 17
         header_h = _get_header_h(obj)
         if not auto_hiding:
-            vs_x = sv_w - border - vs_w
-            vs_y = border + header_h
-            vs_h_val = sv_h - 2 * border - header_h
-            obj["NSVScroller"]["NSFrame"] = frame_string(vs_x, vs_y, vs_w, vs_h_val)
+            obj["NSVScroller"]["NSFrame"] = frame_string(*layout.vs_frame())
             obj["NSVScroller"].flagsAnd("NSvFlags", ~vFlags.HIDDEN)
         elastic_h = doc_view.extraContext.get("elastic_row_height")
         if auto_hiding and elastic_h is not None:
-            visible_h = sv_h - 2 * border - header_h
+            visible_h = layout.inner_h - header_h
             if elastic_h > visible_h:
-                clip_h = sv_h - 2 * border - hs_h_for_table
+                clip_h = layout.sv_h - 2 * layout.border - hs_h_for_table
                 obj["NSVScroller"]["NSEnabled"] = True
                 obj["NSVScroller"]["NSPercent"] = clip_h / (elastic_h + header_h)
                 vline_f32 = struct.pack(">f", float(doc_view.get("NSRowHeight") or 0))
@@ -691,24 +729,18 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
                 byte1_ceil = (byte1 + 0x0F) & 0xF0
                 obj.flagsOr("NSsFlags", (byte1_ceil << 8) | 0x40)
         if not hs_offscreen and has_horizontal_scroller:
-            hs_x = border
-            hs_y = sv_h - border - hs_h
-            hs_w = sv_w - 2 * border
-            obj["NSHScroller"]["NSFrame"] = frame_string(hs_x, hs_y, hs_w, hs_h)
+            obj["NSHScroller"]["NSFrame"] = frame_string(*layout.hs_frame())
             obj["NSHScroller"].flagsAnd("NSvFlags", ~vFlags.HIDDEN)
-            clip_w = sv_w - 2 * border
             dv_frame_str = doc_view.get("NSFrameSize")
             if dv_frame_str:
                 m = re.match(r'\{(\d+),', dv_frame_str._text)
                 if m:
                     table_w = int(m.group(1))
                     if table_w > 0:
-                        obj["NSHScroller"]["NSPercent"] = clip_w / table_w
+                        obj["NSHScroller"]["NSPercent"] = layout.inner_w / table_w
     elif not vs_offscreen and not has_header and not is_table_sv:
-        border = st.border
-        sv_w, sv_h = st.sv_w, st.sv_h
         vs_w = obj["NSVScroller"].extraContext.get("scroller_width", 15)
-        obj["NSVScroller"]["NSFrame"] = frame_string(sv_w - border - vs_w, border, vs_w, sv_h - 2 * border)
+        obj["NSVScroller"]["NSFrame"] = frame_string(sv_w_raw - border - vs_w, border, vs_w, sv_h - 2 * border)
 
     # Expand text view doc views to fill the clip view width
     if not is_table_sv and doc_view and doc_view.originalclassname() == "NSTextView":

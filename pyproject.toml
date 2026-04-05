@@ -14,5 +14,9 @@ license = "MIT"
 [project.scripts]
 ibtool = "ibtool.__main__:run"
 
+[build-system]
+requires = ["setuptools >= 77.0.3"]
+build-backend = "setuptools.build_meta"
+
 [tool.setuptools]
 packages = ["ibtool", "ibtool.parsers"]
