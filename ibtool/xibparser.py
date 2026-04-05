@@ -761,7 +761,10 @@ def _build_tab_view_controller_for_wc(ctx, vc_elem, scenes, parent,
         # NSTabViewItem
         tab_item = NibObject("NSTabViewItem", tab_vc)
         label = tab_item_elem.get("label", "")
-        tab_item["NSLabel"] = NibString.intern(label)
+        if ctx.isBaseLocalization and label:
+            tab_item["NSLabel"] = NibLocalizableString(label, key=f"{tab_item_elem.get('id', '')}.label")
+        else:
+            tab_item["NSLabel"] = NibString.intern(label)
         tab_item["NSColor"] = makeSystemColor("controlColor")
 
         img_name = tab_item_elem.get("image")
