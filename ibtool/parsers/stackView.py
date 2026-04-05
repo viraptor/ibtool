@@ -52,6 +52,221 @@ def _build_visibility_map(obj, children):
     return map_table
 
 
+def _relayout_children(ctx, elem, obj):
+    """In storyboard mode, recalculate child frames based on intrinsic content sizes.
+    Only applies when all visible children have computable intrinsic widths."""
+    from ..text_measure import compute_intrinsic_width, _available, _is_hidden
+    if not _available or not ctx.isStoryboard:
+        return
+
+    distribution = elem.attrib.get("distribution")
+    if distribution is None:
+        return
+
+    orientation = elem.attrib.get("orientation", "horizontal")
+    spacing = float(elem.attrib.get("spacing", 8.0))
+    detaches = elem.attrib.get("detachesHiddenViews", "NO") == "YES"
+
+    subviews_elem = None
+    for child in elem:
+        if child.tag == "subviews":
+            subviews_elem = child
+            break
+    if subviews_elem is None:
+        return
+
+    child_elems = [c for c in subviews_elem if c.tag not in ("constraint", "constraints")]
+    subview_items = obj.get("NSSubviews")
+    if subview_items is None:
+        return
+    nib_children = subview_items._items
+    if len(child_elems) != len(nib_children):
+        return
+
+    is_horizontal = orientation == "horizontal"
+    sv_frame = obj.frame()
+    total_size = sv_frame[2] if is_horizontal else sv_frame[3]
+
+    visible = []
+    all_known = True
+    any_changed = False
+    for i, ce in enumerate(child_elems):
+        hidden = _is_hidden(ce)
+        if hidden and detaches:
+            continue
+        if hidden:
+            continue
+        iw = compute_intrinsic_width(ce)
+        if iw is None:
+            all_known = False
+        else:
+            xib_w = nib_children[i].frame()[2]
+            if iw != xib_w:
+                any_changed = True
+        visible.append((i, ce, nib_children[i], iw))
+
+    if not visible or not any_changed:
+        return
+
+    if is_horizontal and all_known and distribution == "equalSpacing":
+        _relayout_horizontal(visible, distribution, spacing, total_size)
+    elif is_horizontal and distribution == "fillProportionally":
+        _relayout_fill_proportionally(visible, spacing, total_size)
+
+
+def _relayout_horizontal(visible, distribution, spacing, total_width):
+    n = len(visible)
+    intrinsic = [iw for (i, ce, nc, iw) in visible]
+    total_content = sum(intrinsic)
+    remaining = total_width - total_content
+    if n > 1:
+        gap = remaining / (n - 1)
+    else:
+        gap = 0
+    pos = 0
+    for vi, (i, ce, nib_child, iw) in enumerate(visible):
+        old_w = nib_child.frame()[2]
+        nib_child.set_nib_frame(int(pos), 0, intrinsic[vi], nib_child.frame()[3])
+        if ce.tag == "stackView" and intrinsic[vi] != old_w:
+            _cascade_fill_relayout(ce, nib_child, intrinsic[vi])
+        pos += intrinsic[vi] + gap
+
+
+def _relayout_fill_proportionally(visible, spacing, total_width):
+    """After intrinsic width fixes by parsers, adjust the flexible child to absorb any width delta."""
+    n = len(visible)
+    if n <= 1:
+        return
+    # Compute delta: how much total children width changed from XIB values
+    delta = 0
+    for vi, (i, ce, nib_child, iw) in enumerate(visible):
+        rect_elem = ce.find("rect[@key='frame']")
+        if rect_elem is None:
+            continue
+        orig_w = int(rect_elem.get("width", "0"))
+        cur_w = nib_child.frame()[2]
+        delta += cur_w - orig_w
+    if delta == 0:
+        return
+    # Find the flexible child (a fill stack view, or the largest non-intrinsic child)
+    flex_idx = None
+    for vi, (i, ce, nib_child, iw) in enumerate(visible):
+        if ce.tag == "stackView" and ce.get("distribution") == "fill":
+            flex_idx = vi
+            break
+    if flex_idx is None:
+        return
+    # Adjust flexible child width
+    _, flex_ce, flex_child, _ = visible[flex_idx]
+    fc_frame = flex_child.frame()
+    new_w = fc_frame[2] - delta
+    if new_w <= 0:
+        return
+    # Shift positions: children after any changed child need position adjustment
+    shift = 0
+    for vi, (i, ce, nib_child, iw) in enumerate(visible):
+        f = nib_child.frame()
+        rect_elem = ce.find("rect[@key='frame']")
+        orig_w = int(rect_elem.get("width", "0")) if rect_elem is not None else f[2]
+        child_delta = f[2] - orig_w
+        if vi == flex_idx:
+            nib_child.set_nib_frame(int(f[0] + shift), f[1], int(new_w), f[3])
+            _cascade_fill_relayout(flex_ce, nib_child, int(new_w))
+            shift += (new_w - f[2])
+        elif shift != 0:
+            nib_child.set_nib_frame(int(f[0] + shift), f[1], f[2], f[3])
+        if vi != flex_idx:
+            shift += child_delta
+
+
+def _cascade_fill_relayout(sv_elem, sv_obj, new_width):
+    """After a parent sets a fill stack child's width, update its children."""
+    from ..text_measure import compute_intrinsic_width, _is_hidden
+    dist = sv_elem.get("distribution")
+    if dist != "fill":
+        return
+    orientation = sv_elem.get("orientation", "horizontal")
+    if orientation != "horizontal":
+        return
+    spacing = float(sv_elem.get("spacing", 8.0))
+    detaches = sv_elem.get("detachesHiddenViews", "YES") == "YES"
+
+    subviews_elem = None
+    for child in sv_elem:
+        if child.tag == "subviews":
+            subviews_elem = child
+            break
+    if subviews_elem is None:
+        return
+
+    child_elems = [c for c in subviews_elem if c.tag not in ("constraint", "constraints")]
+    subview_items = sv_obj.get("NSSubviews")
+    if subview_items is None:
+        return
+    nib_children = subview_items._items
+    if len(child_elems) != len(nib_children):
+        return
+
+    visible = []
+    for i, ce in enumerate(child_elems):
+        if _is_hidden(ce) and detaches:
+            continue
+        if _is_hidden(ce):
+            continue
+        iw = compute_intrinsic_width(ce)
+        if iw is None:
+            return
+        visible.append((i, ce, nib_children[i], iw))
+
+    if not visible:
+        return
+
+    n = len(visible)
+    total_spacing = spacing * (n - 1)
+    available = new_width - total_spacing
+
+    fill_idx = 0
+    min_hug = float('inf')
+    for vi, (i, ce, nib_child, iw) in enumerate(visible):
+        hug = float(ce.get("horizontalHuggingPriority", "250"))
+        if hug < min_hug:
+            min_hug = hug
+            fill_idx = vi
+
+    # Compute width delta from original stack width
+    rect_elem = sv_elem.find("rect[@key='frame']")
+    old_width = int(rect_elem.get("width", "0")) if rect_elem is not None else sv_obj.frame()[2]
+    width_delta = new_width - old_width
+    if width_delta == 0:
+        return
+    # Set non-fill children to intrinsic widths, accumulate their width changes
+    non_fill_delta = 0
+    for vi, (i, ce, nib_child, iw) in enumerate(visible):
+        if vi == fill_idx:
+            continue
+        f = nib_child.frame()
+        if f[2] != iw:
+            non_fill_delta += iw - f[2]
+            nib_child.set_nib_frame(f[0], f[1], int(iw), f[3])
+    # Fill target absorbs: total delta minus what non-fill children consumed
+    fill_change = width_delta - non_fill_delta
+    _, _, fill_child, _ = visible[fill_idx]
+    fc = fill_child.frame()
+    new_fill_w = fc[2] + fill_change
+    if new_fill_w < 0:
+        new_fill_w = 0
+    fill_child.set_nib_frame(fc[0], fc[1], int(new_fill_w), fc[3])
+    # Shift positions: accumulate width changes and shift subsequent children
+    shift = 0
+    for vi, (i, ce, nib_child, iw) in enumerate(visible):
+        f = nib_child.frame()
+        if shift != 0:
+            nib_child.set_nib_frame(int(f[0] + shift), f[1], f[2], f[3])
+        rect_el = ce.find("rect[@key='frame']")
+        orig_w = int(rect_el.get("width", "0")) if rect_el is not None else f[2]
+        shift += f[2] - orig_w
+
+
 def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> XibObject:
     obj = make_xib_object(ctx, "NSStackView", elem, parent)
     distribution = elem.attrib.get("distribution")
@@ -59,6 +274,10 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     obj["NSSuperview"] = obj.xib_parent()
 
     parse_children(ctx, elem, obj)
+
+    if distribution is not None:
+        _relayout_children(ctx, elem, obj)
+
     x, y, w, h = obj.frame()
     if x == 0 and y == 0:
         obj["NSFrameSize"] = NibString.intern(f"{{{w}, {h}}}")

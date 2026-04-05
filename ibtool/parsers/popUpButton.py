@@ -10,6 +10,16 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     obj["NSSuperview"] = obj.xib_parent()
     parse_children(ctx, elem, obj)
     _xibparser_common_translate_autoresizing(ctx, elem, parent, obj)
+    if ctx.isStoryboard:
+        from ..text_measure import compute_intrinsic_width, _available
+        if _available:
+            iw = compute_intrinsic_width(elem)
+            if iw is not None:
+                rf = obj.raw_frame()
+                if rf is not None:
+                    x, y, w, h = rf
+                    if w != iw and abs(w - iw) <= 2:
+                        obj.set_nib_frame(x, y, iw, h)
     obj["IBNSShadowedSymbolConfiguration"] = NibNil()
     obj["NSAllowsLogicalLayoutDirection"] = ctx.isBaseLocalization
     obj["NSControlSendActionMask"] = 4
