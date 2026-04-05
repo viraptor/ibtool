@@ -46,7 +46,8 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     shared_data["NSAutomaticTextCompletionDisabled"] = False
     shared_data["NSBackgroundColor"] = NibNil()
     shared_data["NSDefaultParagraphStyle"] = NibNil()
-    shared_data["NSFlags"] = unknown_0x100 | draws_background | spelling_correction | editable | imports_graphics | rich_text | continuous_spell_checking | smart_insert_delete | link_detection | preferred_find_style_flag | uses_font_panel | allows_document_background_change | uses_ruler | selectable | allows_undo
+    storyboard_defaults = 0x3028000 if ctx.isStoryboard else 0
+    shared_data["NSFlags"] = unknown_0x100 | draws_background | spelling_correction | editable | imports_graphics | rich_text | continuous_spell_checking | smart_insert_delete | link_detection | preferred_find_style_flag | uses_font_panel | allows_document_background_change | uses_ruler | selectable | allows_undo | storyboard_defaults
     shared_data["NSInsertionColor"] = makeSystemColor('textInsertionPointColor')
     shared_data["NSLinkAttributes"] = NibDictionary([
         NibString.intern("NSColor"),

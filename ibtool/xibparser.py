@@ -136,7 +136,12 @@ def createTopLevel(toplevelObjects: list["XibObject"], context) -> NibObject:
     rootData["NSObjectsKeys"] = NibList(context.extraNibObjects)
     # parents of XibObjects should be listed here with filesOwner as the highest parent
 
+    extra_set = set(id(o) for o in context.extraNibObjects)
     def _get_parent(o):
+        if hasattr(o, 'parent') and callable(o.parent):
+            p = o.parent()
+            if id(p) in extra_set:
+                return p
         if hasattr(o, 'xib_parent'):
             return o.xib_parent()
         if hasattr(o, 'parent') and callable(o.parent):
@@ -965,7 +970,8 @@ def _compile_window_controller_scene(root, objects_elem, vc_elem, first_responde
         and isinstance(c.get("NSLabel"), NibString) and c.get("NSLabel")._text == "delegate"
         for c in parsed_connections
     )
-    if window_template and (has_app_scene or has_explicit_delegate):
+    auto_delegate = has_app_scene and tools_version <= 13147
+    if window_template and (auto_delegate or has_explicit_delegate):
         conn_delegate = NibObject("NSNibOutletConnector")
         conn_delegate["NSSource"] = window_template
         conn_delegate["NSDestination"] = wc_obj

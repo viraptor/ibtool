@@ -271,7 +271,9 @@ def make_image(name: str, parent: NibObject, ctx: "ArchiveContext") -> NibObject
         obj["IBNamespaceID"] = NibString.intern("system")
     else:
         obj["IBNamespaceID"] = NibNil()
-    if catalog == "system":
+    if is_system and ctx.isStoryboard:
+        size_str = "{32, 32}"
+    elif catalog == "system":
         size_str = "{32, 32}"
     elif res and is_system:
         w = min(int(float(res[0])), 32)

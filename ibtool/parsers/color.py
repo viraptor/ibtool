@@ -57,6 +57,8 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
         assert elem.attrib["catalog"] == "System", elem.attrib["catalog"]
 
         colorName = elem.attrib["name"]
+        if key == "insertionPointColor" and parent.originalclassname() == "NSTextView" and ctx.isStoryboard:
+            colorName = "textInsertionPointColor"
         color = makeSystemColor(colorName)
         target_obj[target_attribute] = color
     elif elem.attrib["colorSpace"] == "calibratedWhite":

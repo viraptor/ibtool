@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.Cocoa.Storyboard.XIB" version="3.0" toolsVersion="22505" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" initialViewController="wc1-00-050">
+    <dependencies>
+        <deployment identifier="macosx"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="22505"/>
+    </dependencies>
+    <scenes>
+        <scene sceneID="sc1-00-050">
+            <objects>
+                <application id="app-00-050" sceneMemberID="viewController">
+                    <menu key="mainMenu" title="Main Menu" systemMenu="main" id="mm1-00-050">
+                        <items>
+                            <menuItem title="Quit" keyEquivalent="q" id="mi1-00-050">
+                                <connections>
+                                    <action selector="terminate:" target="fr1-00-050" id="cn1-00-050"/>
+                                </connections>
+                            </menuItem>
+                        </items>
+                    </menu>
+                </application>
+                <customObject id="fr1-00-050" userLabel="First Responder" customClass="NSResponder" sceneMemberID="firstResponder"/>
+            </objects>
+        </scene>
+        <scene sceneID="sc2-00-050">
+            <objects>
+                <windowController storyboardIdentifier="ColorsWC" id="wc1-00-050" customClass="ColorsWindowController" customModule="TestApp" customModuleProvider="target" sceneMemberID="viewController">
+                    <window key="window" title="Colors Toolbar" allowsToolTipsWhenApplicationIsInactive="NO" autorecalculatesKeyViewLoop="NO" releasedWhenClosed="NO" visibleAtLaunch="NO" animationBehavior="default" id="win-00-050">
+                        <windowStyleMask key="styleMask" titled="YES" closable="YES" miniaturizable="YES" resizable="YES"/>
+                        <rect key="contentRect" x="200" y="200" width="480" height="270"/>
+                        <rect key="screenRect" x="0.0" y="0.0" width="1920" height="1080"/>
+                        <toolbar key="toolbar" implicitIdentifier="ColorsToolbar-ID" autosavesConfiguration="NO" displayMode="iconOnly" sizeMode="regular" id="tb1-00-050">
+                            <allowedToolbarItems>
+                                <toolbarItem implicitItemIdentifier="NSToolbarShowColorsItem" id="ti1-00-050"/>
+                            </allowedToolbarItems>
+                        </toolbar>
+                        <connections>
+                            <outlet property="delegate" destination="wc1-00-050" id="cn2-00-050"/>
+                        </connections>
+                    </window>
+                    <connections>
+                        <segue destination="vc1-00-050" kind="relationship" relationship="window.shadowedContentViewController" id="sg1-00-050"/>
+                    </connections>
+                </windowController>
+                <customObject id="fr2-00-050" userLabel="First Responder" customClass="NSResponder" sceneMemberID="firstResponder"/>
+            </objects>
+        </scene>
+        <scene sceneID="sc3-00-050">
+            <objects>
+                <viewController id="vc1-00-050" customClass="ColorsContentVC" customModule="TestApp" customModuleProvider="target" sceneMemberID="viewController">
+                    <view key="view" id="vw1-00-050">
+                        <rect key="frame" x="0.0" y="0.0" width="480" height="270"/>
+                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                        <subviews>
+                            <scrollView fixedFrame="YES" borderType="none" horizontalLineScroll="10" horizontalPageScroll="10" verticalLineScroll="10" verticalPageScroll="10" hasHorizontalScroller="NO" translatesAutoresizingMaskIntoConstraints="NO" id="sv1-00-050">
+                                <rect key="frame" x="0" y="0" width="480" height="270"/>
+                                <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                <clipView key="contentView" drawsBackground="NO" id="cv1-00-050">
+                                    <rect key="frame" x="0" y="0" width="480" height="270"/>
+                                    <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                    <subviews>
+                                        <textView importsGraphics="NO" richText="NO" verticallyResizable="YES" spellingCorrection="YES" smartInsertDelete="YES" id="tv1-00-050">
+                                            <rect key="frame" x="0" y="0" width="480" height="270"/>
+                                            <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                            <color key="insertionPointColor" name="textColor" catalog="System" colorSpace="catalog"/>
+                                            <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                        </textView>
+                                    </subviews>
+                                </clipView>
+                                <scroller key="horizontalScroller" hidden="YES" wantsLayer="YES" verticalHuggingPriority="750" horizontal="YES" id="hs1-00-050">
+                                    <rect key="frame" x="-100" y="-100" width="340" height="16"/>
+                                    <autoresizingMask key="autoresizingMask"/>
+                                </scroller>
+                                <scroller key="verticalScroller" wantsLayer="YES" verticalHuggingPriority="750" horizontal="NO" id="vs1-00-050">
+                                    <rect key="frame" x="463" y="0" width="17" height="270"/>
+                                    <autoresizingMask key="autoresizingMask"/>
+                                </scroller>
+                            </scrollView>
+                        </subviews>
+                    </view>
+                    <connections>
+                        <outlet property="textView" destination="tv1-00-050" id="cn3-00-050"/>
+                    </connections>
+                </viewController>
+                <customObject id="fr3-00-050" userLabel="First Responder" customClass="NSResponder" sceneMemberID="firstResponder"/>
+            </objects>
+        </scene>
+    </scenes>
+</document>

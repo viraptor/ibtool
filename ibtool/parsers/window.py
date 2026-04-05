@@ -60,7 +60,14 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
         item["NSWindowView"] = NibNil()
     if not item.extraContext.get("NSScreenRect"):
         item.extraContext["NSScreenRect"] = (0, 0, 0, 0)
-    item.setIfEmpty("NSMaxSize", '{10000000000000, 10000000000000}')
+    has_toolbar = isinstance(item.get("NSViewClass"), NibObject) and not isinstance(item.get("NSViewClass"), NibNil)
+    if has_toolbar:
+        if item.get("NSMinSize") is not None:
+            del item["NSMinSize"]
+        if item.get("NSMaxSize") is not None:
+            del item["NSMaxSize"]
+    else:
+        item.setIfEmpty("NSMaxSize", '{10000000000000, 10000000000000}')
     item["NSWindowIsRestorable"] = elem.attrib.get("restorable", "YES") == "YES"
     item["NSMinFullScreenContentSize"] = NibString.intern('{0, 0}')
     item["NSMaxFullScreenContentSize"] = NibString.intern('{0, 0}')
