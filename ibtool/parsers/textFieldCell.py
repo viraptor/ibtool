@@ -1,4 +1,4 @@
-from ..models import ArchiveContext, NibObject, XibObject, NibString, NibNil
+from ..models import ArchiveContext, NibObject, XibObject, NibString, NibNil, NibNSNumber
 from xml.etree.ElementTree import Element
 from .helpers import __xibparser_cell_flags, __xibparser_cell_options, handle_props, PropSchema, MAP_YES_NO, makeSystemColor
 from ..parsers_base import parse_children
@@ -25,6 +25,11 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
         if elem.attrib.get("drawsBackground") == "YES":
             obj["NSDrawsBackground"] = True
         parse_children(ctx, elem, obj)
+
+        if obj.get("NSFormatter") is not None:
+            contents = obj.get("NSContents")
+            if isinstance(contents, NibString) and contents._text.lstrip('-').isdigit():
+                obj["NSContents"] = NibNSNumber(int(contents._text))
 
         text_color = obj.get("NSTextColor")
         bg_color = obj.get("NSBackgroundColor")

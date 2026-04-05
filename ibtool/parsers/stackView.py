@@ -70,6 +70,8 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     if h != "250" or v != "250":
         obj["NSHuggingPriority"] = NibString.intern(f"{{{h}, {v}}}")
 
+    if sv_identifier := elem.attrib.get("identifier"):
+        obj["NSReuseIdentifierKey"] = NibString.intern(sv_identifier)
     obj["NSStackViewDetachesHiddenViews"] = elem.attrib.get("detachesHiddenViews", "NO") == "YES"
     obj.setIfEmpty("NSStackViewEdgeInsets.bottom", NibFloat(0.0))
     obj.setIfEmpty("NSStackViewEdgeInsets.left", NibFloat(0.0))
