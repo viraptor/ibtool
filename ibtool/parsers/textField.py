@@ -36,10 +36,13 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
     obj["NS.resolvesNaturalAlignmentWithBaseWritingDirection"] = False
     if elem.attrib.get("textCompletion") == "NO":
         obj["NSCell"]["NSAutomaticTextCompletionDisabled"] = True
-    h = obj.extraContext.get("horizontalHuggingPriority", "250")
-    v = obj.extraContext.get("verticalHuggingPriority", "750")
-    if h != "250" or v != "750":
-        obj["NSHuggingPriority"] = NibString.intern(f"{{{h}, {v}}}")
+    h = obj.extraContext.get("horizontalHuggingPriority")
+    v = obj.extraContext.get("verticalHuggingPriority")
+    if h is not None or v is not None:
+        hp = h or "250"
+        vp = v or "250"
+        if hp != "250" or vp != "750":
+            obj["NSHuggingPriority"] = NibString.intern(f"{{{hp}, {vp}}}")
     if not obj.extraContext.get("parsed_autoresizing"):
         obj.flagsOr("NSvFlags", vFlags.DEFAULT_VFLAGS_AUTOLAYOUT if ctx.useAutolayout else vFlags.DEFAULT_VFLAGS)
 

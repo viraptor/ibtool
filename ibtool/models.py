@@ -764,6 +764,10 @@ def _xibparser_handle_custom_class(ctx: ArchiveContext, elem: Element, obj: "Xib
     custom_module_provider = elem.attrib.get("customModuleProvider")
     custom_class = elem.attrib.get("customClass")
 
+    # In "direct" mode, <customView> without customClass gets identity-swapped to NSClassSwapper
+    if custom_class is None and ctx.customObjectInstantitationMethod == "direct" and obj.originalclassname() == "NSCustomView":
+        custom_class = "NSView"
+
     if obj.xibid.is_negative_id():
         if obj.xibid == XibId("-2"):
             obj["NSClassName"] = NibString.intern(custom_class or "NSApplication")
