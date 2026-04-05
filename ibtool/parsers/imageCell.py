@@ -109,7 +109,9 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
             "none": 2,
             "proportionallyUpOrDown": 3,
         }[elem.attrib.get("imageScaling", "none")]
-        obj["NSStyle"] = 0
+        obj["NSStyle"] = {
+            None: 0, "none": 0, "photo": 1, "grayBezel": 2, "groove": 3, "button": 4,
+        }.get(elem.attrib.get("imageFrameStyle"), 0)
         parent["NSCell"] = obj
 
     elif key == "dataCell":
@@ -136,7 +138,9 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
             "none": 2,
             "proportionallyUpOrDown": 3,
         }[elem.attrib.get("imageScaling", "none")]
-        obj["NSStyle"] = 0
+        obj["NSStyle"] = {
+            None: 0, "none": 0, "photo": 1, "grayBezel": 2, "groove": 3, "button": 4,
+        }.get(elem.attrib.get("imageFrameStyle"), 0)
         parent["NSDataCell"] = obj
 
     else:
