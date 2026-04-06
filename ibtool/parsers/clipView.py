@@ -78,6 +78,9 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     if not is_main_view and doc_view is not None and not isinstance(doc_view, NibNil):
         if doc_view.originalclassname() in ("NSTableView", "NSOutlineView") and elem.attrib.get("drawsBackground") != "NO":
             obj.flagsOr("NScvFlags", cvFlags.DRAW_BACKGROUND)
+        elif (ctx.toolsVersion < 14269 and "drawsBackground" not in elem.attrib
+              and doc_view.originalclassname() not in ("NSTextView", "NSTableView", "NSOutlineView")):
+            obj.flagsOr("NScvFlags", cvFlags.DRAW_BACKGROUND)
     skip_bg = (not is_main_view and elem.attrib.get("drawsBackground") == "NO"
                and doc_view is not None and not isinstance(doc_view, NibNil)
                and doc_view.originalclassname() in ("NSTableView", "NSOutlineView"))
