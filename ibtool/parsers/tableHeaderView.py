@@ -44,7 +44,12 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
         if sv_frame:
             sv_w = sv_frame[2] if len(sv_frame) == 4 else sv_frame[0]
             clip_w = sv_w - 2 * border
-            clip_view["NSFrame"] = NibString.intern(f"{{{{{border}, {border}}}, {{{clip_w}, {header_h}}}}}")
+            if border == 0:
+                if clip_view.get("NSFrame") is not None:
+                    del clip_view["NSFrame"]
+                clip_view["NSFrameSize"] = NibString.intern(f"{{{clip_w}, {header_h}}}")
+            else:
+                clip_view["NSFrame"] = NibString.intern(f"{{{{{border}, {border}}}, {{{clip_w}, {header_h}}}}}")
 
         table_view = parent["NSContentView"]["NSSubviews"]._items[0]
         assert table_view.originalclassname() in ("NSTableView", "NSOutlineView"), table_view.originalclassname()
