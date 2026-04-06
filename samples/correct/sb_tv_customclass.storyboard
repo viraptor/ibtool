@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.Cocoa.Storyboard.XIB" version="3.0" toolsVersion="22505" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" initialViewController="wc1-00-020">
+    <dependencies>
+        <deployment identifier="macosx"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="22505"/>
+    </dependencies>
+    <scenes>
+        <scene sceneID="sc1-00-020">
+            <objects>
+                <application id="app-00-020" sceneMemberID="viewController">
+                    <menu key="mainMenu" title="Main Menu" systemMenu="main" id="mm1-00-020">
+                        <items>
+                            <menuItem title="Quit" keyEquivalent="q" id="mi1-00-020">
+                                <connections>
+                                    <action selector="terminate:" target="fr1-00-020" id="cn1-00-020"/>
+                                </connections>
+                            </menuItem>
+                        </items>
+                    </menu>
+                </application>
+                <customObject id="fr1-00-020" userLabel="First Responder" customClass="NSResponder" sceneMemberID="firstResponder"/>
+            </objects>
+        </scene>
+        <scene sceneID="sc2-00-020">
+            <objects>
+                <windowController id="wc1-00-020" sceneMemberID="viewController">
+                    <window key="window" title="TextView" allowsToolTipsWhenApplicationIsInactive="NO" autorecalculatesKeyViewLoop="NO" releasedWhenClosed="NO" visibleAtLaunch="NO" animationBehavior="default" id="win-00-020">
+                        <windowStyleMask key="styleMask" titled="YES" closable="YES" miniaturizable="YES" resizable="YES"/>
+                        <rect key="contentRect" x="200" y="200" width="480" height="270"/>
+                        <rect key="screenRect" x="0.0" y="0.0" width="1680" height="1027"/>
+                    </window>
+                    <connections>
+                        <segue destination="vc1-00-020" kind="relationship" relationship="window.shadowedContentViewController" id="sg1-00-020"/>
+                    </connections>
+                </windowController>
+                <customObject id="fr2-00-020" userLabel="First Responder" customClass="NSResponder" sceneMemberID="firstResponder"/>
+            </objects>
+        </scene>
+        <scene sceneID="sc3-00-020">
+            <objects>
+                <viewController id="vc1-00-020" customClass="TextViewVC" sceneMemberID="viewController">
+                    <view key="view" id="vw1-00-020">
+                        <rect key="frame" x="0.0" y="0.0" width="480" height="270"/>
+                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                        <subviews>
+                            <scrollView fixedFrame="YES" borderType="none" horizontalLineScroll="10" horizontalPageScroll="10" verticalLineScroll="10" verticalPageScroll="10" hasHorizontalScroller="NO" translatesAutoresizingMaskIntoConstraints="NO" id="sv1-00-020">
+                                <rect key="frame" x="0" y="0" width="480" height="270"/>
+                                <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                <clipView key="contentView" drawsBackground="NO" id="cv1-00-020">
+                                    <rect key="frame" x="0" y="0" width="480" height="270"/>
+                                    <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                    <subviews>
+                                        <textView importsGraphics="NO" richText="NO" verticallyResizable="YES" spellingCorrection="YES" smartInsertDelete="YES" id="tv1-00-020" customClass="MyTextView">
+                                            <rect key="frame" x="0" y="0" width="480" height="270"/>
+                                            <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                            <color key="insertionPointColor" name="textInsertionPointColor" catalog="System" colorSpace="catalog"/>
+                                            <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                            <size key="minSize" width="480" height="270"/>
+                                            <size key="maxSize" width="480" height="10000000"/>
+                                        </textView>
+                                    </subviews>
+                                </clipView>
+                                <scroller key="horizontalScroller" hidden="YES" wantsLayer="YES" verticalHuggingPriority="750" horizontal="YES" id="hs1-00-020">
+                                    <rect key="frame" x="-100" y="-100" width="340" height="16"/>
+                                    <autoresizingMask key="autoresizingMask"/>
+                                </scroller>
+                                <scroller key="verticalScroller" wantsLayer="YES" verticalHuggingPriority="750" horizontal="NO" id="vs1-00-020">
+                                    <rect key="frame" x="463" y="0" width="17" height="270"/>
+                                    <autoresizingMask key="autoresizingMask"/>
+                                </scroller>
+                            </scrollView>
+                        </subviews>
+                    </view>
+                </viewController>
+                <customObject id="fr3-00-020" userLabel="First Responder" customClass="NSResponder" sceneMemberID="firstResponder"/>
+            </objects>
+        </scene>
+    </scenes>
+</document>
