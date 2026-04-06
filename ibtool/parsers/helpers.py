@@ -316,114 +316,112 @@ def default_drag_types() -> NibMutableSet:
         NibString.intern('dyn.ah62d4rv4gu8yc6durvwwa3xmrvw1gkdusm1044pxqyuha2pxsvw0e55bsmwca7d3sbwu')
         ])
 
-def makeSystemColor(name):
-    def systemGrayColorTemplate(name, components, white):
-        return NibObject('NSColor', None, {
-            'NSCatalogName': NibString.intern('System'),
-            'NSColor': NibObject('NSColor', None, {
-                'NSColorSpace': 3,
-                'NSComponents': NibInlineString(components),
-                'NSCustomColorSpace': GENERIC_GREY_COLOR_SPACE,
-                'NSWhite': NibInlineString(white),
-                'NSLinearExposure': NibInlineString(b'1'),
-                }),
-            'NSColorName': NibString.intern(name),
-            'NSColorSpace': 6,
-            })
+_SYSTEM_COLOR_TABLE: dict[str, tuple] = {
+    # name: (kind, *args)
+    # gray:        (components, white)
+    # rgb:         (components, rgb)
+    # custom_gray: (sub_name, components, white)
+    # custom_rgb:  (sub_name, components, rgb)
+    'controlColor':              ('gray', b'0.6666666667 1', b'0.602715373\x00'),
+    'controlTextColor':          ('gray', b'0 1', b'0\x00'),
+    'controlBackgroundColor':    ('gray', b'0.6666666667 1', b'0.602715373\x00'),
+    'textColor':                 ('gray', b'0 1', b'0\x00'),
+    'textBackgroundColor':       ('gray', b'1 1', b'1\x00'),
+    'labelColor':                ('gray', b'0 1', b'0\x00'),
+    'selectedTextBackgroundColor': ('gray', b'0.6666666667 1', b'0.602715373\x00'),
+    'selectedTextColor':         ('gray', b'0 1', b'0\x00'),
+    'gridColor':                 ('gray', b'0.5 1', b'0.4246723652\x00'),
+    'headerTextColor':           ('gray', b'0 1', b'0\x00'),
+    'headerColor':               ('gray', b'1 1', b'1\x00'),
+    'windowBackgroundColor':     ('gray', b'0.5 1', b'0.4246723652\x00'),
+    'secondaryLabelColor':       ('gray', b'0.3333333333 1', b'0.2637968361\x00'),
+    'disabledControlTextColor':  ('gray', b'0.3333333333 1', b'0.2637968361\x00'),
+    'linkColor':                 ('rgb', '0 0 1 1', b'0 0 0.9981992245\x00'),
+    'systemRedColor':            ('rgb', b'1 0 0 1', b'0.9859541655 0 0.02694000863\x00'),
+    'controlAccentColor':        ('rgb', b'0 0 1 1', b'0 0 0.9981992245\x00'),
+    'textInsertionPointColor':   ('custom_rgb', 'systemBlueColor', '0 0 1 1', b'0 0 0.9981992245\x00'),
+    '_sourceListBackgroundColor': ('custom_gray', 'controlBackgroundColor', '0.6666666667 1', b'0.602715373\x00'),
+}
 
-    def systemCustomGrayColorTemplate(name, sub_name, components, white):
-        return NibObject("NSColor", None, {
-            "NSCatalogName": NibString.intern("System"),
-            "NSColorName": NibString.intern(name),
-            "NSColorSpace": 6,
-            "NSColor": NibObject("NSColor", None, {
-                "NSCatalogName": NibString.intern("System"),
-                "NSColorSpace": 6,
-                "NSColorName": NibString.intern(sub_name),
-                "NSColor": NibObject("NSColor", None, {
-                    "NSComponents": NibInlineString(components),
-                    "NSColorSpace": 3,
-                    "NSWhite": NibInlineString(white),
-                    "NSCustomColorSpace": GENERIC_GREY_COLOR_SPACE,
-                    "NSLinearExposure": NibInlineString(b'1'),
-                }),
-            })
+def _system_gray_color(name, components, white):
+    return NibObject('NSColor', None, {
+        'NSCatalogName': NibString.intern('System'),
+        'NSColor': NibObject('NSColor', None, {
+            'NSColorSpace': 3,
+            'NSComponents': NibInlineString(components),
+            'NSCustomColorSpace': GENERIC_GREY_COLOR_SPACE,
+            'NSWhite': NibInlineString(white),
+            'NSLinearExposure': NibInlineString(b'1'),
+            }),
+        'NSColorName': NibString.intern(name),
+        'NSColorSpace': 6,
         })
 
-    def systemCustomRGBColorTemplate(name, sub_name, components, rgb):
-        return NibObject("NSColor", None, {
-            "NSCatalogName": NibString.intern("System"),
-            "NSColorName": NibString.intern(name),
-            "NSColorSpace": 6,
-            "NSColor": NibObject("NSColor", None, {
-                "NSCatalogName": NibString.intern("System"),
-                "NSColorSpace": 6,
-                "NSColorName": NibString.intern(sub_name),
-                "NSColor": NibObject("NSColor", None, {
-                    "NSComponents": NibInlineString(components),
-                    "NSColorSpace": 1,
-                    "NSRGB": NibInlineString(rgb),
-                    "NSCustomColorSpace": RGB_COLOR_SPACE,
-                    "NSLinearExposure": NibInlineString(b'1'),
-                }),
-            })
-        })
+def _system_rgb_color(name, components, rgb):
+    return NibObject("NSColor", None, {
+        "NSCatalogName": NibString.intern("System"),
+        "NSColorName": NibString.intern(name),
+        "NSColorSpace": 6,
+        "NSColor": NibObject("NSColor", None, {
+            "NSColorSpace": 1,
+            "NSComponents": NibInlineString(components),
+            "NSRGB": NibInlineString(rgb),
+            "NSCustomColorSpace": RGB_COLOR_SPACE,
+            "NSLinearExposure": NibInlineString(b'1'),
+        }),
+    })
 
-    def systemRGBColorTemplate(name, components, rgb):
-        return NibObject("NSColor", None, {
+def _system_custom_gray_color(name, sub_name, components, white):
+    return NibObject("NSColor", None, {
+        "NSCatalogName": NibString.intern("System"),
+        "NSColorName": NibString.intern(name),
+        "NSColorSpace": 6,
+        "NSColor": NibObject("NSColor", None, {
             "NSCatalogName": NibString.intern("System"),
-            "NSColorName": NibString.intern(name),
             "NSColorSpace": 6,
+            "NSColorName": NibString.intern(sub_name),
             "NSColor": NibObject("NSColor", None, {
-                "NSColorSpace": 1,
                 "NSComponents": NibInlineString(components),
+                "NSColorSpace": 3,
+                "NSWhite": NibInlineString(white),
+                "NSCustomColorSpace": GENERIC_GREY_COLOR_SPACE,
+                "NSLinearExposure": NibInlineString(b'1'),
+            }),
+        })
+    })
+
+def _system_custom_rgb_color(name, sub_name, components, rgb):
+    return NibObject("NSColor", None, {
+        "NSCatalogName": NibString.intern("System"),
+        "NSColorName": NibString.intern(name),
+        "NSColorSpace": 6,
+        "NSColor": NibObject("NSColor", None, {
+            "NSCatalogName": NibString.intern("System"),
+            "NSColorSpace": 6,
+            "NSColorName": NibString.intern(sub_name),
+            "NSColor": NibObject("NSColor", None, {
+                "NSComponents": NibInlineString(components),
+                "NSColorSpace": 1,
                 "NSRGB": NibInlineString(rgb),
                 "NSCustomColorSpace": RGB_COLOR_SPACE,
                 "NSLinearExposure": NibInlineString(b'1'),
             }),
         })
+    })
 
+_SYSTEM_COLOR_BUILDERS = {
+    'gray': _system_gray_color,
+    'rgb': _system_rgb_color,
+    'custom_gray': _system_custom_gray_color,
+    'custom_rgb': _system_custom_rgb_color,
+}
 
-    if name == 'controlColor':
-        return systemGrayColorTemplate(name, b'0.6666666667 1', b'0.602715373\x00')
-    elif name == 'controlTextColor':
-        return systemGrayColorTemplate(name, b'0 1', b'0\x00')
-    elif name == 'controlBackgroundColor':
-        return systemGrayColorTemplate(name, b'0.6666666667 1', b'0.602715373\x00')
-    elif name == 'textColor':
-        return systemGrayColorTemplate(name, b'0 1', b'0\x00')
-    elif name == 'textBackgroundColor':
-        return systemGrayColorTemplate(name, b'1 1', b'1\x00')
-    elif name == 'labelColor':
-        return systemGrayColorTemplate(name, b'0 1', b'0\x00')
-    elif name == 'textInsertionPointColor':
-        return systemCustomRGBColorTemplate(name, 'systemBlueColor', '0 0 1 1', b'0 0 0.9981992245\x00')
-    elif name == 'selectedTextBackgroundColor':
-        return systemGrayColorTemplate(name, b'0.6666666667 1', b'0.602715373\x00')
-    elif name == 'selectedTextColor':
-        return systemGrayColorTemplate(name, b'0 1', b'0\x00')
-    elif name == 'linkColor':
-        return systemRGBColorTemplate(name, '0 0 1 1', b'0 0 0.9981992245\x00')
-    elif name == 'gridColor':
-        return systemGrayColorTemplate(name, b'0.5 1', b'0.4246723652\x00')
-    elif name == 'headerTextColor':
-        return systemGrayColorTemplate(name, b'0 1', b'0\x00')
-    elif name == 'headerColor':
-        return systemGrayColorTemplate(name, b'1 1', b'1\x00')
-    elif name == 'systemRedColor':
-        return systemRGBColorTemplate(name, b'1 0 0 1', b'0.9859541655 0 0.02694000863\x00')
-    elif name == 'windowBackgroundColor':
-        return systemGrayColorTemplate(name, b'0.5 1', b'0.4246723652\x00')
-    elif name == 'secondaryLabelColor':
-        return systemGrayColorTemplate(name, b'0.3333333333 1', b'0.2637968361\x00')
-    elif name == 'controlAccentColor':
-        return systemRGBColorTemplate(name, b'0 0 1 1', b'0 0 0.9981992245\x00')
-    elif name == 'disabledControlTextColor':
-        return systemGrayColorTemplate(name, b'0.3333333333 1', b'0.2637968361\x00')
-    elif name == '_sourceListBackgroundColor':
-        return systemCustomGrayColorTemplate(name, 'controlBackgroundColor', '0.6666666667 1', b'0.602715373\x00')
-    else:
+def makeSystemColor(name):
+    entry = _SYSTEM_COLOR_TABLE.get(name)
+    if entry is None:
         raise Exception(f"unknown name {name}")
+    kind, *args = entry
+    return _SYSTEM_COLOR_BUILDERS[kind](name, *args)
 
 def design_size_for_image(name):
     if name == "NSAddTemplate":
