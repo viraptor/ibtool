@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 from ..models import ArchiveContext, NibObject, XibObject, NibString, NibMutableList, NibList, NibInlineString, NibFloatToWord
 from xml.etree.ElementTree import Element
 from typing import Optional, Any
-from .helpers import make_xib_object, __handle_view_chain, frame_string, size_string, parse_frame_string
+from .helpers import make_xib_object, __handle_view_chain, frame_string, size_string, parse_frame_string, MAP_FOCUS_RING
 from ..parsers_base import parse_children
 from ..constants import sFlagsScrollView, vFlags
 from .tableView import TVFLAGS
@@ -345,7 +345,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
 
     if not obj.extraContext.get("parsed_autoresizing"):
         obj.flagsOr("NSvFlags", vFlags.DEFAULT_VFLAGS_AUTOLAYOUT if ctx.useAutolayout else vFlags.DEFAULT_VFLAGS)
-    focus_ring = {"none": vFlags.FOCUS_RING_NONE, "exterior": vFlags.FOCUS_RING_EXTERIOR}.get(obj.extraContext.get("focusRingType"), 0)
+    focus_ring = MAP_FOCUS_RING.get(obj.extraContext.get("focusRingType"), 0)
     if focus_ring:
         obj.flagsOr("NSvFlags", focus_ring)
     obj["NSGestureRecognizers"] = NibList([default_pan_recognizer(obj)])

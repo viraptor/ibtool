@@ -1,7 +1,7 @@
 from ..models import ArchiveContext, NibObject, NibMutableList, NibMutableDictionary, XibObject, NibNil, NibString
 from xml.etree.ElementTree import Element
 from typing import Optional
-from .helpers import make_xib_object, __xibparser_cell_flags, __handle_view_chain, handle_props, PropSchema, MAP_YES_NO
+from .helpers import make_xib_object, __xibparser_cell_flags, __handle_view_chain, handle_props, PropSchema, MAP_YES_NO, MAP_FOCUS_RING, MAP_TABLE_STYLE, MAP_TABLE_HIGHLIGHT_STYLE
 from ..parsers_base import parse_children
 from ..constants import vFlags
 from enum import IntEnum
@@ -98,17 +98,6 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     obj["NSTableViewDraggingDestinationStyle"] = 1 if elem.attrib.get("selectionHighlightStyle") == "sourceList" else 0
     obj["NSTableViewGroupRowStyle"] = 1
 
-    MAP_TABLE_STYLE = {
-        None: None,
-        "fullWidth": 1,
-        "inset": 2,
-        "sourceList": 3,
-        "plain": 4,
-    }
-    MAP_TABLE_HIGHLIGHT_STYLE = {
-        None: None,
-        "sourceList": 1,
-    }
     handle_props(ctx, elem, obj, [
         PropSchema(prop="NSTvFlags", const=TVFLAGS.ALLOWS_TYPE_SELECT | TVFLAGS.GRID_STYLE_DASHED),
         PropSchema(prop="NSTvFlags", attrib="columnResizing", default="YES", map=MAP_YES_NO, or_mask=TVFLAGS.ALLOWS_COLUMN_RESIZING),
@@ -164,7 +153,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     # Table views always get WIDTH_SIZABLE | HEIGHT_SIZABLE
     obj.flagsOr("NSvFlags", vFlags.WIDTH_SIZABLE | vFlags.HEIGHT_SIZABLE)
 
-    focus_ring = {"none": vFlags.FOCUS_RING_NONE, "exterior": vFlags.FOCUS_RING_EXTERIOR}.get(obj.extraContext.get("focusRingType"), 0)
+    focus_ring = MAP_FOCUS_RING.get(obj.extraContext.get("focusRingType"), 0)
     if focus_ring:
         obj.flagsOr("NSvFlags", focus_ring)
 

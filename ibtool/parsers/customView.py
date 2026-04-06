@@ -2,7 +2,7 @@ from ..models import ArchiveContext, NibObject, NibString, XibObject
 from xml.etree.ElementTree import Element
 from typing import Optional
 from ..constants import vFlags
-from .helpers import parse_interfacebuilder_properties, __handle_view_chain, _xibparser_common_view_attributes, _xibparser_common_translate_autoresizing
+from .helpers import parse_interfacebuilder_properties, __handle_view_chain, _xibparser_common_view_attributes, _xibparser_common_translate_autoresizing, MAP_FOCUS_RING, hugging_priority_string
 from ..parsers_base import parse_children
 
 def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> XibObject:
@@ -28,7 +28,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     if not obj.extraContext.get("parsed_autoresizing"):
         obj.flagsOr("NSvFlags", vFlags.DEFAULT_VFLAGS_AUTOLAYOUT if ctx.useAutolayout else vFlags.DEFAULT_VFLAGS)
 
-    focus_ring = {"none": vFlags.FOCUS_RING_NONE, "exterior": vFlags.FOCUS_RING_EXTERIOR}.get(obj.extraContext.get("focusRingType"), 0)
+    focus_ring = MAP_FOCUS_RING.get(obj.extraContext.get("focusRingType"), 0)
     if focus_ring:
         obj.flagsOr("NSvFlags", focus_ring)
 
@@ -38,7 +38,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     h = elem.attrib.get("horizontalHuggingPriority", "250")
     v = elem.attrib.get("verticalHuggingPriority", "250")
     if h != "250" or v != "250":
-        obj["NSHuggingPriority"] = NibString.intern(f"{{{h}, {v}}}")
+        obj["NSHuggingPriority"] = hugging_priority_string(h, v)
 
     return obj
 

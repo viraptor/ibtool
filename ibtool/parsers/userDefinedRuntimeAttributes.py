@@ -1,5 +1,6 @@
 from ..models import ArchiveContext, NibObject, NibNil, NibString, NibList, NibNSNumber, NibMutableList
 from xml.etree.ElementTree import Element
+from .helpers import point_string, rect_string
 
 
 def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
@@ -33,21 +34,21 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
         elif attr_type == "point":
             point_elem = attr.find("point")
             if point_elem is not None:
-                values.append(NibString.intern(f'{{{point_elem.attrib.get("x", "0")}, {point_elem.attrib.get("y", "0")}}}'))
+                values.append(point_string(point_elem.attrib.get("x", "0"), point_elem.attrib.get("y", "0")))
             else:
-                values.append(NibString.intern("{0, 0}"))
+                values.append(point_string("0", "0"))
         elif attr_type == "size":
             size_elem = attr.find("size")
             if size_elem is not None:
-                values.append(NibString.intern(f'{{{size_elem.attrib.get("width", "0")}, {size_elem.attrib.get("height", "0")}}}'))
+                values.append(point_string(size_elem.attrib.get("width", "0"), size_elem.attrib.get("height", "0")))
             else:
-                values.append(NibString.intern("{0, 0}"))
+                values.append(point_string("0", "0"))
         elif attr_type == "rect":
             rect_elem = attr.find("rect")
             if rect_elem is not None:
-                values.append(NibString.intern(f'{{{{{rect_elem.attrib.get("x", "0")}, {rect_elem.attrib.get("y", "0")}}}, {{{rect_elem.attrib.get("width", "0")}, {rect_elem.attrib.get("height", "0")}}}}}'))
+                values.append(rect_string(rect_elem.attrib.get("x", "0"), rect_elem.attrib.get("y", "0"), rect_elem.attrib.get("width", "0"), rect_elem.attrib.get("height", "0")))
             else:
-                values.append(NibString.intern("{{0, 0}, {0, 0}}"))
+                values.append(rect_string("0", "0", "0", "0"))
         elif attr_type == "color":
             color_elem = attr.find("color")
             if color_elem is not None:
