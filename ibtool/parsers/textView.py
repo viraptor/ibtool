@@ -1,4 +1,4 @@
-from ..models import ArchiveContext, NibObject, XibObject, NibString, NibNil, NibDictionary, NibNSNumber, NibMutableList, NibMutableString
+from ..models import ArchiveContext, NibObject, XibObject, NibString, NibNil, NibDictionary, NibNSNumber, NibMutableList, NibMutableString, NibMutableDictionary
 from xml.etree.ElementTree import Element
 from typing import Optional
 from .helpers import make_xib_object, __handle_view_chain, makeSystemColor
@@ -95,10 +95,24 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     layout_manager["NSTextContainers"] = NibMutableList([text_container])
     layout_manager["NSLMFlags"] = 0x66
     layout_manager["NSDelegate"] = NibNil()
-    layout_manager["NSTextStorage"] = NibObject("NSTextStorage", layout_manager, {
+    storage_text = obj.extraContext.get("attributedStringText", "")
+    storage_props = {
         "NSDelegate": NibNil(),
-        "NSString": NibMutableString(""),
-    })
+        "NSString": NibMutableString(storage_text),
+    }
+    if storage_text:
+        default_font = NibObject("NSFont", None, {
+            "NSName": NibString.intern("Helvetica"),
+            "NSSize": 12.0,
+            "NSfFlags": 16,
+        })
+        storage_props["NSAttributes"] = NibDictionary([
+            NibString.intern("NSColor"),
+            makeSystemColor("textColor"),
+            NibString.intern("NSFont"),
+            default_font,
+        ])
+    layout_manager["NSTextStorage"] = NibObject("NSTextStorage", layout_manager, storage_props)
     text_container["NSLayoutManager"] = layout_manager
     text_container["NSTextLayoutManager"] = NibNil()
 
@@ -128,7 +142,8 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
                 elif not obj.get("NSMaxSize"):
                     obj["NSMaxSize"] = f'{{{sv_w}, {sv_h}}}'
 
-    if ctx.toolsVersion < 14269:
+    has_attributed_string = any(child.tag == "attributedString" for child in elem)
+    if ctx.toolsVersion < 14269 and not has_attributed_string:
         obj.setIfEmpty("NSTextViewTextColor", makeSystemColor("textColor"))
 
     return obj
