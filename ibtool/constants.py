@@ -184,6 +184,24 @@ class FontFlags(Enum):
     ROLE_SMALL_SYSTEM_BOLD_FONT = 0x1d
     ROLE_MINI_SYSTEM_FONT = 0x1e
 
+_SYS = ".AppleSystemUIFont"
+_SYS_BOLD = ".AppleSystemUIFontBold"
+
+META_FONTS: dict[str, tuple[str, float, "FontFlags"]] = {
+    "system":          (_SYS,      13.0, FontFlags.ROLE_LABEL_FONT),
+    "systemBold":      (_SYS_BOLD, 13.0, FontFlags.ROLE_SYSTEM_BOLD_FONT),
+    "smallSystem":     (_SYS,      11.0, FontFlags.ROLE_SMALL_SYSTEM_FONT),
+    "smallSystemBold": (_SYS_BOLD, 11.0, FontFlags.ROLE_SMALL_SYSTEM_BOLD_FONT),
+    "miniSystem":      (_SYS,       9.0, FontFlags.ROLE_MINI_SYSTEM_FONT),
+    "cellTitle":       (_SYS,      12.0, FontFlags.ROLE_CELL_TITLE_FONT),
+    "label":           (_SYS,      10.0, FontFlags.ROLE_LABEL_SMALL_FONT),
+    "menu":            (_SYS,      13.0, FontFlags.ROLE_MENU_FONT),
+    "message":         (_SYS,      13.0, FontFlags.ROLE_MESSAGE_FONT),
+}
+
+DEFAULT_FONT_SIZE = 13.0
+DEFAULT_SYSTEM_FONT_NAME = _SYS
+
 class LineBreakMode(Enum):
     BY_WORD_WRAPPING = 0
     BY_CHAR_WRAPPING = 1

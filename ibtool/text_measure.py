@@ -72,14 +72,7 @@ else:
         raise RuntimeError("CoreText not available")
 
 
-# Font size defaults for metaFont values
-_META_FONT_SIZES = {
-    "system": 13.0, "systemBold": 13.0,
-    "smallSystem": 11.0, "smallSystemBold": 11.0,
-    "miniSystem": 9.0,
-    "cellTitle": 12.0, "label": 10.0,
-    "menu": 13.0, "message": 13.0,
-}
+from .constants import META_FONTS, DEFAULT_FONT_SIZE
 
 
 def _get_cell_elem(view_elem: Element) -> Optional[Element]:
@@ -95,9 +88,11 @@ def _get_font_size(cell_or_view_elem: Element) -> float:
         if child.tag == "font" and child.get("key") in ("font", None):
             meta = child.get("metaFont")
             if meta:
-                return _META_FONT_SIZES.get(meta, 13.0)
-            return float(child.get("size", 13.0))
-    return 13.0
+                if meta in META_FONTS:
+                    return META_FONTS[meta][1]
+                return DEFAULT_FONT_SIZE
+            return float(child.get("size", DEFAULT_FONT_SIZE))
+    return DEFAULT_FONT_SIZE
 
 
 def _has_width_constraint(view_elem: Element) -> Optional[float]:
