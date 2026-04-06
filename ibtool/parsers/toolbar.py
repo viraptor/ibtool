@@ -1,4 +1,4 @@
-from ..models import ArchiveContext, NibObject, NibNil, NibString, NibInlineString, NibList, NibMutableList, NibMutableDictionary, NibNSNumber, XibObject
+from ..models import ArchiveContext, NibObject, NibNil, NibString, NibInlineString, NibList, NibMutableList, NibMutableDictionary, NibNSNumber, XibObject, XibId
 from ..constant_objects import GENERIC_GREY_COLOR_SPACE, MENU_MIXED_IMAGE, MENU_ON_IMAGE
 from ..parsers_base import parse_children
 from xml.etree.ElementTree import Element
@@ -271,7 +271,6 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
                     continue
                 ref = child.attrib.get("reference")
                 if ref:
-                    from ..models import XibId
                     obj = ctx.getObject(XibId(ref))
                     if obj:
                         allowed_items.append(obj)
@@ -282,7 +281,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
                     info = STANDARD_ITEMS[implicit_id]
                     item = _make_standard_item(implicit_id, info, toolbar, ctx)
                     if child.attrib.get("id"):
-                        ctx.addObject(child.attrib["id"], item)
+                        ctx.addObject(XibId(child.attrib["id"]), item)
                     identified_items[implicit_id] = item
                     allowed_items.append(item)
                 else:
@@ -296,7 +295,6 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
                     continue
                 ref = child.attrib.get("reference")
                 if ref:
-                    from ..models import XibId
                     obj = ctx.getObject(XibId(ref))
                     if obj:
                         default_items.append(obj)
