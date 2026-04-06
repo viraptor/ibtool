@@ -173,30 +173,42 @@ class CellFlags2(IntEnum):
     FOCUS_RING_EXTERIOR = 0x10000
 
 class FontFlags(Enum):
-    ROLE_CONTROL_CONTENT_FONT = 0x10
+    ROLE_NAMED_FONT = 0x10
+    ROLE_USER_FONT = 0x11
     ROLE_CELL_TITLE_FONT = 0x13
     ROLE_LABEL_FONT = 0x14
     ROLE_MENU_FONT = 0x15
     ROLE_MESSAGE_FONT = 0x16
+    ROLE_PALETTE_FONT = 0x17
     ROLE_SYSTEM_BOLD_FONT = 0x18
+    ROLE_TOOLTIP_FONT = 0x19
+    ROLE_CONTROL_CONTENT_FONT = 0x1a
     ROLE_LABEL_SMALL_FONT = 0x1b
     ROLE_SMALL_SYSTEM_FONT = 0x1c
     ROLE_SMALL_SYSTEM_BOLD_FONT = 0x1d
     ROLE_MINI_SYSTEM_FONT = 0x1e
+    ROLE_MINI_SYSTEM_BOLD_FONT = 0x1f
 
 _SYS = ".AppleSystemUIFont"
 _SYS_BOLD = ".AppleSystemUIFontBold"
 
-META_FONTS: dict[str, tuple[str, float, "FontFlags"]] = {
-    "system":          (_SYS,      13.0, FontFlags.ROLE_LABEL_FONT),
-    "systemBold":      (_SYS_BOLD, 13.0, FontFlags.ROLE_SYSTEM_BOLD_FONT),
-    "smallSystem":     (_SYS,      11.0, FontFlags.ROLE_SMALL_SYSTEM_FONT),
-    "smallSystemBold": (_SYS_BOLD, 11.0, FontFlags.ROLE_SMALL_SYSTEM_BOLD_FONT),
-    "miniSystem":      (_SYS,       9.0, FontFlags.ROLE_MINI_SYSTEM_FONT),
-    "cellTitle":       (_SYS,      12.0, FontFlags.ROLE_CELL_TITLE_FONT),
-    "label":           (_SYS,      10.0, FontFlags.ROLE_LABEL_SMALL_FONT),
-    "menu":            (_SYS,      13.0, FontFlags.ROLE_MENU_FONT),
-    "message":         (_SYS,      13.0, FontFlags.ROLE_MESSAGE_FONT),
+META_FONTS: dict[str, tuple[str, float, "FontFlags", int]] = {
+    "system":          (_SYS,      13.0, FontFlags.ROLE_LABEL_FONT,             0),
+    "systemBold":      (_SYS_BOLD, 13.0, FontFlags.ROLE_SYSTEM_BOLD_FONT,       0),
+    "smallSystem":     (_SYS,      11.0, FontFlags.ROLE_SMALL_SYSTEM_FONT,      0),
+    "smallSystemBold": (_SYS_BOLD, 11.0, FontFlags.ROLE_SMALL_SYSTEM_BOLD_FONT, 0),
+    "miniSystem":      (_SYS,       9.0, FontFlags.ROLE_MINI_SYSTEM_FONT,       0),
+    "miniSystemBold":  (_SYS_BOLD,  9.0, FontFlags.ROLE_MINI_SYSTEM_BOLD_FONT,  0),
+    "cellTitle":       (_SYS,      12.0, FontFlags.ROLE_CELL_TITLE_FONT,    0x1000),
+    "label":           (_SYS,      10.0, FontFlags.ROLE_LABEL_SMALL_FONT,       0),
+    "menu":            (_SYS,      13.0, FontFlags.ROLE_MENU_FONT,              0),
+    "menuBar":         (_SYS,      14.0, FontFlags.ROLE_NAMED_FONT,         0x1000),
+    "message":         (_SYS,      13.0, FontFlags.ROLE_MESSAGE_FONT,           0),
+    "palette":         (_SYS,      11.0, FontFlags.ROLE_PALETTE_FONT,           0),
+    "toolTip":         (_SYS,      11.0, FontFlags.ROLE_TOOLTIP_FONT,           0),
+    "controlContent":  (_SYS,      12.0, FontFlags.ROLE_CONTROL_CONTENT_FONT,   0),
+    "titleBar":        (_SYS_BOLD, 13.0, FontFlags.ROLE_CELL_TITLE_FONT,        0),
+    "user":            ("Helvetica", 12.0, FontFlags.ROLE_USER_FONT,            0),
 }
 
 DEFAULT_FONT_SIZE = 13.0

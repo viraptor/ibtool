@@ -38,7 +38,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
                 NibNSNumber(11.0),
             ]),
         })
-        obj["NSSupport"]["NSfFlags"] = to_flags_val(FontFlags.ROLE_CONTROL_CONTENT_FONT.value)
+        obj["NSSupport"]["NSfFlags"] = to_flags_val(FontFlags.ROLE_NAMED_FONT.value)
     else:
         obj["NSAlternateContents"] = NibString.intern(elem.attrib.get("alternateTitle", ""))
 
