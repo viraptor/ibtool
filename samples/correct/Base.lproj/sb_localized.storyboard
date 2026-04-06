@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<document type="com.apple.InterfaceBuilder3.Cocoa.Storyboard.XIB" version="3.0" toolsVersion="10117" systemVersion="15G26a" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" initialViewController="wc1-00-001">
+    <dependencies>
+        <deployment identifier="macosx"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="10117"/>
+    </dependencies>
+    <scenes>
+        <!--Application-->
+        <scene sceneID="sc1-00-001">
+            <objects>
+                <application id="app-00-001" sceneMemberID="viewController">
+                    <menu key="mainMenu" title="Main Menu" systemMenu="main" id="mm1-00-001">
+                        <items>
+                            <menuItem title="TestApp" id="mi1-00-001">
+                                <modifierMask key="keyEquivalentModifierMask"/>
+                                <menu key="submenu" title="TestApp" systemMenu="apple" id="sm1-00-001">
+                                    <items>
+                                        <menuItem title="About TestApp" id="mi2-00-001">
+                                            <modifierMask key="keyEquivalentModifierMask"/>
+                                        </menuItem>
+                                        <menuItem isSeparatorItem="YES" id="mi3-00-001"/>
+                                        <menuItem title="Quit TestApp" keyEquivalent="q" id="mi4-00-001">
+                                            <connections>
+                                                <action selector="terminate:" target="fr1-00-001" id="cn1-00-001"/>
+                                            </connections>
+                                        </menuItem>
+                                    </items>
+                                </menu>
+                            </menuItem>
+                        </items>
+                    </menu>
+                </application>
+                <customObject id="fr1-00-001" userLabel="First Responder" customClass="NSResponder" sceneMemberID="firstResponder"/>
+            </objects>
+        </scene>
+        <!--Window Controller-->
+        <scene sceneID="sc2-00-001">
+            <objects>
+                <windowController id="wc1-00-001" sceneMemberID="viewController">
+                    <window key="window" title="Basic" allowsToolTipsWhenApplicationIsInactive="NO" autorecalculatesKeyViewLoop="NO" releasedWhenClosed="NO" visibleAtLaunch="NO" animationBehavior="default" id="win-00-001">
+                        <windowStyleMask key="styleMask" titled="YES" closable="YES" miniaturizable="YES" resizable="YES"/>
+                        <windowPositionMask key="initialPositionMask" topStrut="YES" bottomStrut="YES"/>
+                        <rect key="contentRect" x="100" y="100" width="300" height="200"/>
+                        <rect key="screenRect" x="0.0" y="0.0" width="1920" height="1080"/>
+                        <value key="minSize" type="size" width="200" height="100"/>
+                    </window>
+                    <connections>
+                        <segue destination="vc1-00-001" kind="relationship" relationship="window.shadowedContentViewController" id="sg1-00-001"/>
+                    </connections>
+                </windowController>
+                <customObject id="fr2-00-001" userLabel="First Responder" customClass="NSResponder" sceneMemberID="firstResponder"/>
+            </objects>
+        </scene>
+        <!--View Controller-->
+        <scene sceneID="sc3-00-001">
+            <objects>
+                <viewController id="vc1-00-001" customClass="TestViewController" sceneMemberID="viewController">
+                    <view key="view" id="vw1-00-001">
+                        <rect key="frame" x="0.0" y="0.0" width="300" height="200"/>
+                        <autoresizingMask key="autoresizingMask"/>
+                    </view>
+                </viewController>
+                <customObject id="fr3-00-001" userLabel="First Responder" customClass="NSResponder" sceneMemberID="firstResponder"/>
+            </objects>
+        </scene>
+    </scenes>
+</document>

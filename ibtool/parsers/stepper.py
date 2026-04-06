@@ -16,7 +16,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
     cell = obj.get("NSCell")
     autorepeat = cell.extraContext.get("autorepeat", True) if cell else True
 
-    obj["NSAllowsLogicalLayoutDirection"] = False
+    obj["NSAllowsLogicalLayoutDirection"] = ctx.isBaseLocalization
     obj["NSControlSize"] = 0
     obj["NSControlRefusesFirstResponder"] = False
     obj["NSControlUsesSingleLineMode"] = False

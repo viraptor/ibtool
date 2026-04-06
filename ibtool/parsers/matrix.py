@@ -21,7 +21,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
     obj["NSCellBackgroundColor"] = makeSystemColor("controlColor")
     obj["NSControlContinuous"] = False
     obj["NSControlLineBreakMode"] = 0
-    obj["NSAllowsLogicalLayoutDirection"] = False
+    obj["NSAllowsLogicalLayoutDirection"] = ctx.isBaseLocalization
     obj["NSControlUsesSingleLineMode"] = False
     obj["NSControlSize"] = 0
     obj["NSControlTextAlignment"] = 0

@@ -268,7 +268,7 @@ def _build_popup_button(ctx, menu_elem, row_template, x, w, add_subviews=True):
     if add_subviews:
         popup["NSSubviews"] = NibMutableList([])
     popup["NSCell"] = cell
-    popup["NSAllowsLogicalLayoutDirection"] = False
+    popup["NSAllowsLogicalLayoutDirection"] = ctx.isBaseLocalization
     popup["NSControlSize"] = 0
     popup["NSControlContinuous"] = False
     popup["NSControlRefusesFirstResponder"] = False
@@ -336,7 +336,7 @@ def _build_text_field(ctx, x, w, add_subviews=True):
     if add_subviews:
         tf["NSSubviews"] = NibMutableList([])
     tf["NSCell"] = cell
-    tf["NSAllowsLogicalLayoutDirection"] = False
+    tf["NSAllowsLogicalLayoutDirection"] = ctx.isBaseLocalization
     tf["NSControlSize"] = 1
     tf["NSControlContinuous"] = False
     tf["NSControlRefusesFirstResponder"] = False
@@ -396,7 +396,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     obj["IBNSLayoutMarginsGuide"] = NibNil()
     obj["IBNSClipsToBounds"] = 0
     obj["NSEnabled"] = True
-    obj["NSAllowsLogicalLayoutDirection"] = False
+    obj["NSAllowsLogicalLayoutDirection"] = ctx.isBaseLocalization
     obj["NSControlSize"] = 0
     obj["NSControlContinuous"] = False
     obj["NSControlRefusesFirstResponder"] = False

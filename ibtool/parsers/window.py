@@ -1,5 +1,5 @@
 from ..parsers_base import parse_children
-from ..models import ArchiveContext, NibObject, XibObject, NibString, NibNil
+from ..models import ArchiveContext, NibObject, XibObject, NibString, NibNil, NibLocalizableString
 from xml.etree.ElementTree import Element
 from ..constants import WTFlags
 from typing import Union
@@ -46,7 +46,11 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
     if elem.attrib.get("hidesOnDeactivate") == "YES":
         item.flagsOr("NSWTFlags", WTFlags.HIDES_ON_DEACTIVATE)
 
-    item["NSWindowTitle"] = NibString.intern(elem.attrib.get("title", ''))
+    window_title = elem.attrib.get("title", "")
+    if ctx.isBaseLocalization:
+        item["NSWindowTitle"] = NibLocalizableString(window_title, key=f"{elem.attrib.get('id', '')}.title")
+    else:
+        item["NSWindowTitle"] = NibString.intern(window_title)
     item["NSWindowSubtitle"] = ""
     item["NSWindowClass"] = item.get("NSClassName") or NibString.intern("NSWindow")
     if item.get("NSClassName"):

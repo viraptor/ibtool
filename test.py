@@ -8,16 +8,27 @@ import tempfile
 from concurrent.futures import ProcessPoolExecutor
 
 
+def _read_extra_args(xib):
+    import shlex
+    args_file = os.path.splitext(xib)[0] + ".args"
+    if os.path.isfile(args_file):
+        with open(args_file) as f:
+            return shlex.split(f.read())
+    return []
+
+
 def run_test(xib):
     if xib.endswith(".storyboard"):
         return run_storyboard_test(xib)
+
+    extra_args = _read_extra_args(xib)
 
     with tempfile.NamedTemporaryFile(suffix=".nib", delete=False) as f:
         test_out = f.name
 
     try:
         compile_result = subprocess.run(
-            [sys.executable, "-m", "ibtool", "--compile", test_out, xib],
+            [sys.executable, "-m", "ibtool", "--compile", test_out, xib] + extra_args,
             capture_output=True,
             text=True,
         )
@@ -45,11 +56,12 @@ def run_test(xib):
 
 def run_storyboard_test(sb):
     import shutil
+    extra_args = _read_extra_args(sb)
     test_out = tempfile.mkdtemp(suffix=".storyboardc")
 
     try:
         compile_result = subprocess.run(
-            [sys.executable, "-m", "ibtool", "--compile", test_out, sb],
+            [sys.executable, "-m", "ibtool", "--compile", test_out, sb] + extra_args,
             capture_output=True,
             text=True,
         )
@@ -82,7 +94,7 @@ def main():
     if len(sys.argv) > 1:
         xibs = sys.argv[1:]
     else:
-        xibs = sorted(glob.glob("samples/correct/*.xib") + glob.glob("samples/correct/*.storyboard"))
+        xibs = sorted(glob.glob("samples/correct/*.xib") + glob.glob("samples/correct/*.storyboard") + glob.glob("samples/correct/Base.lproj/*.storyboard"))
 
     workers = int(os.environ.get("IBTOOL_TEST_WORKERS", 8))
 

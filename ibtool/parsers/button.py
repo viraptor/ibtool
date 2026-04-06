@@ -11,12 +11,22 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     obj["NSSuperview"] = obj.xib_parent()
     parse_children(ctx, elem, obj)
     _xibparser_common_translate_autoresizing(ctx, elem, parent, obj)
+    if ctx.isStoryboard and obj.extraContext.get("button_type") in ("check", "radio"):
+        from ..text_measure import compute_intrinsic_width, _available
+        if _available:
+            iw = compute_intrinsic_width(elem)
+            if iw is not None:
+                rf = obj.raw_frame()
+                if rf is not None:
+                    x, y, w, h = rf
+                    if w != iw and abs(w - iw) <= 2:
+                        obj.set_nib_frame(x, y, iw, h)
     obj["NSNextResponder"] = obj.xib_parent()
     if obj.get("NSFrameSize") is None:
         obj.setIfEmpty("NSFrame", NibNil())
     obj["NSEnabled"] = True
     obj.setIfEmpty("NSCell", NibNil())
-    obj["NSAllowsLogicalLayoutDirection"] = False
+    obj["NSAllowsLogicalLayoutDirection"] = ctx.isBaseLocalization
     obj["NSControlRefusesFirstResponder"] = elem.attrib.get("refusesFirstResponder", "NO") == "YES"
     obj["NSControlUsesSingleLineMode"] = False
     obj.setIfEmpty("NSControlLineBreakMode", 0)

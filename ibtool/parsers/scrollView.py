@@ -378,7 +378,8 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
 
     # Post-processing: reduce clip view scrollview_size for visible scrollers
     is_textview_dv = doc_view is not None and doc_view.originalclassname() == "NSTextView"
-    if not auto_hiding and cv and not is_textview_dv:
+    textview_has_maxsize = is_textview_dv and doc_view.extraContext.get("maxSize")
+    if not auto_hiding and cv and not textview_has_maxsize:
         sv_size = cv.extraContext.get("scrollview_size")
         if sv_size:
             new_w, new_h = sv_size

@@ -15,7 +15,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     obj["NSEnabled"] = elem.attrib.get("enabled", "YES") == "YES"
     obj["NSControlSendActionMask"] = 4
     obj["NSControlUsesSingleLineMode"] = False
-    obj["NSAllowsLogicalLayoutDirection"] = False
+    obj["NSAllowsLogicalLayoutDirection"] = ctx.isBaseLocalization
     obj["NSSubviews"] = NibMutableList([])
     if not obj.extraContext.get("parsed_autoresizing"):
         obj.flagsOr("NSvFlags", vFlags.DEFAULT_VFLAGS_AUTOLAYOUT if ctx.useAutolayout else vFlags.DEFAULT_VFLAGS)

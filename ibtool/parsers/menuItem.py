@@ -1,4 +1,4 @@
-from ..models import ArchiveContext, NibObject, XibObject, NibString, NibNil
+from ..models import ArchiveContext, NibObject, XibObject, NibString, NibNil, NibLocalizableString
 from xml.etree.ElementTree import Element
 from .helpers import make_xib_object, make_image
 from ..parsers_base import parse_children
@@ -25,7 +25,12 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
     obj["NSMixedImage"] = MENU_MIXED_IMAGE
     obj["NSMnemonicLoc"] = NSNotFound
     obj["NSOnImage"] = MENU_ON_IMAGE
-    obj["NSTitle"] = NibString.intern(elem.attrib.get("title", ""))
+    title = elem.attrib.get("title", "")
+    is_separator = elem.attrib.get("isSeparatorItem") == "YES"
+    if ctx.isBaseLocalization and not is_separator:
+        obj["NSTitle"] = NibLocalizableString(title, key=f"{elem.attrib.get('id', '')}.title")
+    else:
+        obj["NSTitle"] = NibString.intern(title)
     if (is_separator := elem.attrib.get("isSeparatorItem") == "YES"):
         obj["NSIsSeparator"] = True
     if obj.extraContext.get('keyEquivalentModifierMaskValue') is not None:

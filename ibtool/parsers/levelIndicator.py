@@ -10,7 +10,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
     obj["NSSuperview"] = obj.xib_parent()
     parse_children(ctx, elem, obj)
     obj.setIfEmpty("NSFrame", NibNil())
-    obj["NSAllowsLogicalLayoutDirection"] = False
+    obj["NSAllowsLogicalLayoutDirection"] = ctx.isBaseLocalization
     obj["NSControlContinuous"] = False
     obj["NSControlSendActionMask"] = 4
     obj["NSControlTextAlignment"] = 0

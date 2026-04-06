@@ -11,7 +11,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
     obj["NSNextResponder"] = obj.xib_parent()
     obj["NSAction"] = NibString.intern("_doScroller:")
     obj["NSControlAction"] = NibString.intern("_doScroller:")
-    obj["NSAllowsLogicalLayoutDirection"] = False
+    obj["NSAllowsLogicalLayoutDirection"] = ctx.isBaseLocalization
     obj["NSControlContinuous"] = False
     obj["NSControlSendActionMask"] = 4
     obj["NSControlSize"] = 0

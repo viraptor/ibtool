@@ -18,7 +18,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
         PropSchema(prop="NSSuperview", const=obj.xib_parent()),
         PropSchema(prop="NSControlSendActionMask", const=70 if continuous else 4),
         PropSchema(prop="NSControlUsesSingleLineMode", const=False),
-        PropSchema(prop="NSAllowsLogicalLayoutDirection", const=False),
+        PropSchema(prop="NSAllowsLogicalLayoutDirection", const=ctx.isBaseLocalization),
     ])
 
     h = obj.extraContext.get("horizontalHuggingPriority", "250")
