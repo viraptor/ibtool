@@ -56,8 +56,19 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     if selected_item:
         obj["NSSelectedTabViewItem"] = selected_item
     obj["NSAllowTruncatedLabels"] = True
-    obj["NSDrawsBackground"] = True
-    obj.setIfEmpty("NSTvFlags", 0x0)
+    if elem.attrib.get("drawsBackground", "YES") != "NO":
+        obj["NSDrawsBackground"] = True
+    tab_view_type = {
+        None: 0,
+        "topTabsBezelBorder": 0,
+        "leftTabsBezelBorder": 1,
+        "bottomTabsBezelBorder": 2,
+        "rightTabsBezelBorder": 3,
+        "noTabsBezelBorder": 4,
+        "noTabsLineBorder": 5,
+        "noTabsNoBorder": 6,
+    }[elem.attrib.get("type")]
+    obj.setIfEmpty("NSTvFlags", tab_view_type)
     if not obj.get("NSFont"):
         from .font import to_flags_val
         font = NibObject("NSFont")
