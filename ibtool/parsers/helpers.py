@@ -1,5 +1,5 @@
 from contextlib import contextmanager
-from ..models import ArchiveContext, XibId, NibObject, NibNil, XibObject, NibMutableSet, NibString, NibInlineString, NibList, NibNSNumber
+from ..models import ArchiveContext, XibId, NibObject, NibNil, XibObject, NibMutableSet, NibString, NibInlineString, NibList, NibNSNumber, NibData, NibMutableList, NibDictionary
 from xml.etree.ElementTree import Element
 from typing import Optional, Any, Callable
 from ..constants import vFlags, CellFlags, CellFlags2, LineBreakMode, CONTROL_SIZE_MAP, CONTROL_SIZE_MAP2, ButtonFlags, ButtonFlags2, BEZEL_STYLE_MAP
@@ -292,16 +292,77 @@ def make_image(name: str, parent: NibObject, ctx: "ArchiveContext") -> NibObject
     obj["IBDesignImageConfiguration"] = NibNil()
     return obj
 
-def make_system_image(name: str, parent: NibObject) -> NibObject:
-    obj = NibObject("NSCustomResource", parent)
-    obj["NSResourceName"] = NibString.intern(name)
-    obj["NSClassName"] = NibString.intern("NSImage")
-    obj["IBNamespaceID"] = NibString.intern("system")
-    design_size = NibObject("NSValue", obj)
-    design_size["NS.sizeval"] = NibString.intern("{32, 32}")
-    design_size["NS.special"] = 2
-    obj["IBDesignSize"] = design_size
-    obj["IBDesignImageConfiguration"] = NibNil()
+def _apply_plist_color(color: NibObject, parent: NibObject, plist_objects: list) -> None:
+    """Apply extended color info from the plist if available."""
+    for o in plist_objects:
+        if isinstance(o, dict) and "NSComponents" in o and "NSCustomColorSpace" in o:
+            if isinstance(o.get("NSComponents"), bytes):
+                color["NSComponents"] = NibInlineString(o["NSComponents"])
+            cs_uid = o.get("NSCustomColorSpace")
+            if cs_uid is not None and hasattr(cs_uid, 'data'):
+                cs_obj = plist_objects[cs_uid.data]
+                if isinstance(cs_obj, dict):
+                    cs = NibObject("NSColorSpace", parent)
+                    if "NSID" in cs_obj:
+                        cs["NSID"] = cs_obj["NSID"]
+                    if "NSModel" in cs_obj:
+                        cs["NSModel"] = cs_obj["NSModel"]
+                    icc_uid = cs_obj.get("NSICC")
+                    if icc_uid is not None and hasattr(icc_uid, 'data'):
+                        icc_data = plist_objects[icc_uid.data]
+                        if isinstance(icc_data, bytes):
+                            cs["NSICC"] = NibData(icc_data)
+                    color["NSCustomColorSpace"] = cs
+            if "NSWhite" in o and isinstance(o["NSWhite"], bytes):
+                white_val = o["NSWhite"]
+                if white_val.startswith(b"0"):
+                    color["NSLinearExposure"] = NibInlineString(b"1")
+            break
+
+def make_inline_image(name: str, parent: NibObject, ctx: "ArchiveContext") -> NibObject:
+    """Build an inline NSImage with embedded TIFF data, falling back to make_image
+    (NSCustomResource) for system images or images without bitmap data."""
+    res = ctx.imageResources.get(name)
+    tiff_data = ctx.imageData.get(name)
+    if res is None or name.startswith("NS") or tiff_data is None:
+        return make_image(name, parent, ctx)
+    plist_info = ctx.imagePlistData.get(name, {})
+    tiff_reps = plist_info.get("tiff_reps", [tiff_data])
+    plist_objects = plist_info.get("plist_objects", [])
+
+    image_flags = 0x20c00000
+    image_size = f"{{{res[0]}, {res[1]}}}"
+    if len(plist_objects) > 1 and isinstance(plist_objects[1], dict):
+        root_obj = plist_objects[1]
+        if "NSImageFlags" in root_obj:
+            image_flags = root_obj["NSImageFlags"]
+        ns_size_uid = root_obj.get("NSSize")
+        if ns_size_uid is not None and hasattr(ns_size_uid, 'data'):
+            size_str = plist_objects[ns_size_uid.data]
+            if isinstance(size_str, str):
+                image_size = size_str
+
+    obj = NibObject("NSImage", parent)
+    obj["NSImageFlags"] = image_flags
+    obj["NSSize"] = NibString.intern(image_size)
+
+    rep_arrays = []
+    for tiff in tiff_reps:
+        bitmap_rep = NibObject("NSBitmapImageRep", obj)
+        bitmap_rep["NSTIFFRepresentation"] = NibData(tiff)
+        bitmap_rep["NSInternalLayoutDirection"] = 0
+        num_zero = NibObject("NSNumber", obj)
+        num_zero["NS.intval"] = 0
+        rep_arrays.append(NibList([num_zero, bitmap_rep]))
+    obj["NSReps"] = NibMutableList(rep_arrays)
+
+    color = NibObject("NSColor", obj)
+    color["NSColorSpace"] = 3
+    color["NSWhite"] = NibInlineString(b"0 0\x00")
+    _apply_plist_color(color, obj, plist_objects)
+    obj["NSColor"] = color
+    obj["NSResizingMode"] = 0
+    obj["NSTintColor"] = NibNil()
     return obj
 
 def default_drag_types() -> NibMutableSet:
