@@ -140,6 +140,26 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
             NibString.intern("timeStyle"), zero_num,
         ])
         obj["NS.format"] = NibString.intern(custom_format)
+        # Apple seeds the cell's NSContents by parsing the title with the custom
+        # format against a default date in year 2000. For weekday-only patterns
+        # we replicate this with a fixed table (year 2000 starts on Saturday).
+        weekday_seconds = {
+            "Saturday": -31622400.0,   # 2000-01-01
+            "Sunday": -31536000.0,     # 2000-01-02
+            "Monday": -31449600.0,     # 2000-01-03
+            "Tuesday": -31363200.0,    # 2000-01-04
+            "Wednesday": -31276800.0,  # 2000-01-05
+            "Thursday": -31190400.0,   # 2000-01-06
+            "Friday": -31104000.0,     # 2000-01-07
+        }
+        if custom_format == "EEEE":
+            title = parent.get("NSContents")
+            if title is not None and hasattr(title, "_text"):
+                t = title._text.decode("utf-8") if isinstance(title._text, bytes) else title._text
+                if t in weekday_seconds:
+                    date_obj = NibObject("NSDate", parent)
+                    date_obj["NS.time"] = weekday_seconds[t]
+                    parent["NSContents"] = date_obj
     else:
         date_style_str = elem.attrib.get("dateStyle", "none")
         time_style_str = elem.attrib.get("timeStyle", "none")
