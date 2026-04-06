@@ -204,6 +204,13 @@ def _make_custom_item(ctx, elem, toolbar):
     if view_elem is not None:
         view_obj = __xibparser_ParseXIBObject(ctx, view_elem, item)
         item["NSToolbarItemView"] = view_obj
+        # Toolbar item views never expose NSSuperview and always have a nil
+        # NSNextResponder; the toolbar item is not a real view so the standard
+        # parser-set values would be wrong.
+        if view_obj is not None and not isinstance(view_obj, NibNil):
+            if "NSSuperview" in view_obj.properties:
+                del view_obj.properties["NSSuperview"]
+            view_obj["NSNextResponder"] = NibNil()
     else:
         item["NSToolbarItemView"] = NibNil()
 

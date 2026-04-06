@@ -61,8 +61,6 @@ def _xibparser_common_view_attributes(ctx: ArchiveContext, elem: Element, parent
     obj["NSViewWantsBestResolutionOpenGLSurface"] = True
     if parent is None or obj.extraContext.get("key") == "contentView":
         obj.setIfEmpty("NSNextResponder", NibNil())
-    elif isinstance(parent, XibObject) and parent.originalclassname() == "NSToolbarItem":
-        obj.setIfEmpty("NSNextResponder", NibNil())
     elif isinstance(parent, XibObject):
         obj.setIfEmpty("NSNextResponder", parent)
     else:

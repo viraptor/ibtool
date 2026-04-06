@@ -22,7 +22,7 @@
                     <toolbarItem implicitItemIdentifier="UUID-zzz-yyy" explicitItemIdentifier="HomeBtn" label="Home" paletteLabel="Home" id="TBI-aa-001">
                         <size key="minSize" width="50" height="25"/>
                         <size key="maxSize" width="50" height="25"/>
-                        <button verticalHuggingPriority="750" id="BTN-aa-001">
+                        <button key="view" verticalHuggingPriority="750" id="BTN-aa-001">
                             <rect key="frame" x="7" y="14" width="50" height="25"/>
                             <buttonCell key="cell" type="roundTextured" title="Home Btn" bezelStyle="texturedRounded" alignment="center" borderStyle="border" inset="2" id="BC1-aa-001">
                                 <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
