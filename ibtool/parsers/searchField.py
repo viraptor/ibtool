@@ -6,7 +6,8 @@ from ..constants import vFlags
 
 def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
     obj = make_xib_object(ctx, "NSSearchField", elem, parent)
-    obj["NSSuperview"] = obj.xib_parent()
+    if not (isinstance(parent, XibObject) and parent.originalclassname() == "NSToolbarItem"):
+        obj["NSSuperview"] = obj.xib_parent()
     if elem.attrib.get('allowsCharacterPickerTouchBarItem') == "YES":
         obj.extraContext["allowsCharacterPickerTouchBarItem"] = True
     if elem.attrib.get("textCompletion") == "NO":

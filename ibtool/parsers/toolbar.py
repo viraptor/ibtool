@@ -202,8 +202,7 @@ def _make_custom_item(ctx, elem, toolbar):
     item.setIfEmpty("NSToolbarItemToolTip", NibString.intern(""))
 
     if view_elem is not None:
-        from ..parsers_base import __xibparser_ParseXIBObject
-        view_obj = __xibparser_ParseXIBObject(ctx, view_elem, None)
+        view_obj = __xibparser_ParseXIBObject(ctx, view_elem, item)
         item["NSToolbarItemView"] = view_obj
     else:
         item["NSToolbarItemView"] = NibNil()
