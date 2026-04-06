@@ -111,6 +111,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
         PropSchema(prop="NSTableViewShouldFloatGroupRows", attrib="floatsGroupRows", default="YES", map=MAP_YES_NO),
         PropSchema(prop="NSAllowsTypeSelect", attrib="typeSelect", default="YES", map=MAP_YES_NO, skip_default=False),
         PropSchema(prop="NSAutosaveName", attrib="autosaveName", skip_default=True),
+        PropSchema(prop="NSOutlineViewAutosaveExpandedItemsKey", attrib="autosaveExpandedItems", default="NO", map=MAP_YES_NO),
         PropSchema(prop="NSRowHeight", attrib="rowHeight", default="17", filter=float, skip_default=False),
     ])
 
