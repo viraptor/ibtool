@@ -181,6 +181,11 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
     obj["NS.natural"] = False
 
     parent["NSFormatter"] = obj
-    if parent.extraContext.get("key") == "cell" and custom_format is None:
+    contents_is_date = (
+        custom_format is None
+        and isinstance(parent.get("NSContents"), NibObject)
+        and parent.get("NSContents").classname() == "NSDate"
+    )
+    if not contents_is_date and custom_format is None:
         flags2 = (parent.get("NSCellFlags2") or 0) | CellFlags2.SELECTABLE
         parent["NSCellFlags2"] = flags2 - 0x100000000 if flags2 >= 0x80000000 else flags2
