@@ -48,7 +48,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
                 in_cell_view = True
                 break
             p = p.xib_parent() if hasattr(p, 'xib_parent') else None
-        _SUPPRESS_DEFAULT_HUGGING_BEZELS = (None, 1, 11, 12, 13)
+        _SUPPRESS_DEFAULT_HUGGING_BEZELS = (None, 1, 9, 11, 12, 13)
         is_check_or_radio = obj.extraContext.get("button_type") in ("check", "radio")
         is_swapper = obj.classname() == "NSClassSwapper"
         is_bevel = obj.extraContext.get("button_type") == "bevel"
