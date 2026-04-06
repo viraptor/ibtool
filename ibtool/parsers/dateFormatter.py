@@ -125,52 +125,62 @@ def _get_format_and_parse(date_style_str: str, time_style_str: str, title: str):
 
 
 def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
-    date_style_str = elem.attrib.get("dateStyle", "none")
-    time_style_str = elem.attrib.get("timeStyle", "none")
-
-    date_style_val = DATE_STYLE_MAP.get(date_style_str, 0)
-    time_style_val = DATE_STYLE_MAP.get(time_style_str, 0)
-
     obj = XibObject(ctx, "NSDateFormatter", elem, parent)
     ctx.extraNibObjects.append(obj)
     if obj.xibid:
         ctx.addObject(obj.xibid, obj)
 
-    date_style_num = NibNSNumber(date_style_val)
-    time_style_num = date_style_num if date_style_val == time_style_val else NibNSNumber(time_style_val)
-    attrs_items = [
-        NibString.intern("dateStyle"), date_style_num,
-    ]
-    if elem.attrib.get("doesRelativeDateFormatting") == "YES":
-        attrs_items.extend([NibString.intern("doesRelativeDateFormatting"), NibNSNumber(True)])
-    attrs_items.extend([
-        NibString.intern("formatterBehavior"), NibNSNumber(1040),
-        NibString.intern("timeStyle"), time_style_num,
-    ])
-    attrs = NibMutableDictionary(attrs_items)
-
-    # Get format pattern from ICU
-    title = parent.get("NSContents")
-    if title and hasattr(title, '_text'):
-        title_str = title._text.decode('utf-8') if isinstance(title._text, bytes) else title._text
+    custom_format = elem.attrib.get("dateFormat")
+    if custom_format is not None:
+        zero_num = NibNSNumber(0)
+        attrs = NibMutableDictionary([
+            NibString.intern("dateFormat"), NibString.intern(custom_format),
+            NibString.intern("dateStyle"), zero_num,
+            NibString.intern("formatterBehavior"), NibNSNumber(1040),
+            NibString.intern("timeStyle"), zero_num,
+        ])
+        obj["NS.format"] = NibString.intern(custom_format)
     else:
-        title_str = None
-    result = _get_format_and_parse(date_style_str, time_style_str, title_str)
+        date_style_str = elem.attrib.get("dateStyle", "none")
+        time_style_str = elem.attrib.get("timeStyle", "none")
 
-    if result:
-        format_str, nsdate_time = result
-        obj["NS.format"] = NibString.intern(format_str)
-        if nsdate_time is not None:
-            date_obj = NibObject("NSDate", parent)
-            date_obj["NS.time"] = nsdate_time
-            parent["NSContents"] = date_obj
-    else:
-        obj["NS.format"] = NibString.intern("")
+        date_style_val = DATE_STYLE_MAP.get(date_style_str, 0)
+        time_style_val = DATE_STYLE_MAP.get(time_style_str, 0)
+
+        date_style_num = NibNSNumber(date_style_val)
+        time_style_num = date_style_num if date_style_val == time_style_val else NibNSNumber(time_style_val)
+        attrs_items = [
+            NibString.intern("dateStyle"), date_style_num,
+        ]
+        if elem.attrib.get("doesRelativeDateFormatting") == "YES":
+            attrs_items.extend([NibString.intern("doesRelativeDateFormatting"), NibNSNumber(True)])
+        attrs_items.extend([
+            NibString.intern("formatterBehavior"), NibNSNumber(1040),
+            NibString.intern("timeStyle"), time_style_num,
+        ])
+        attrs = NibMutableDictionary(attrs_items)
+
+        title = parent.get("NSContents")
+        if title and hasattr(title, '_text'):
+            title_str = title._text.decode('utf-8') if isinstance(title._text, bytes) else title._text
+        else:
+            title_str = None
+        result = _get_format_and_parse(date_style_str, time_style_str, title_str)
+
+        if result:
+            format_str, nsdate_time = result
+            obj["NS.format"] = NibString.intern(format_str)
+            if nsdate_time is not None:
+                date_obj = NibObject("NSDate", parent)
+                date_obj["NS.time"] = nsdate_time
+                parent["NSContents"] = date_obj
+        else:
+            obj["NS.format"] = NibString.intern("")
 
     obj["NS.attributes"] = attrs
     obj["NS.natural"] = False
 
     parent["NSFormatter"] = obj
-    if parent.extraContext.get("key") == "cell":
+    if parent.extraContext.get("key") == "cell" and custom_format is None:
         flags2 = (parent.get("NSCellFlags2") or 0) | CellFlags2.SELECTABLE
         parent["NSCellFlags2"] = flags2 - 0x100000000 if flags2 >= 0x80000000 else flags2

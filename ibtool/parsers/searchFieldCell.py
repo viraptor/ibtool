@@ -50,7 +50,10 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
         "NSContents": NibString.intern('search'),
         "NSControlView": obj.xib_parent(),
     })
-    obj["NSCharacterPickerEnabled"] = True
+    if parent.extraContext.get("textCompletionDisabled"):
+        obj["NSAutomaticTextCompletionDisabled"] = True
+    else:
+        obj["NSCharacterPickerEnabled"] = True
 
     sends_immediately = 0x8 if elem.attrib.get("sendsSearchStringImmediately", "NO") == "YES" else 0
     field_flags = 0x06 | sends_immediately

@@ -9,6 +9,8 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
     obj["NSSuperview"] = obj.xib_parent()
     if elem.attrib.get('allowsCharacterPickerTouchBarItem') == "YES":
         obj.extraContext["allowsCharacterPickerTouchBarItem"] = True
+    if elem.attrib.get("textCompletion") == "NO":
+        obj.extraContext["textCompletionDisabled"] = True
 
     parse_children(ctx, elem, obj)
     _xibparser_common_translate_autoresizing(ctx, elem, parent, obj)
