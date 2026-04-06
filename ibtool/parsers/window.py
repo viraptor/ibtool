@@ -77,6 +77,15 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
     item["NSMaxFullScreenContentSize"] = NibString.intern('{0, 0}')
     if elem.attrib.get("titlebarAppearsTransparent") == "YES":
         item["NSTitlebarAppearsTransparent"] = True
+    if (toolbar_style := elem.attrib.get("toolbarStyle")) is not None:
+        item["NSWindowToolbarStyle"] = {
+            "automatic": 0,
+            "expanded": 1,
+            "preference": 2,
+            "unified": 3,
+            "unifiedCompact": 4,
+            "compact": 4,
+        }[toolbar_style]
     if elem.attrib.get("titleVisibility") == "hidden":
         item["NSWindowTitleVisibility"] = 1
     if elem.attrib.get("tabbingMode"):
