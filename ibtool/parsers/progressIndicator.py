@@ -24,6 +24,8 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
         obj["NSMaxValue"] = float(elem.attrib["maxValue"])
     if elem.attrib.get("minValue"):
         obj["NSMinValue"] = float(elem.attrib["minValue"])
+    if elem.attrib.get("doubleValue"):
+        obj["NSProgressIndicatorDoubleValue"] = float(elem.attrib["doubleValue"])
     obj.flagsOr("NSpiFlags", PIFlags.THREADED_ANIMATION | PIFlags.USES_ANIMATION_THREAD | bezeled | indeterminate | style | displayed_when_stopped | is_small)
 
     has_explicit_max_100 = "maxValue" in elem.attrib and float(elem.attrib["maxValue"]) == 100.0
