@@ -51,6 +51,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     # Auto-generate NSNextKeyView chain for each tab view item
     for _item_elem, tab_item in tab_item_objects:
         _build_key_view_loop(tab_item, obj)
+    _build_scrollview_chain(obj, tab_item_objects, selected_item)
 
     obj["NSTabViewItems"] = tab_view_items
     if selected_item:
@@ -190,6 +191,109 @@ def _build_key_view_loop(tab_item, tab_view):
     for i in range(len(leaves) - 1):
         leaves[i][0]["NSNextKeyView"] = leaves[i + 1][0]
     leaves[-1][0]["NSNextKeyView"] = tab_view
+
+
+def _find_scrollviews(view, found=None):
+    """Walk a view hierarchy and collect all NSScrollView descendants in
+    document order (depth-first via NSSubviews)."""
+    if found is None:
+        found = []
+    if view is None or isinstance(view, NibNil):
+        return found
+    if hasattr(view, 'originalclassname') and view.originalclassname() == "NSScrollView":
+        found.append(view)
+        return found
+    subviews = view.get("NSSubviews") if hasattr(view, 'get') else None
+    if subviews:
+        for sv in subviews:
+            _find_scrollviews(sv, found)
+    return found
+
+
+def _hscroller_offscreen(hs):
+    """A horizontal scroller is treated as offscreen-only (skipped in the
+    middle of the key view chain, only used as a terminal SV→HS→nil edge)
+    when its frame origin has a negative coordinate. Apple keeps offscreen
+    scrollers in the nib for reuse but doesn't tab through them."""
+    if hs is None or isinstance(hs, NibNil):
+        return True
+    f = hs.get("NSFrame")
+    if f is not None and hasattr(f, "_text"):
+        import re as _re
+        m = _re.match(r'\{\{(-?\d+),\s*(-?\d+)\}', f._text)
+        if m and (int(m.group(1)) < 0 or int(m.group(2)) < 0):
+            return True
+    return False
+
+
+def _build_scrollview_chain(tab_view, tab_item_objects, selected_item):
+    """Build the per-tab-item NSNextKeyView chain that walks scroll views.
+
+    Apple's pattern (verified empirically):
+      For each scroll view SV in tab item view tree (document order):
+        SV.NextKeyView = HS  (terminal nil — only emitted when HS is hidden)
+        CV.NextKeyView = DocView (already set by clipView parser)
+        if HS hidden:  DocView.NextKeyView = VS
+        else:          DocView.NextKeyView = HS; HS.NextKeyView = VS
+        VS.NextKeyView = next sibling SV (or back to tab view for the last)
+      For the selected/initial tab item additionally:
+        TabView.NextKeyView = item view
+        item view.NextKeyView = first SV
+    """
+    for tab_item in tab_item_objects if False else [t for _, t in tab_item_objects]:
+        item_view = tab_item.get("NSView")
+        if item_view is None or isinstance(item_view, NibNil):
+            continue
+        scrollviews = _find_scrollviews(item_view)
+        if not scrollviews:
+            continue
+        for i, sv in enumerate(scrollviews):
+            hs = sv.get("NSHScroller")
+            vs = sv.get("NSVScroller")
+            cv = sv.get("NSContentView")
+            dv = cv.get("NSDocView") if cv is not None and not isinstance(cv, NibNil) else None
+            hs_offscreen = _hscroller_offscreen(hs)
+            if hs is not None and not isinstance(hs, NibNil) and hs_offscreen:
+                sv["NSNextKeyView"] = hs
+                hs["NSNextKeyView"] = NibNil()
+            elif "NSNextKeyView" in sv.properties:
+                del sv.properties["NSNextKeyView"]
+            if dv is not None and not isinstance(dv, NibNil):
+                if hs is not None and not isinstance(hs, NibNil) and not hs_offscreen:
+                    dv["NSNextKeyView"] = hs
+                    if vs is not None and not isinstance(vs, NibNil):
+                        hs["NSNextKeyView"] = vs
+                elif vs is not None and not isinstance(vs, NibNil):
+                    dv["NSNextKeyView"] = vs
+            if vs is not None and not isinstance(vs, NibNil):
+                if i + 1 < len(scrollviews):
+                    vs["NSNextKeyView"] = scrollviews[i + 1]
+                elif tab_item is selected_item:
+                    vs["NSNextKeyView"] = tab_view
+        if tab_item is selected_item:
+            tab_view["NSNextKeyView"] = item_view
+            # Walk down through container subviews until reaching the first
+            # scroll view, chaining each intermediate. The first scroll view
+            # itself terminates at nil.
+            chain_path = [item_view]
+            cur = item_view
+            while True:
+                subs = cur.get("NSSubviews") if hasattr(cur, "get") else None
+                if not subs:
+                    break
+                first_child = subs[0] if len(subs) > 0 else None
+                if first_child is None:
+                    break
+                chain_path.append(first_child)
+                if first_child is scrollviews[0]:
+                    break
+                cur = first_child
+            for a, b in zip(chain_path, chain_path[1:]):
+                a["NSNextKeyView"] = b
+            # Only force a nil terminator on the first SV when it doesn't
+            # already have an outgoing SV→HS edge (set when HS is offscreen).
+            if "NSNextKeyView" not in chain_path[-1].properties:
+                chain_path[-1]["NSNextKeyView"] = NibNil()
 
 
 def _parse_tab_view_item(ctx, elem, tab_view):
