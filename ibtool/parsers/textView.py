@@ -102,7 +102,21 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
         "NSDelegate": NibNil(),
         "NSString": NibMutableString(storage_text),
     }
-    if storage_text:
+    storage_dicts = obj.extraContext.get("attributedStringDicts")
+    storage_run_data = obj.extraContext.get("attributedStringRunData")
+    if storage_dicts and len(storage_dicts) > 1:
+        attrs_array = NibMutableList(storage_dicts)
+        attrs_array.classname = lambda: "NSMutableArray"
+        storage_props["NSAttributes"] = attrs_array
+        attr_info = NibObject("NSMutableData")
+        # Bypass NibObject.__setitem__ which would auto-wrap bytes in NibData
+        # (a separate NSData reference). NSMutableData expects NS.bytes to be
+        # an inline string-encoded blob.
+        attr_info.properties["NS.bytes"] = storage_run_data
+        storage_props["NSAttributeInfo"] = attr_info
+    elif storage_dicts:
+        storage_props["NSAttributes"] = storage_dicts[0]
+    elif storage_text:
         default_font = NibObject("NSFont", None, {
             "NSName": NibString.intern("Helvetica"),
             "NSSize": 12.0,

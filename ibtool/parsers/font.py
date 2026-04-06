@@ -5,6 +5,32 @@ from ..constants import FontFlags, META_FONTS, DEFAULT_FONT_SIZE, DEFAULT_SYSTEM
 def to_flags_val(x):
     return ((x<<8) & 0xf00) | (x & 0xff)
 
+def build_font(elem: Element) -> NibObject:
+    """Build an NSFont NibObject from a <font ...> element without storing it
+    on any parent. Used by attributedString fragment parsing where the font
+    needs to live inside an attribute dictionary instead of on the parent."""
+    item = NibObject("NSFont")
+    meta_font = elem.attrib.get("metaFont")
+    if meta_font is None:
+        item["NSName"] = NibString.intern(elem.attrib.get("name", DEFAULT_SYSTEM_FONT_NAME))
+        item["NSSize"] = float(elem.attrib.get("size", DEFAULT_FONT_SIZE))
+        if "name" in elem.attrib:
+            flags = FontFlags.ROLE_NAMED_FONT.value
+        else:
+            flags = FontFlags.ROLE_LABEL_FONT.value
+        item["NSfFlags"] = to_flags_val(flags)
+        if elem.attrib.get("usesAppearanceFont") == "YES":
+            item["NSFontUsesAppearanceFontSize"] = True
+    elif meta_font in META_FONTS:
+        name, default_size, role, extra_or = META_FONTS[meta_font]
+        item["NSName"] = NibString.intern(name)
+        item["NSSize"] = float(elem.attrib.get("size", default_size))
+        item["NSfFlags"] = to_flags_val(role.value) | extra_or
+    else:
+        raise Exception(f"missing font {meta_font}")
+    return item
+
+
 def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> NibObject:
     item = NibObject("NSFont")
     meta_font = elem.attrib.get("metaFont")
