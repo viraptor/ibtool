@@ -59,7 +59,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
             "NSHotSpot": NibString.intern("{8, -8}"),
         }),
         NibString.intern("NSUnderline"),
-        NibNSNumber(1),
+        NibNSNumber(1.0 if ctx.toolsVersion < 10000 else 1),
     ])
     shared_data["NSMarkedAttributes"] = NibNil()
     shared_data["NSMoreFlags"] = 0x1
