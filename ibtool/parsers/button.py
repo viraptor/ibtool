@@ -1,7 +1,7 @@
 from ..models import ArchiveContext, NibObject, XibObject, NibNil, NibString
 from ..parsers.helpers import make_xib_object
 from ..parsers_base import parse_children
-from .helpers import _xibparser_common_translate_autoresizing
+from .helpers import _xibparser_common_translate_autoresizing, hugging_priority_string
 from xml.etree.ElementTree import Element
 from typing import Optional
 from ..constants import vFlags
@@ -57,7 +57,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
         is_swapper = obj.classname() == "NSClassSwapper"
         is_bevel = obj.extraContext.get("button_type") == "bevel"
         if hp != default_hp or vp != default_vp or in_cell_view or is_check_or_radio or is_bevel or (bezel not in _SUPPRESS_DEFAULT_HUGGING_BEZELS and not is_swapper):
-            obj["NSHuggingPriority"] = NibString.intern(f"{{{hp}, {vp}}}")
+            obj["NSHuggingPriority"] = hugging_priority_string(hp, vp)
     if not obj.extraContext.get("parsed_autoresizing"):
         obj.flagsOr("NSvFlags", vFlags.DEFAULT_VFLAGS_AUTOLAYOUT if ctx.useAutolayout else vFlags.DEFAULT_VFLAGS)
     return obj

@@ -1,6 +1,6 @@
 from ..models import ArchiveContext, NibObject, XibObject, NibString, NibNil
 from xml.etree.ElementTree import Element
-from .helpers import make_xib_object, _xibparser_common_translate_autoresizing
+from .helpers import make_xib_object, _xibparser_common_translate_autoresizing, hugging_priority_string
 from ..parsers_base import parse_children
 from ..constants import vFlags
 
@@ -36,7 +36,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
     h = obj.extraContext.get("horizontalHuggingPriority", "250")
     v = obj.extraContext.get("verticalHuggingPriority", "750")
     if h != "250" or v != "750":
-        obj["NSHuggingPriority"] = NibString.intern(f"{{{h}, {v}}}")
+        obj["NSHuggingPriority"] = hugging_priority_string(h, v)
     if not obj.extraContext.get("parsed_autoresizing"):
         obj.flagsOr("NSvFlags", vFlags.DEFAULT_VFLAGS_AUTOLAYOUT if ctx.useAutolayout else vFlags.DEFAULT_VFLAGS)
 

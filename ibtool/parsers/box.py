@@ -1,6 +1,6 @@
 from ..models import ArchiveContext, NibObject, NibMutableList, NibString, NibNil, NibList, NibNSNumber
 from xml.etree.ElementTree import Element
-from .helpers import make_xib_object, makeSystemColor, _xibparser_common_translate_autoresizing, handle_props, PropSchema
+from .helpers import make_xib_object, makeSystemColor, _xibparser_common_translate_autoresizing, handle_props, PropSchema, MAP_FOCUS_RING
 from ..parsers_base import parse_children
 from ..constants import vFlags, CellFlags, CellFlags2, FontFlags
 from .font import to_flags_val
@@ -79,7 +79,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
     if "verticalHuggingPriority" in obj.extraContext or "horizontalHuggingPriority" in obj.extraContext:
         v, h = obj.extraContext.get("verticalHuggingPriority", 250), obj.extraContext.get("horizontalHuggingPriority", 250)
         obj["NSHuggingPriority"] = f"{{{h}, {v}}}"
-    focus_ring = {"none": vFlags.FOCUS_RING_NONE, "exterior": vFlags.FOCUS_RING_EXTERIOR}.get(obj.extraContext.get("focusRingType"), 0)
+    focus_ring = MAP_FOCUS_RING.get(obj.extraContext.get("focusRingType"), 0)
     obj.flagsOr("NSvFlags", focus_ring)
 
     if not obj.extraContext.get("parsed_autoresizing"):

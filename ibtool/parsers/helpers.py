@@ -491,3 +491,27 @@ MAP_YES_NO = {
     "YES": True,
     "NO": False,
 }
+
+MAP_FOCUS_RING = {"none": vFlags.FOCUS_RING_NONE, "exterior": vFlags.FOCUS_RING_EXTERIOR}
+
+MAP_TABLE_STYLE = {
+    None: None,
+    "fullWidth": 1,
+    "inset": 2,
+    "sourceList": 3,
+    "plain": 4,
+}
+
+MAP_TABLE_HIGHLIGHT_STYLE = {
+    None: None,
+    "sourceList": 1,
+}
+
+def hugging_priority_string(h, v) -> NibString:
+    return NibString.intern(f"{{{h}, {v}}}")
+
+def point_string(x, y) -> NibString:
+    return NibString.intern(f"{{{x}, {y}}}")
+
+def rect_string(x, y, w, h) -> NibString:
+    return NibString.intern(f"{{{{{x}, {y}}}, {{{w}, {h}}}}}")
