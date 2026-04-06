@@ -19,7 +19,7 @@
             </view>
             <toolbar key="toolbar" implicitIdentifier="TB1-aa-aaa" displayMode="iconAndLabel" sizeMode="regular" id="TB1-bb-bbb">
                 <allowedToolbarItems>
-                    <toolbarItem implicitItemIdentifier="HomeBtn" label="Home" paletteLabel="Home" id="TBI-aa-001">
+                    <toolbarItem implicitItemIdentifier="UUID-zzz-yyy" explicitItemIdentifier="HomeBtn" label="Home" paletteLabel="Home" id="TBI-aa-001">
                         <size key="minSize" width="50" height="25"/>
                         <size key="maxSize" width="50" height="25"/>
                         <button verticalHuggingPriority="750" id="BTN-aa-001">

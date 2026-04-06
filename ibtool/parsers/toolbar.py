@@ -165,7 +165,7 @@ def _make_standard_item(identifier, info, toolbar, ctx):
 
 
 def _make_custom_item(ctx, elem, toolbar):
-    identifier = elem.attrib.get("implicitItemIdentifier", "")
+    identifier = elem.attrib.get("explicitItemIdentifier", elem.attrib.get("implicitItemIdentifier", ""))
     custom_class = elem.attrib.get("customClass")
     classname = "NSToolbarItem"
 
