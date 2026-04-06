@@ -4,21 +4,20 @@ from typing import Optional
 from .helpers import make_xib_object, _xibparser_common_translate_autoresizing
 from ..parsers_base import parse_children
 from ..constants import vFlags
+from ..text_measure import compute_intrinsic_width, _available, _is_hidden
+import ctypes
 
 def _build_visibility_map(obj, children):
     """Build NSMapTable for stack view container visibility priorities.
     Returns NibNil if no visibility data needed, or NSMapTable with entries
     for children whose explicitly-set priority differs from 1000."""
-    from ..constants import vFlags as _vFlags
     vis_prios = obj.extraContext.get("visibility_priorities")
-    # Check if any child is hidden
-    import ctypes as _ctypes
-    def _is_hidden(c):
+    def _child_hidden(c):
         flags = c.get("NSvFlags") if hasattr(c, 'get') else None
         if flags is None or not isinstance(flags, int):
             return False
-        return bool(_ctypes.c_uint32(flags).value & 0x80000000)
-    has_hidden = any(_is_hidden(c) for c in children)
+        return bool(ctypes.c_uint32(flags).value & 0x80000000)
+    has_hidden = any(_child_hidden(c) for c in children)
     if not has_hidden:
         return NibNil()
     # Build map entries: explicit non-1000 priorities + hidden children
@@ -34,7 +33,7 @@ def _build_visibility_map(obj, children):
     # Add hidden stack view children not already in the map
     for child in children:
         cn = child.originalclassname() if hasattr(child, 'originalclassname') else (child.classname() if hasattr(child, 'classname') else '')
-        if id(child) not in seen and _is_hidden(child) and cn == "NSStackView":
+        if id(child) not in seen and _child_hidden(child) and cn == "NSStackView":
             map_entries.append(child)
             map_entries.append(NibNSNumber(0))
             seen.add(id(child))
@@ -55,7 +54,6 @@ def _build_visibility_map(obj, children):
 def _relayout_children(ctx, elem, obj):
     """In storyboard mode, recalculate child frames based on intrinsic content sizes.
     Only applies when all visible children have computable intrinsic widths."""
-    from ..text_measure import compute_intrinsic_width, _available, _is_hidden
     if not _available or not ctx.isStoryboard:
         return
 
@@ -181,7 +179,6 @@ def _relayout_fill_proportionally(visible, spacing, total_width):
 
 def _cascade_fill_relayout(sv_elem, sv_obj, new_width):
     """After a parent sets a fill stack child's width, update its children."""
-    from ..text_measure import compute_intrinsic_width, _is_hidden
     dist = sv_elem.get("distribution")
     if dist != "fill":
         return

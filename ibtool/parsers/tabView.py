@@ -1,9 +1,10 @@
 from ..models import ArchiveContext, NibObject, NibMutableList, XibObject, NibNil, NibString, NibLocalizableString
 from xml.etree.ElementTree import Element
 from typing import Optional
-from .helpers import make_xib_object, parse_interfacebuilder_properties, __handle_view_chain, _xibparser_common_view_attributes, _xibparser_common_translate_autoresizing
+from .helpers import make_xib_object, parse_interfacebuilder_properties, __handle_view_chain, _xibparser_common_view_attributes, _xibparser_common_translate_autoresizing, makeSystemColor
 from ..parsers_base import parse_children
 from ..constants import vFlags
+from . import view as view_parser
 
 
 def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> XibObject:
@@ -196,12 +197,10 @@ def _parse_tab_view_item(ctx, elem, tab_view):
     if identifier:
         obj["NSIdentifier"] = NibString.intern(identifier)
 
-    from .helpers import makeSystemColor
     obj["NSColor"] = makeSystemColor("controlColor")
 
     view_elem = elem.find("view")
     if view_elem is not None:
-        from . import view as view_parser
         view_obj = view_parser.parse(ctx, view_elem, tab_view)
         view_obj._parent = obj
         obj["NSView"] = view_obj

@@ -2,6 +2,8 @@
 
 import glob
 import os
+import shlex
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -9,7 +11,6 @@ from concurrent.futures import ProcessPoolExecutor
 
 
 def _read_extra_args(xib):
-    import shlex
     args_file = os.path.splitext(xib)[0] + ".args"
     if os.path.isfile(args_file):
         with open(args_file) as f:
@@ -55,7 +56,6 @@ def run_test(xib):
 
 
 def run_storyboard_test(sb):
-    import shutil
     extra_args = _read_extra_args(sb)
     test_out = tempfile.mkdtemp(suffix=".storyboardc")
 

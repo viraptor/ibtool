@@ -486,7 +486,6 @@ def fixup_connections(collection):
     collection[:] = non_connectors + connectors
 
 def _is_uuid_diff(issue_str):
-    import re
     return bool(re.search(r"(uniqueIdentifierForStoryboardCompilation|NSStoryboardSegueDestinationOptions).*difference b'[0-9A-F-]+'", issue_str))
 
 

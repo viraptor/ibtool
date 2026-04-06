@@ -1,5 +1,5 @@
 from ..models import ArchiveContext, NibObject, NibNil, NibString, NibInlineString, NibList, NibMutableList, NibMutableDictionary, NibNSNumber, XibObject
-from ..constant_objects import GENERIC_GREY_COLOR_SPACE
+from ..constant_objects import GENERIC_GREY_COLOR_SPACE, MENU_MIXED_IMAGE, MENU_ON_IMAGE
 from ..parsers_base import parse_children
 from xml.etree.ElementTree import Element
 
@@ -99,7 +99,6 @@ def _make_toolbar_image(name, size_str, alignment_rect_str, toolbar):
 
 
 def _make_separator_menu_item(toolbar):
-    from ..constant_objects import MENU_MIXED_IMAGE, MENU_ON_IMAGE
     item = NibObject("NSMenuItem", toolbar)
     item["NSIsDisabled"] = True
     item["NSIsSeparator"] = True

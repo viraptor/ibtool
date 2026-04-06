@@ -118,3 +118,5 @@ To fix the implementation, you should do what test.py does and compare our resul
 ## Code
 
 Do NOT include comments which repeat the code itself. Only comment if the reason behind the code segment needs to be explained.
+
+All `import` / `from ... import` statements belong at the top of the file. Do NOT add lazy imports inside functions or methods. The only acceptable reason to put an import elsewhere is to break a genuine circular dependency that cannot be resolved by restructuring; in that case leave a brief comment explaining the cycle.

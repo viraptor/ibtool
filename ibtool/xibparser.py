@@ -3,13 +3,16 @@ import os
 import plistlib
 import uuid
 from .models import (
+    ArrayLike,
     NibNSNumber,
     NibObject,
     NibList,
     NibMutableList,
     NibDictionary,
+    NibDictionaryImpl,
     NibMutableDictionary,
     NibMutableSet,
+    NibProxyObject,
     NibString,
     NibLocalizableString,
     NibMutableString,
@@ -21,7 +24,9 @@ from .models import (
 from xml.etree.ElementTree import Element
 from typing import Optional
 import base64
+from . import genlib
 from .parsers_base import __xibparser_ParseXIBObject
+from .parsers.helpers import makeSystemColor
 
 def replace_string_attribures(elem: Element):
     string_elements = [child for child in elem if child.tag == "string" and child.get("key")]
@@ -194,8 +199,6 @@ def _storyboard_walk(obj: NibObject, visited: set[int]) -> None:
         return
     visited.add(obj_id)
 
-    from .models import ArrayLike, NibDictionaryImpl
-
     for key, val in list(obj.properties.items()):
         if key in _STORYBOARD_BOOL_TRUE_PROPS and val is False:
             obj.properties[key] = True
@@ -218,8 +221,6 @@ def _compile_storyboard_nib(genlib, nibroot):
 
 
 def CompileStoryboard(tree, outpath, module=None, isBaseLocalization=False):
-    from . import genlib
-
     root = tree.getroot()
     replace_string_attribures(root)
 
@@ -516,7 +517,6 @@ def _reverse_menu_children(child_objs):
 
 
 def _resolve_storyboard_connections(ctx, first_responder_id=None):
-    from .models import NibProxyObject
     fr_xibid = XibId(first_responder_id) if first_responder_id else None
     result = []
     for con in ctx.connections:
@@ -644,8 +644,6 @@ def _build_tab_view_controller_for_wc(ctx, vc_elem, scenes, parent,
                                        extra_connections, extra_placeholders):
     """Build a full NSTabViewController with tab items and child VC swappers
     for embedding in a window controller NIB."""
-    from .parsers.helpers import makeSystemColor
-
     tab_style_map = {"toolbar": 2, "segmentedControlOnTop": 1, "segmentedControlOnBottom": 1}
     tab_style = vc_elem.get("tabStyle", "")
     transition_elem = vc_elem.find("viewControllerTransitionOptions")
@@ -1164,7 +1162,6 @@ def _compile_view_nib(root, vc_elem, view_elem,
     ctx.resolveConnections()
     # Drop connections whose destinations couldn't be resolved (cross-scene refs).
     # resolveConnections() turns these into UIProxyObject which doesn't exist on macOS.
-    from .models import NibProxyObject
     ctx.connections = [c for c in ctx.connections
                        if not isinstance(c.get("NSDestination"), NibProxyObject)]
     ctx.processConstraints()

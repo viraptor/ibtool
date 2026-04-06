@@ -4,6 +4,7 @@ import ctypes.util
 import math
 from xml.etree.ElementTree import Element
 from typing import Optional
+from .constants import META_FONTS, DEFAULT_FONT_SIZE
 
 _ct_path = ctypes.util.find_library('CoreText')
 _cf_path = ctypes.util.find_library('CoreFoundation')
@@ -70,9 +71,6 @@ if _available:
 else:
     def measure_text(text: str, font_size: float = 13.0) -> float:
         raise RuntimeError("CoreText not available")
-
-
-from .constants import META_FONTS, DEFAULT_FONT_SIZE
 
 
 def _get_cell_elem(view_elem: Element) -> Optional[Element]:
