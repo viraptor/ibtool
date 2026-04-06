@@ -1,6 +1,7 @@
 from ..models import ArchiveContext, NibObject, NibNil, NibString, NibInlineString, NibList, NibMutableList, NibMutableDictionary, NibNSNumber, NibByte, XibObject, XibId
 from ..constant_objects import GENERIC_GREY_COLOR_SPACE, MENU_MIXED_IMAGE, MENU_ON_IMAGE
-from ..parsers_base import parse_children
+from ..parsers_base import parse_children, __xibparser_ParseXIBObject
+from . import connections as connections_mod
 from xml.etree.ElementTree import Element
 
 DISPLAY_MODE_MAP = {
@@ -196,7 +197,6 @@ def _make_custom_item(ctx, elem, toolbar):
         elif child.attrib.get("key") == "view":
             view_elem = child
         elif child.tag == "connections":
-            from . import connections as connections_mod
             connections_mod.parse(ctx, child, item)
 
     item.setIfEmpty("NSToolbarItemToolTip", NibString.intern(""))
@@ -308,6 +308,9 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
                     obj = ctx.getObject(XibId(ref))
                     if obj:
                         default_items.append(obj)
+
+        else:
+            __xibparser_ParseXIBObject(ctx, section, toolbar)
 
     dict_items = []
     for item_id, item in sorted(identified_items.items()):

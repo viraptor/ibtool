@@ -34,6 +34,9 @@
                 <defaultToolbarItems>
                     <toolbarItem reference="TBI-aa-001"/>
                 </defaultToolbarItems>
+                <connections>
+                    <outlet property="delegate" destination="-2" id="tb-del-001"/>
+                </connections>
             </toolbar>
             <connections>
                 <outlet property="delegate" destination="-2" id="del-aa-001"/>
