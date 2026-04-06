@@ -1,8 +1,7 @@
 from ..models import ArchiveContext, NibObject, XibObject, NibString, NibNil, NibDictionary, NibNSNumber, NibLocalizableString
 from xml.etree.ElementTree import Element
 from ..parsers_base import parse_children
-from .helpers import __xibparser_button_flags, __xibparser_cell_options, __xibparser_cell_flags
-from .imageCell import _make_inline_image
+from .helpers import __xibparser_button_flags, __xibparser_cell_options, __xibparser_cell_flags, make_inline_image
 from ..constants import BEZEL_STYLE_MAP, ButtonFlags2, FontFlags
 from .font import to_flags_val
 
@@ -43,9 +42,9 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
         obj["NSAlternateContents"] = NibString.intern(elem.attrib.get("alternateTitle", ""))
 
     if image_name := elem.attrib.get("image"):
-        obj["NSNormalImage"] = _make_inline_image(image_name, obj, ctx)
+        obj["NSNormalImage"] = make_inline_image(image_name, obj, ctx)
     if alt_image_name := elem.attrib.get("alternateImage"):
-        obj["NSAlternateImage"] = _make_inline_image(alt_image_name, obj, ctx)
+        obj["NSAlternateImage"] = make_inline_image(alt_image_name, obj, ctx)
 
     if (key_equiv := elem.attrib.get("keyEquivalent")) is not None:
         obj["NSKeyEquivalent"] = NibString.intern(key_equiv)
