@@ -10,6 +10,10 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     obj = make_xib_object(ctx, "NSButton", elem, parent)
     obj["NSSuperview"] = obj.xib_parent()
     parse_children(ctx, elem, obj)
+    if elem.attrib.get("imageHugsTitle") == "YES":
+        cell = obj.get("NSCell")
+        if cell is not None and not isinstance(cell, NibNil):
+            cell.flagsOr("NSButtonFlags", 0x20)
     _xibparser_common_translate_autoresizing(ctx, elem, parent, obj)
     if ctx.isStoryboard and obj.extraContext.get("button_type") in ("check", "radio"):
         from ..text_measure import compute_intrinsic_width, _available
