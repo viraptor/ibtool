@@ -1,4 +1,4 @@
-from ..models import ArchiveContext, NibObject, NibNil, NibString, NibInlineString, NibList, NibMutableList, NibMutableDictionary, NibNSNumber, XibObject, XibId
+from ..models import ArchiveContext, NibObject, NibNil, NibString, NibInlineString, NibList, NibMutableList, NibMutableDictionary, NibNSNumber, NibByte, XibObject, XibId
 from ..constant_objects import GENERIC_GREY_COLOR_SPACE, MENU_MIXED_IMAGE, MENU_ON_IMAGE
 from ..parsers_base import parse_children
 from xml.etree.ElementTree import Element
@@ -209,7 +209,12 @@ def _make_custom_item(ctx, elem, toolbar):
         item["NSToolbarItemView"] = NibNil()
 
     image_name = elem.attrib.get("image")
-    item["NSToolbarItemBordered"] = elem.attrib.get("bordered") == "YES"
+    if "bordered" in elem.attrib:
+        item["NSToolbarItemBordered"] = elem.attrib["bordered"] == "YES"
+    elif view_elem is not None and view_elem.tag == "button":
+        item["NSToolbarItemBordered"] = True
+    else:
+        item["NSToolbarItemBordered"] = False
     if image_name:
         from .helpers import make_image
         img = make_image(image_name, item, ctx)
@@ -217,7 +222,12 @@ def _make_custom_item(ctx, elem, toolbar):
     else:
         item["NSToolbarItemImage"] = NibNil()
 
-    item["NSToolbarItemTitle"] = NibString.intern("")
+    cell_title = ""
+    if view_elem is not None:
+        cell_elem = view_elem.find("buttonCell")
+        if cell_elem is not None:
+            cell_title = cell_elem.attrib.get("title", "")
+    item["NSToolbarItemTitle"] = NibString.intern(cell_title)
     item["NSToolbarItemTarget"] = NibNil()
     item["NSToolbarItemAction"] = NibNil()
     if min_size:
