@@ -26,6 +26,7 @@ from typing import Optional
 import base64
 from . import genlib
 from .parsers_base import __xibparser_ParseXIBObject
+from .system_images import system_image_size
 from .parsers.helpers import makeSystemColor
 
 def replace_string_attribures(elem: Element):
@@ -78,6 +79,10 @@ def ParseXIBObjects(root: Element, context: Optional[ArchiveContext]=None, resol
             w = img.get("width")
             h = img.get("height")
             if name and w and h:
+                if name.startswith("NS"):
+                    sys_size = system_image_size(name)
+                    if sys_size is not None:
+                        w, h = str(sys_size[0]), str(sys_size[1])
                 context.imageResources[name] = (w, h)
             catalog = img.get("catalog")
             if name and catalog:
