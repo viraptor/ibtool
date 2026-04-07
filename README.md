@@ -33,11 +33,21 @@ The compatibility is maintained at the level of the code interface. This means t
 - length of the encoded integer values
 - array order (apart from the constraints)
 
+Just in case, we also care about the order of NSObjectKeys where possible. It should not matter for the apps, but without it we couldn't do a full comparison between the nib files.
+
 What we don't care about: 
 - serialised class order
-- order of object keys
+- order of object properties
 - constraints, which both have their own explicit priority and seem to have a very implementation-specific order (although if you understand the order, please help fixing it)
 - order of objects in the file - those don't depend on the IDs and have their own order in the top level object anyway
 
 ### Adding new functionality
-If the current version doesn't compile something correctly, the best way to approach it is to create a minimal example for it in the interface builder. Then put that for in the samples directory and compile a corresponding `nib` file using upstream `ibtool --compile foo.nib foo.xib`. After that you can use `./test.py samples/foo.xib` to see the mismatched values.
+If the current version doesn't compile something correctly, the best way to approach it is to create a minimal example for it in the interface builder. Then put that file in the `samples/correct/` directory and compile a corresponding `nib` file using the host tool:
+
+```
+TZ=Etc/UTC LANG=C LC_ALL=C ibtool --compile foo.nib foo.xib
+```
+
+After that you can use `./test.py samples/foo.xib` to see the mismatched values.
+
+When testing new files/functionality, run the host `ibtool` a number of times and compare results to identify new places with nondeterministic compilation (there's a number of them already).
