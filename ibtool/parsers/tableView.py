@@ -129,6 +129,10 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
         obj.flagsAnd("NSTvFlags", ~TVFLAGS.GRID_STYLE_DASHED)
         obj.flagsOr("NSTvFlags", TVFLAGS.GRID_STYLE_SOLID)
 
+    if num_cols >= 4 and elem.attrib.get("multipleSelection", "YES") == "YES":
+        obj.flagsAnd("NSTvFlags", ~TVFLAGS.GRID_STYLE_DASHED)
+        obj.flagsOr("NSTvFlags", TVFLAGS.GRID_STYLE_SOLID)
+
     if is_elastic:
         columns_for_height = obj.get("NSTableColumns")
         if columns_for_height:

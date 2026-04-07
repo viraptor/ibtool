@@ -118,11 +118,16 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     # GRID_STYLE_SOLID when multipleSelection=YES AND (columnResizing=YES OR 3+ columns)
     columns = obj.get("NSTableColumns")
     num_cols = len(columns) if columns else 0
+    parent_sv = obj.xib_parent().xib_parent() if obj.xib_parent() else None
+    parent_sv_has_hscroller = bool(parent_sv and (parent_sv.get("NSsFlags") or 0) & 0x20)
     if elem.attrib.get("multipleSelection", "YES") == "YES":
-        if elem.attrib.get("columnResizing", "YES") == "YES" or num_cols >= 3:
+        if elem.attrib.get("columnResizing", "YES") == "YES" and not (num_cols == 2 and parent_sv_has_hscroller):
             obj.flagsOr("NSTvFlags", TVFLAGS.GRID_STYLE_SOLID)
             if num_cols >= 3:
                 obj.flagsAnd("NSTvFlags", ~TVFLAGS.GRID_STYLE_DASHED)
+    if elem.attrib.get("columnReordering") == "NO" and elem.attrib.get("multipleSelection", "YES") == "YES":
+        obj.flagsAnd("NSTvFlags", ~TVFLAGS.GRID_STYLE_DASHED)
+        obj.flagsOr("NSTvFlags", TVFLAGS.GRID_STYLE_SOLID)
     # Swap DASHED → SOLID when columnResizing=NO and any column has resizeWithTable
     if elem.attrib.get("columnResizing", "YES") == "NO" and columns:
         for col in columns:

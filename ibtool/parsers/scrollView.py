@@ -340,7 +340,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
         content_cv = obj.get("NSContentView")
         if content_cv:
             dv = content_cv.get("NSDocView")
-            if _is_table_or_outline(dv):
+            if dv and dv.originalclassname() == "NSTableView":
                 dv.flagsOr("NSTvFlags", TVFLAGS.GRID_STYLE_SOLID)
 
     if not obj.extraContext.get("parsed_autoresizing"):
