@@ -115,8 +115,19 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
         PropSchema(prop="NSRowHeight", attrib="rowHeight", default="17", filter=float, skip_default=False),
     ])
 
-    if elem.attrib.get("selectionHighlightStyle") == "sourceList" and ctx.toolsVersion < 11762:
+    if elem.attrib.get("selectionHighlightStyle") == "sourceList":
         obj.flagsAnd("NSTvFlags", ~TVFLAGS.GRID_STYLE_DASHED)
+
+    # Tables with alternating row backgrounds, 3+ columns, no column reordering
+    # and lastColumnOnly autoresize swap from DASHED to SOLID grid style.
+    columns = obj.get("NSTableColumns")
+    num_cols = len(columns) if columns else 0
+    if (num_cols >= 3
+            and elem.attrib.get("alternatingRowBackgroundColors") == "YES"
+            and elem.attrib.get("columnReordering") == "NO"
+            and elem.attrib.get("columnAutoresizingStyle") == "lastColumnOnly"):
+        obj.flagsAnd("NSTvFlags", ~TVFLAGS.GRID_STYLE_DASHED)
+        obj.flagsOr("NSTvFlags", TVFLAGS.GRID_STYLE_SOLID)
 
     if is_elastic:
         columns_for_height = obj.get("NSTableColumns")

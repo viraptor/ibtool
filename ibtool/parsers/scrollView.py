@@ -406,6 +406,12 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
             hcv_f = parse_frame_string(hcv.get("NSFrame")) if hcv.get("NSFrame") else None
             if hcv_f:
                 hcv["NSFrame"] = frame_string(hcv_f[0], hcv_f[1], hcv_f[2] - vs_standard_w, hcv_f[3])
+            else:
+                hcv_fs = hcv.get("NSFrameSize")
+                if hcv_fs is not None and hasattr(hcv_fs, "_text"):
+                    m = re.match(r'\{(\d+),\s*(\d+)\}', hcv_fs._text)
+                    if m:
+                        hcv["NSFrameSize"] = NibString.intern(f"{{{int(m.group(1)) - vs_standard_w}, {int(m.group(2))}}}")
 
     if obj.get("NSHeaderClipView"):
         obj["NSSubviews"].addItem(obj["NSHeaderClipView"])
@@ -441,11 +447,25 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
         border_col_reduced = True
     # Autohiding scroll views without headers: reduce column widths when VScroller is not offscreen
     doc_view = cv.get("NSDocView")
+    has_header = obj.get("NSHeaderClipView") is not None
     # COPY_ON_SCROLL: only when VScroller is not offscreen
     if not vs_offscreen and (uses_predominant_axis_scrolling or has_horizontal_scroller):
         if _is_table_or_outline(doc_view):
-            obj.flagsOr("NSsFlags", sFlagsScrollView.COPY_ON_SCROLL)
-    has_header = obj.get("NSHeaderClipView") is not None
+            # When autohide is on and the doc view fits the clip without a
+            # header, Apple doesn't enable COPY_ON_SCROLL.
+            dv_raw_cos = doc_view.raw_frame()
+            cv_computed_cos = cv.frame()
+            dv_w_cos = dv_raw_cos[2] if dv_raw_cos else 0
+            clip_w_cos = int(cv_computed_cos[2]) if cv_computed_cos else 0
+            cas_cos = doc_view.get("NSColumnAutoresizingStyle")
+            is_outline_dv_cos = doc_view.originalclassname() == "NSOutlineView"
+            skip_cos = (auto_hiding
+                          and dv_w_cos and clip_w_cos and dv_w_cos <= clip_w_cos
+                          and (not has_header
+                                or is_outline_dv_cos
+                                or (cas_cos not in (None, 4))))
+            if not skip_cos:
+                obj.flagsOr("NSsFlags", sFlagsScrollView.COPY_ON_SCROLL)
     if auto_hiding and not has_header and not vs_offscreen and not border_col_reduced and not is_regular_scroller and _is_table_or_outline(doc_view):
         reduction = 17 + _get_ics_w(doc_view) * 4
         _reduce_column_widths(doc_view, reduction)
@@ -485,7 +505,14 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     if _is_table_or_outline(doc_view) and not vs_offscreen and is_regular_scroller and (has_horizontal_scroller or not auto_hiding):
         scroller_w = 17
         ics_w = _get_ics_w(doc_view)
-        expansion = int(scroller_w + 3) if has_header else int(scroller_w + ics_w * 3)
+        # Autohiding scroll views with headers don't expand the docview when
+        # the column autoresizing style is something other than the default
+        # lastColumnOnly behaviour: Apple keeps the xib docview width.
+        cas = doc_view.get("NSColumnAutoresizingStyle")
+        if auto_hiding and has_header and cas not in (None, 4):
+            expansion = 0
+        else:
+            expansion = int(scroller_w + 3) if has_header else int(scroller_w + ics_w * 3)
         cv_computed = cv.frame()
         clip_computed_w = int(cv_computed[2]) if cv_computed else None
         clip_computed_h = int(cv_computed[3]) if cv_computed else None
@@ -493,12 +520,22 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
         dv_raw = doc_view.raw_frame()
         if dv_raw:
             raw_w, new_h = dv_raw[2], dv_raw[3]
-            if clip_computed_w is not None and raw_w > clip_computed_w:
+            if (not has_horizontal_scroller and has_header and border == 0
+                  and clip_computed_w is not None and abs(raw_w - clip_computed_w) <= 4):
+                # No horizontal scroller + headered scroll view with no border:
+                # Apple snaps the doc view width to the clip width and shrinks
+                # the autoresizing-style column to compensate.
+                new_w = clip_computed_w
+                if new_w - raw_w != 0:
+                    _reduce_column_widths(doc_view, raw_w - new_w)
+            elif clip_computed_w is not None and raw_w > clip_computed_w:
                 new_w = raw_w + expansion
             elif not has_horizontal_scroller and clip_computed_w is not None and raw_w <= clip_computed_w and (clip_computed_w - raw_w) >= vs_standard_w:
                 new_w = clip_computed_w
                 if new_w - raw_w > 0:
                     _reduce_resizable_column_widths(doc_view, -(new_w - raw_w))
+            elif clip_computed_w is not None and raw_w == clip_computed_w and not has_header:
+                new_w = raw_w
             elif clip_computed_w is not None and raw_w <= clip_computed_w:
                 new_w = raw_w + expansion if has_horizontal_scroller else raw_w
             else:
@@ -523,7 +560,10 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
                 hv_raw = hv.raw_frame()
                 if hv_raw:
                     hv_raw_w, hv_new_h = hv_raw[2], hv_raw[3]
-                    if clip_computed_w is not None and hv_raw_w > clip_computed_w:
+                    if (not has_horizontal_scroller and border == 0
+                          and clip_computed_w is not None and abs(hv_raw_w - clip_computed_w) <= 4):
+                        hv_new_w = clip_computed_w
+                    elif clip_computed_w is not None and hv_raw_w > clip_computed_w:
                         hv_new_w = hv_raw_w + expansion
                     elif not has_horizontal_scroller and clip_computed_w is not None and hv_raw_w <= clip_computed_w:
                         hv_new_w = clip_computed_w
@@ -532,6 +572,25 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
                     else:
                         hv_new_w = hv_raw_w + expansion
                     hv["NSFrameSize"] = size_string(hv_new_w, hv_new_h)
+
+
+    # Single-column hasHorizontalScroller=NO tables/outlines with column
+    # reordering enabled: when the column would just overflow the visible
+    # width because of the vertical scroller, Apple shrinks it to
+    # clip - vs_standard - small_scroller_width.
+    if (_is_table_or_outline(doc_view) and not has_horizontal_scroller
+            and not has_header
+            and ((doc_view.get("NSTvFlags") or 0) & 0x80000000)):
+        cols = doc_view.get("NSTableColumns")
+        if cols and len(cols) == 1:
+            col = cols[0]
+            # Apple shrinks the column to leave room for the standard vertical
+            # scroller (17px) plus a 15px small-scroller margin, regardless of
+            # the actual VS frame width recorded in the xib.
+            target = sv_w_raw - 2 * border - 17 - 15
+            col_w = col["NSWidth"]
+            if target > 0 and col_w > target and col_w <= sv_w_raw:
+                col["NSWidth"] = float(target)
 
     # For hasHorizontalScroller=NO with autohiding, expand doc view to fit column content
     if _is_table_or_outline(doc_view) and not vs_offscreen and not has_horizontal_scroller and auto_hiding:
@@ -730,15 +789,28 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
                 byte1_ceil = (byte1 + 0x0F) & 0xF0
                 obj.flagsOr("NSsFlags", (byte1_ceil << 8) | 0x40)
         if not hs_offscreen and has_horizontal_scroller:
-            obj["NSHScroller"]["NSFrame"] = frame_string(*layout.hs_frame())
-            obj["NSHScroller"].flagsAnd("NSvFlags", ~vFlags.HIDDEN)
+            # When autohide is on and the doc view already fits the clip width
+            # exactly, Apple leaves the HS in its xib state (still hidden).
             dv_frame_str = doc_view.get("NSFrameSize")
+            dv_w = None
             if dv_frame_str:
                 m = re.match(r'\{(\d+),', dv_frame_str._text)
                 if m:
-                    table_w = int(m.group(1))
-                    if table_w > 0:
-                        obj["NSHScroller"]["NSPercent"] = layout.inner_w / table_w
+                    dv_w = int(m.group(1))
+            cv_computed = cv.frame()
+            clip_w_val = int(cv_computed[2]) if cv_computed else None
+            cas_hs = doc_view.get("NSColumnAutoresizingStyle")
+            is_outline_hs = doc_view.originalclassname() == "NSOutlineView"
+            skip_hs_setup = (auto_hiding and dv_w is not None and clip_w_val is not None
+                              and dv_w <= clip_w_val
+                              and (not has_header
+                                    or is_outline_hs
+                                    or (cas_hs not in (None, 4))))
+            if not skip_hs_setup:
+                obj["NSHScroller"]["NSFrame"] = frame_string(*layout.hs_frame())
+                obj["NSHScroller"].flagsAnd("NSvFlags", ~vFlags.HIDDEN)
+                if dv_w and dv_w > 0:
+                    obj["NSHScroller"]["NSPercent"] = layout.inner_w / dv_w
     elif not vs_offscreen and not has_header and not is_table_sv:
         vs_w = obj["NSVScroller"].extraContext.get("scroller_width", 15)
         obj["NSVScroller"]["NSFrame"] = frame_string(sv_w_raw - border - vs_w, border, vs_w, sv_h - 2 * border)
