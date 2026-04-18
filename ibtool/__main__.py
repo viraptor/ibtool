@@ -45,7 +45,24 @@ def run():
                         help="Output format for diagnostics (default: xml1)")
     parser.add_argument("--module", metavar="MODULE",
                         help="Target module name for Swift class name mangling")
+    parser.add_argument("--version", action="store_true", help="Version")
     args = parser.parse_args()
+    
+    if args.version:
+        print('<?xml version="1.0" encoding="UTF-8"?>')
+        print('<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">')
+        print('<plist version="1.0">')
+        print('<dict>')
+        print('        <key>com.apple.ibtool.version</key>')
+        print('        <dict>')
+        print('                <key>bundle-version</key>')
+        print('                <string>24765</string>')
+        print('                <key>short-bundle-version</key>')
+        print('                <string>26.4.1</string>')
+        print('        </dict>')
+        print('</dict>')
+        print('</plist>')
+        sys.exit()
 
     if args.xibmap:
         xibmap_mod.print_xibmap(args.input)
