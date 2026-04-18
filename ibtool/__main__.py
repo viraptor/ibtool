@@ -28,7 +28,7 @@ def _output_diagnostics(args):
 
 def run():
     parser = argparse.ArgumentParser()
-    parser.add_argument("input")
+    parser.add_argument("input", nargs='?')
     parser.add_argument("--compile", metavar="output")
     parser.add_argument("--compare", metavar="input2")
     parser.add_argument("--xib", metavar="XIB", help="XIB source file for annotating --compare output with XIB element ids")
@@ -63,6 +63,10 @@ def run():
         print('</dict>')
         print('</plist>')
         sys.exit()
+
+    if not args.input:
+        print('input file required')
+        sys.exit(1)
 
     if args.xibmap:
         xibmap_mod.print_xibmap(args.input)
