@@ -592,9 +592,8 @@ def _apply_view_defaults(obj: NibObject, seen: set) -> None:
         win = obj.properties.get("NSWindow")
         if isinstance(win, NibNil):
             obj.properties.pop("NSWindow", None)
-        obj.properties.pop("NSReuseIdentifierKey", None)
-    if cls == "NSScroller":
-        obj.setIfEmpty("NSViewIsLayerTreeHost", True)
+        if cls != "NSClipView":
+            obj.properties.pop("NSReuseIdentifierKey", None)
     if cls in _CONTROL_CLASSES:
         action = obj.properties.get("NSAction")
         if action is not None and "NSControlAction" not in obj.properties:
@@ -632,6 +631,14 @@ def _apply_view_defaults(obj: NibObject, seen: set) -> None:
             obj["NSvFlags"] = v_flags & ~0x800
     if cls == "NSTextViewSharedData":
         obj.setIfEmpty("NSAutomaticTextCompletionDisabled", False)
+        obj.setIfEmpty("NSTextHighlightAttributes", NibNil())
+        obj.setIfEmpty("NSWritingToolsFlags", 0x100)
+    if cls == "NSTextContainer":
+        obj.setIfEmpty("NSTextLayoutManager", NibNil())
+    if cls == "NSScroller":
+        obj.setIfEmpty("NSViewIsLayerTreeHost", True)
+        obj.setIfEmpty("NSsFlags", 0x1)
+        obj.setIfEmpty("NSCurValue", 1.0)
     if isinstance(obj, ArrayLike):
         for item in obj.items():
             if isinstance(item, NibObject):
