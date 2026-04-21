@@ -51,6 +51,33 @@ def _fixed_list() -> NibObject:
 _LIST_CLASSES = {"NSMutableArray", "NSArray"}
 _SET_CLASSES = {"NSMutableSet", "NSSet"}
 
+def _mark_main_menu_items(state: "_ArchiveState") -> None:
+    """Tag top-level main menu bar items with NSAllowedForLimitedAppMode=True."""
+    for obj in state.id_to_obj.values():
+        if not hasattr(obj, "classname") or obj.classname() != "NSMenu":
+            continue
+        name = obj.get("NSName")
+        name_bytes = None
+        if isinstance(name, NibObject):
+            inner = name.get("NS.bytes")
+            if isinstance(inner, (bytes, bytearray)):
+                name_bytes = bytes(inner)
+            elif hasattr(inner, "text"):
+                text = inner.text() if callable(inner.text) else inner.text
+                if isinstance(text, (bytes, bytearray)):
+                    name_bytes = bytes(text)
+                elif isinstance(text, str):
+                    name_bytes = text.encode()
+        if name_bytes != b"_NSMainMenu":
+            continue
+        items = obj.get("NSMenuItems")
+        if items is None:
+            continue
+        for item in getattr(items, "_items", []):
+            if isinstance(item, NibObject) and item.classname() == "NSMenuItem":
+                item.setIfEmpty("NSAllowedForLimitedAppMode", True)
+
+
 def _attach_view_constraints(state: "_ArchiveState") -> None:
     """Attach constraints to their containing views as NSViewConstraints."""
     if not state.view_constraints:
@@ -593,7 +620,6 @@ def _apply_view_defaults(obj: NibObject, seen: set) -> None:
         obj.setIfEmpty("NSResizingMode", 0)
         obj.setIfEmpty("NSTintColor", NibNil())
     if cls == "NSMenuItem":
-        obj.setIfEmpty("NSAllowedForLimitedAppMode", True)
         obj.setIfEmpty("NSAllowsKeyEquivalentLocalization", True)
         obj.setIfEmpty("NSAllowsKeyEquivalentMirroring", True)
         obj.setIfEmpty("NSHiddenInRepresentation", False)
@@ -608,6 +634,8 @@ def _apply_view_defaults(obj: NibObject, seen: set) -> None:
         v_flags = obj.get("NSvFlags")
         if isinstance(v_flags, int) and v_flags & 0x800:
             obj["NSvFlags"] = v_flags & ~0x800
+    if cls == "NSTextViewSharedData":
+        obj.setIfEmpty("NSAutomaticTextCompletionDisabled", False)
     if isinstance(obj, ArrayLike):
         for item in obj.items():
             if isinstance(item, NibObject):
@@ -625,6 +653,7 @@ def parse_archive(root: Element) -> NibObject:
     ns_objdata = _build_nib_object_data(state, data_elem)
     _attach_view_constraints(state)
     _apply_view_defaults(ns_objdata, set())
+    _mark_main_menu_items(state)
 
     top = NibObject("NSObject")
     top["IB.objectdata"] = ns_objdata
