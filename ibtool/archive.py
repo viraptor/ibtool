@@ -433,23 +433,78 @@ def _build_object_map(state: _ArchiveState, records_elem: Optional[Element]):
     ordered = records_elem.find("array[@key='orderedObjects']")
     if ordered is None:
         ordered = records_elem
-    root_placeholder_id = None
+
+    # Index every record by the id of its `object` reference, and find the
+    # root placeholder (the synthetic array with id).
+    records_by_ref: dict[str, Element] = {}
+    root_placeholder_id: Optional[str] = None
+    root_record: Optional[Element] = None
     for rec in ordered:
         obj_child = rec.find("*[@key='object']")
-        if obj_child is not None and obj_child.tag == "array" and obj_child.get("id") is not None:
+        if obj_child is None:
+            continue
+        if obj_child.tag == "array" and obj_child.get("id") is not None:
             root_placeholder_id = obj_child.get("id")
-            break
-    seen_refs: set[str] = set()
+            root_record = rec
+            continue
+        if obj_child.tag == "reference":
+            records_by_ref[obj_child.get("ref", "")] = rec
+
+    def record_children(rec: Element) -> list[str]:
+        ch = rec.find("*[@key='children']")
+        if ch is None:
+            return []
+        target = ch
+        if ch.tag == "reference":
+            target = state.id_to_elem.get(ch.get("ref", ""))
+            if target is None:
+                return []
+        result: list[str] = []
+        for c in target:
+            if c.get("key") is not None:
+                continue
+            if c.tag == "reference":
+                result.append(c.get("ref", ""))
+            elif c.tag == "object":
+                cid = c.get("id")
+                if cid is not None:
+                    result.append(cid)
+        return result
+
+    # Depth-first walk the children tree starting from the root placeholder.
+    order: list[tuple[str, str, Element]] = []  # (ref_id, parent_ref_id, rec)
+    if root_record is not None:
+        def walk(rec: Element, parent_ref: str) -> None:
+            for child_ref in record_children(rec):
+                child_rec = records_by_ref.get(child_ref)
+                if child_rec is None:
+                    continue
+                order.append((child_ref, parent_ref, child_rec))
+                walk(child_rec, child_ref)
+        walk(root_record, "")
+
+    # Also emit any records that weren't reachable via the children walk,
+    # in their original XML order. Keeps objects that the archive registered
+    # but didn't link through the children tree (e.g. top-level placeholders
+    # other than File's Owner, layout constraints, etc.).
+    walked: set[str] = {entry[0] for entry in order}
     for rec in ordered:
         obj_child = rec.find("*[@key='object']")
-        parent_child = rec.find("*[@key='parent']")
-        id_child = rec.find("int[@key='objectID']")
-        name_child = rec.find("string[@key='objectName']")
         if obj_child is None or obj_child.tag != "reference":
             continue
+        ref_id = obj_child.get("ref", "")
+        if ref_id in walked:
+            continue
+        parent_child = rec.find("*[@key='parent']")
+        parent_ref = parent_child.get("ref", "") if (parent_child is not None and parent_child.tag == "reference") else ""
+        order.append((ref_id, parent_ref, rec))
+        walked.add(ref_id)
+
+    seen_refs: set[str] = set()
+    for ref_id, parent_ref, rec in order:
+        name_child = rec.find("string[@key='objectName']")
         if name_child is not None and (name_child.text or "") == "First Responder":
             continue
-        ref_id = obj_child.get("ref", "")
         if ref_id in seen_refs:
             continue
         ref_elem = state.id_to_elem.get(ref_id)
@@ -470,14 +525,13 @@ def _build_object_map(state: _ArchiveState, records_elem: Optional[Element]):
         seen_refs.add(ref_id)
         obj = state.resolve_ref(ref_id)
         keys.addItem(obj)
-        if parent_child is not None and parent_child.tag == "reference":
-            parent_ref = parent_child.get("ref", "")
-            if parent_ref == root_placeholder_id and getattr(state, "files_owner", None) is not None:
-                vals.addItem(state.files_owner)
-            else:
-                vals.addItem(state.resolve_ref(parent_ref))
+        if parent_ref == root_placeholder_id and getattr(state, "files_owner", None) is not None:
+            vals.addItem(state.files_owner)
+        elif parent_ref:
+            vals.addItem(state.resolve_ref(parent_ref))
         else:
             vals.addItem(NibNil())
+        id_child = rec.find("int[@key='objectID']")
         if id_child is not None:
             oid = (id_child.text or "").strip()
             if oid:
