@@ -28,6 +28,7 @@ from .models import (
     NibNil,
     NibData,
     NibList,
+    NibDictionary,
     NibMutableList,
     NibMutableSet,
     NibMutableDictionary,
@@ -80,6 +81,8 @@ class _ArchiveState:
             cls = elem.get("class") or "NSObject"
             if cls == "NSMutableDictionary":
                 return NibMutableDictionary([])
+            if cls == "NSDictionary":
+                return NibDictionary([])
             if cls in _LIST_CLASSES:
                 return NibMutableList([]) if cls == "NSMutableArray" else _fixed_list()
             if cls in _SET_CLASSES:
@@ -87,11 +90,14 @@ class _ArchiveState:
             return NibObject(cls)
         if tag == "array":
             cls = elem.get("class")
-            if cls == "NSArray":
-                return _fixed_list()
-            return NibMutableList([])
+            if cls == "NSMutableArray":
+                return NibMutableList([])
+            return _fixed_list()
         if tag == "dictionary":
-            return NibMutableDictionary([])
+            cls = elem.get("class")
+            if cls == "NSMutableDictionary":
+                return NibMutableDictionary([])
+            return NibDictionary([])
         if tag == "set":
             return NibMutableSet([])
         raise ValueError(f"archive: unexpected id-bearing element <{tag}>")
