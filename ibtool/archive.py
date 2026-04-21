@@ -758,7 +758,9 @@ def _apply_view_defaults(obj: NibObject, seen: set) -> None:
         obj["NSControlWritingDirection"] = -1
         obj.setIfEmpty("NSImageViewPlaceholderPrecedence", 0)
         obj.setIfEmpty("IBNSShadowedSymbolConfiguration", NibNil())
-        obj.setIfEmpty("NSNextKeyView", NibNil())
+        nk = obj.properties.get("NSNextKeyView")
+        if isinstance(nk, NibNil):
+            obj.properties.pop("NSNextKeyView", None)
         inner_cell = obj.get("NSCell")
         if isinstance(inner_cell, NibObject):
             inner_cell.setIfEmpty("NSControlView", obj)
