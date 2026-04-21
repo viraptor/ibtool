@@ -92,15 +92,21 @@ def _finalize_constraint(obj: NibObject) -> None:
     if first_attr is not None and "NSFirstAttributeV2" not in obj.properties:
         obj["NSFirstAttributeV2"] = first_attr
     second_attr = obj.properties.get("NSSecondAttribute")
+    if second_attr == 0:
+        obj.properties.pop("NSSecondAttribute", None)
+        second_attr = None
     if second_attr is not None and "NSSecondAttributeV2" not in obj.properties:
         obj["NSSecondAttributeV2"] = second_attr
-    if "NSSecondItem" not in obj.properties:
-        constant = obj.properties.get("NSConstant")
-        if constant is not None and "NSConstantV2" not in obj.properties:
-            obj["NSConstantV2"] = constant
-    else:
+    if "NSSymbolicConstant" in obj.properties:
         obj.properties.pop("NSConstant", None)
         obj.properties.pop("NSConstantV2", None)
+    else:
+        constant = obj.properties.get("NSConstant")
+        if constant == 0 or constant == 0.0:
+            obj.properties.pop("NSConstant", None)
+            constant = None
+        if constant is not None and "NSConstantV2" not in obj.properties:
+            obj["NSConstantV2"] = constant
     obj.setIfEmpty("NSShouldBeArchived", True)
 
 
