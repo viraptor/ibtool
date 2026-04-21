@@ -390,8 +390,11 @@ def _apply_view_defaults(obj: NibObject, seen: set) -> None:
         obj.setIfEmpty("IBNSLayoutMarginsGuide", NibNil())
         obj.setIfEmpty("IBNSSafeAreaLayoutGuide", NibNil())
         obj.setIfEmpty("NSViewWantsBestResolutionOpenGLSurface", True)
+        obj.setIfEmpty("NSNibTouchBar", NibNil())
+    if cls == "NSScroller":
+        obj.setIfEmpty("NSViewIsLayerTreeHost", True)
     if cls in _CONTROL_CLASSES:
-        action = obj.properties.pop("NSAction", None)
+        action = obj.properties.get("NSAction")
         if action is not None and "NSControlAction" not in obj.properties:
             obj["NSControlAction"] = action
         target = obj.properties.get("NSTarget")
