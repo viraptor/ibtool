@@ -776,6 +776,17 @@ def _apply_view_defaults(obj: NibObject, seen: set) -> None:
         inner_cell = obj.get("NSCell")
         if isinstance(inner_cell, NibObject):
             inner_cell.setIfEmpty("NSControlView", obj)
+        drag_types = obj.get("NSDragTypes")
+        if isinstance(drag_types, ArrayLike):
+            extras = [
+                "com.apple.NSFilePromiseItemMetaData",
+                "com.apple.pasteboard.promised-file-content-type",
+                "dyn.ah62d4rv4gu8yc6durvwwa3xmrvw1gkdusm1044pxqyuha2pxsvw0e55bsmwca7d3sbwu",
+            ]
+            existing = {t._text for t in drag_types.items() if isinstance(t, NibString)}
+            for t in extras:
+                if t not in existing:
+                    drag_types.addItem(NibString.intern(t))
     if cls == "NSImageCell":
         obj.setIfEmpty("NSImageAnimation", 0)
         obj.properties.pop("NSCellIdentifier", None)
