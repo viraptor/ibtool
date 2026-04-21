@@ -416,6 +416,13 @@ def _build_connection(state: _ArchiveState, conn_elem: Element) -> NibObject:
             continue
         mapped = key_map.get(key, key)
         obj[mapped] = state.value_for(child)
+    if src_cls == "IBActionConnection":
+        dest = obj.properties.get("NSDestination")
+        if isinstance(dest, NibObject) and dest.classname() == "NSCustomObject":
+            cls_obj = dest.get("NSClassName")
+            cls_text = cls_obj._text if isinstance(cls_obj, NibString) else None
+            if cls_text == "FirstResponder":
+                obj.properties.pop("NSDestination", None)
     if src_cls == "IBOutletConnection":
         obj["NSChildControllerCreationSelectorName"] = NibNil()
     return obj
