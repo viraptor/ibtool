@@ -730,6 +730,9 @@ def _apply_view_defaults(obj: NibObject, seen: set) -> None:
         win = obj.properties.get("NSWindow")
         if isinstance(win, NibNil):
             obj.properties.pop("NSWindow", None)
+        sv = obj.properties.get("NSSuperview")
+        if isinstance(sv, NibNil):
+            obj.properties.pop("NSSuperview", None)
         if cls != "NSClipView":
             obj.properties.pop("NSReuseIdentifierKey", None)
     if cls in _CONTROL_CLASSES:
