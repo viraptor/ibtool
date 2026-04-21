@@ -4,6 +4,7 @@ import sys
 import os
 import xml.etree.ElementTree as ET
 
+from . import archive
 from . import genlib
 from . import ibdump
 from . import xibparser
@@ -32,6 +33,9 @@ def ib_compile(inpath, outpath, module=None):
 def ib_compile_xib(inpath, outpath, module=None):
     tree = ET.parse(inpath)
     root = tree.getroot()
+    if root.tag == "archive":
+        ib_compile_archive(root, outpath)
+        return
     context, nibroot = xibparser.ParseXIBObjects(root, module=module, isBaseLocalization=_is_base_localization(inpath))
     outbytes = genlib.CompileNibObjects([nibroot])
 
@@ -47,3 +51,10 @@ def ib_compile_xib(inpath, outpath, module=None):
 def ib_compile_storyboard(inpath, outpath, module=None):
     tree = ET.parse(inpath)
     xibparser.CompileStoryboard(tree, outpath, module=module, isBaseLocalization=_is_base_localization(inpath))
+
+
+def ib_compile_archive(root, outpath):
+    nibroot = archive.parse_archive(root)
+    outbytes = genlib.CompileNibObjects([nibroot])
+    with open(outpath, "wb") as fl:
+        fl.write(outbytes)
