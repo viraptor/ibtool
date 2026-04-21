@@ -25,6 +25,7 @@ from typing import Optional
 from .models import (
     ArrayLike,
     NibObject,
+    NibNSNumber,
     NibString,
     NibNil,
     NibData,
@@ -35,6 +36,12 @@ from .models import (
     NibMutableDictionary,
     NibInlineString,
 )
+
+
+def _wrap_primitive(val):
+    if isinstance(val, bool) or isinstance(val, int) or isinstance(val, float):
+        return NibNSNumber(val)
+    return val
 
 
 def _fixed_list() -> NibObject:
@@ -114,7 +121,7 @@ class _ArchiveState:
                 for child in elem:
                     if child.get("key") is not None:
                         continue
-                    obj.addItem(self.value_for(child))  # type: ignore[attr-defined]
+                    obj.addItem(_wrap_primitive(self.value_for(child)))  # type: ignore[attr-defined]
                 return
             for child in elem:
                 key = child.get("key")
@@ -126,7 +133,7 @@ class _ArchiveState:
             for child in elem:
                 if child.get("key") is not None:
                     continue
-                obj.addItem(self.value_for(child))  # type: ignore[attr-defined]
+                obj.addItem(_wrap_primitive(self.value_for(child)))  # type: ignore[attr-defined]
             return
         if tag == "dictionary":
             self._fill_dict(elem, obj)
@@ -188,7 +195,7 @@ class _ArchiveState:
                 rem = len(raw) % 4
             if rem:
                 raw += "=" * (4 - rem)
-            return NibData(base64.b64decode(raw))
+            return NibInlineString(base64.b64decode(raw))
         return self._materialize(elem)
 
 
@@ -218,6 +225,7 @@ def _build_nib_object_data(state: _ArchiveState, data_root: Element) -> NibObjec
     files_owner = _find_named(state, container_keyed.get("objectRecords"), "File's Owner")
     if files_owner is not None:
         ns_objdata["NSRoot"] = files_owner
+    state.files_owner = files_owner  # type: ignore[attr-defined]
 
     ns_objdata["NSVisibleWindows"] = NibMutableSet([])
     ns_objdata["NSConnections"] = _build_connections(state, container_keyed.get("connectionRecords"))
@@ -341,6 +349,12 @@ def _build_object_map(state: _ArchiveState, records_elem: Optional[Element]):
     ordered = records_elem.find("array[@key='orderedObjects']")
     if ordered is None:
         ordered = records_elem
+    root_placeholder_id = None
+    for rec in ordered:
+        obj_child = rec.find("*[@key='object']")
+        if obj_child is not None and obj_child.tag == "array" and obj_child.get("id") is not None:
+            root_placeholder_id = obj_child.get("id")
+            break
     for rec in ordered:
         obj_child = rec.find("*[@key='object']")
         parent_child = rec.find("*[@key='parent']")
@@ -350,7 +364,11 @@ def _build_object_map(state: _ArchiveState, records_elem: Optional[Element]):
         obj = state.resolve_ref(obj_child.get("ref", ""))
         keys.addItem(obj)
         if parent_child is not None and parent_child.tag == "reference":
-            vals.addItem(state.resolve_ref(parent_child.get("ref", "")))
+            parent_ref = parent_child.get("ref", "")
+            if parent_ref == root_placeholder_id and getattr(state, "files_owner", None) is not None:
+                vals.addItem(state.files_owner)
+            else:
+                vals.addItem(state.resolve_ref(parent_ref))
         else:
             vals.addItem(NibNil())
         if id_child is not None:
