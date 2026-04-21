@@ -52,13 +52,15 @@ _LIST_CLASSES = {"NSMutableArray", "NSArray"}
 _SET_CLASSES = {"NSMutableSet", "NSSet"}
 
 def _mark_main_menu_items(state: "_ArchiveState") -> None:
-    """Tag menu items that open submenus with NSAllowedForLimitedAppMode=True."""
+    """Tag menu items that open submenus with NSAllowedForLimitedAppMode=True
+    and mirror NSSubmenu into NSTarget."""
     for obj in state.id_to_obj.values():
         if not hasattr(obj, "classname") or obj.classname() != "NSMenuItem":
             continue
         submenu = obj.get("NSSubmenu")
         if isinstance(submenu, NibObject):
             obj.setIfEmpty("NSAllowedForLimitedAppMode", True)
+            obj.setIfEmpty("NSTarget", submenu)
 
 
 def _attach_view_constraints(state: "_ArchiveState") -> None:
@@ -587,6 +589,10 @@ def _apply_view_defaults(obj: NibObject, seen: set) -> None:
         obj.setIfEmpty("IBNSSafeAreaLayoutGuide", NibNil())
         obj.setIfEmpty("NSViewWantsBestResolutionOpenGLSurface", True)
         obj.setIfEmpty("NSNibTouchBar", NibNil())
+        win = obj.properties.get("NSWindow")
+        if isinstance(win, NibNil):
+            obj.properties.pop("NSWindow", None)
+        obj.properties.pop("NSReuseIdentifierKey", None)
     if cls == "NSScroller":
         obj.setIfEmpty("NSViewIsLayerTreeHost", True)
     if cls in _CONTROL_CLASSES:
