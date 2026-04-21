@@ -270,7 +270,17 @@ class _ArchiveState:
                 return NibNil()
             return self.resolve_ref(ref)
         if tag == "string":
-            return NibString.intern(elem.text or "")
+            text = elem.text or ""
+            if elem.get("type") == "base64-UTF8":
+                raw = text.strip()
+                rem = len(raw) % 4
+                if rem == 1:
+                    raw = raw[:-1]
+                    rem = len(raw) % 4
+                if rem:
+                    raw += "=" * (4 - rem)
+                text = base64.b64decode(raw).decode("utf-8", errors="replace")
+            return NibString.intern(text)
         if tag == "characters":
             return NibString.intern(elem.text or "")
         if tag in ("int", "integer"):
