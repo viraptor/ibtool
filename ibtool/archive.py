@@ -515,13 +515,24 @@ def _build_connections(state: _ArchiveState, records_elem: Optional[Element]) ->
     conns = NibMutableList([])
     if records_elem is None:
         return conns
-    for rec in records_elem:
-        if rec.tag != "object":
-            continue
+    records = [rec for rec in records_elem if rec.tag == "object"]
+    bindings: list[NibObject] = []
+    others: list[NibObject] = []
+    for rec in records:
         conn_elem = rec.find("*[@key='connection']")
         if conn_elem is None:
             continue
-        conns.addItem(_build_connection(state, conn_elem))
+        cls = conn_elem.get("class") or ""
+        built = _build_connection(state, conn_elem)
+        if cls == "IBBindingConnection":
+            bindings.append(built)
+        else:
+            others.append(built)
+    # Apple emits bindings in reverse archive order after the other connectors.
+    for c in others:
+        conns.addItem(c)
+    for c in reversed(bindings):
+        conns.addItem(c)
     return conns
 
 
