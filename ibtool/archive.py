@@ -778,6 +778,7 @@ def _apply_view_defaults(obj: NibObject, seen: set) -> None:
         v_flags = obj.get("NSvFlags")
         if isinstance(v_flags, int) and v_flags & 0x800:
             obj["NSvFlags"] = v_flags & ~0x800
+        obj.setIfEmpty("NSTextViewTextColor", makeSystemColor("textColor"))
     if cls == "NSClipView":
         v_flags = obj.get("NSvFlags")
         if isinstance(v_flags, int) and v_flags & 0x800:
