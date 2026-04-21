@@ -439,13 +439,36 @@ def _build_object_map(state: _ArchiveState, records_elem: Optional[Element]):
         if obj_child is not None and obj_child.tag == "array" and obj_child.get("id") is not None:
             root_placeholder_id = obj_child.get("id")
             break
+    seen_refs: set[str] = set()
     for rec in ordered:
         obj_child = rec.find("*[@key='object']")
         parent_child = rec.find("*[@key='parent']")
         id_child = rec.find("int[@key='objectID']")
+        name_child = rec.find("string[@key='objectName']")
         if obj_child is None or obj_child.tag != "reference":
             continue
-        obj = state.resolve_ref(obj_child.get("ref", ""))
+        if name_child is not None and (name_child.text or "") == "First Responder":
+            continue
+        ref_id = obj_child.get("ref", "")
+        if ref_id in seen_refs:
+            continue
+        ref_elem = state.id_to_elem.get(ref_id)
+        if ref_elem is not None and ref_elem.get("class") == "NSCustomObject":
+            cls_child = ref_elem.find("string[@key='NSClassName']")
+            cls_name = cls_child.text if cls_child is not None else None
+            if cls_name:
+                dup = False
+                for seen in seen_refs:
+                    seen_elem = state.id_to_elem.get(seen)
+                    if seen_elem is not None and seen_elem.get("class") == "NSCustomObject":
+                        seen_cls = seen_elem.find("string[@key='NSClassName']")
+                        if seen_cls is not None and seen_cls.text == cls_name:
+                            dup = True
+                            break
+                if dup:
+                    continue
+        seen_refs.add(ref_id)
+        obj = state.resolve_ref(ref_id)
         keys.addItem(obj)
         if parent_child is not None and parent_child.tag == "reference":
             parent_ref = parent_child.get("ref", "")
@@ -515,6 +538,11 @@ def _apply_view_defaults(obj: NibObject, seen: set) -> None:
     if cls == "NSImage":
         obj.setIfEmpty("NSResizingMode", 0)
         obj.setIfEmpty("NSTintColor", NibNil())
+    if cls == "NSMenuItem":
+        obj.setIfEmpty("NSAllowedForLimitedAppMode", True)
+        obj.setIfEmpty("NSAllowsKeyEquivalentLocalization", True)
+        obj.setIfEmpty("NSAllowsKeyEquivalentMirroring", True)
+        obj.setIfEmpty("NSHiddenInRepresentation", False)
     if isinstance(obj, ArrayLike):
         for item in obj.items():
             if isinstance(item, NibObject):
