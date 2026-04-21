@@ -65,6 +65,45 @@ def _mark_main_menu_items(state: "_ArchiveState") -> None:
             obj.setIfEmpty("NSTarget", submenu)
 
 
+def _rewire_textview_next_key_views(state: "_ArchiveState") -> None:
+    """Apple reroutes NSTextView's NSNextKeyView from the V-scroller to the
+    scroller that bounces back into the enclosing clipview (typically the
+    hidden H-scroller in autohiding scroll views). Detect that sibling
+    scroller by looking for one whose NSNextKeyView is the textview's
+    superview clipview and whose NSvFlags has the HIDDEN bit set."""
+    for obj in state.id_to_obj.values():
+        if not hasattr(obj, "classname") or obj.classname() != "NSTextView":
+            continue
+        current = obj.get("NSNextKeyView")
+        superview = obj.get("NSSuperview")
+        if not isinstance(current, NibObject) or current.classname() != "NSScroller":
+            continue
+        if not isinstance(superview, NibObject) or superview.classname() != "NSClipView":
+            continue
+        scrollview = superview.get("NSNextResponder")
+        if not isinstance(scrollview, NibObject) or scrollview.classname() != "NSScrollView":
+            continue
+        subviews = scrollview.get("NSSubviews")
+        if not isinstance(subviews, ArrayLike):
+            continue
+        replacement = None
+        for sibling in subviews.items():
+            if not isinstance(sibling, NibObject):
+                continue
+            if sibling is current:
+                continue
+            if sibling.classname() != "NSScroller":
+                continue
+            s_next = sibling.get("NSNextKeyView")
+            if s_next is superview:
+                v_flags = sibling.get("NSvFlags")
+                if isinstance(v_flags, int) and v_flags < 0:
+                    replacement = sibling
+                    break
+        if replacement is not None:
+            obj["NSNextKeyView"] = replacement
+
+
 def _attach_view_constraints(state: "_ArchiveState") -> None:
     """Attach constraints to their containing views as NSViewConstraints."""
     if not state.view_constraints:
@@ -763,6 +802,7 @@ def parse_archive(root: Element) -> NibObject:
     _rewrite_system_colors(ns_objdata, set())
     _apply_view_defaults(ns_objdata, set())
     _mark_main_menu_items(state)
+    _rewire_textview_next_key_views(state)
 
     top = NibObject("NSObject")
     top["IB.objectdata"] = ns_objdata
