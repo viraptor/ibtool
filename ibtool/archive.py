@@ -65,6 +65,18 @@ def _mark_main_menu_items(state: "_ArchiveState") -> None:
             obj.setIfEmpty("NSTarget", submenu)
 
 
+def _tag_constrained_views(state: "_ArchiveState") -> None:
+    """Views whose superview hosts one or more layout constraints receive
+    NSDoNotTranslateAutoresizingMask=True. Views that are themselves
+    containing views (they hold the constraint array) keep autoresizing
+    translation enabled."""
+    containing_ids = set(state.view_constraints.keys())
+    for obj in state.id_to_obj.values():
+        superview = obj.get("NSSuperview") if hasattr(obj, "get") else None
+        if isinstance(superview, NibObject) and id(superview) in containing_ids:
+            obj.setIfEmpty("NSDoNotTranslateAutoresizingMask", True)
+
+
 def _rewire_textview_next_key_views(state: "_ArchiveState") -> None:
     """Apple reroutes NSTextView's NSNextKeyView from the V-scroller to the
     scroller that bounces back into the enclosing clipview (typically the
@@ -744,9 +756,9 @@ def _apply_view_defaults(obj: NibObject, seen: set) -> None:
                     obj["IBDesignSize"] = design_size
     if cls == "NSImageView":
         obj["NSControlWritingDirection"] = -1
-        obj.setIfEmpty("NSDoNotTranslateAutoresizingMask", True)
         obj.setIfEmpty("NSImageViewPlaceholderPrecedence", 0)
         obj.setIfEmpty("IBNSShadowedSymbolConfiguration", NibNil())
+        obj.setIfEmpty("NSNextKeyView", NibNil())
         inner_cell = obj.get("NSCell")
         if isinstance(inner_cell, NibObject):
             inner_cell.setIfEmpty("NSControlView", obj)
@@ -801,6 +813,7 @@ def parse_archive(root: Element) -> NibObject:
     state = _ArchiveState(root)
     ns_objdata = _build_nib_object_data(state, data_elem)
     _attach_view_constraints(state)
+    _tag_constrained_views(state)
     _rewrite_system_colors(ns_objdata, set())
     _apply_view_defaults(ns_objdata, set())
     _mark_main_menu_items(state)
