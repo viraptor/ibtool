@@ -661,6 +661,9 @@ def _apply_view_defaults(obj: NibObject, seen: set) -> None:
         obj.setIfEmpty("NSAutomaticTextCompletionDisabled", False)
         obj.setIfEmpty("NSTextHighlightAttributes", NibNil())
         obj.setIfEmpty("NSWritingToolsFlags", 0x100)
+        flags = obj.get("NSFlags")
+        if isinstance(flags, int):
+            obj["NSFlags"] = flags | 0x3028000
     if cls == "NSTextContainer":
         obj.setIfEmpty("NSTextLayoutManager", NibNil())
     if cls == "NSScroller":
