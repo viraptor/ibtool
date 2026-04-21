@@ -301,12 +301,20 @@ def _build_connection(state: _ArchiveState, conn_elem: Element) -> NibObject:
             return state.value_for(nested)
     target_cls = _CONN_CLASS_REMAP.get(src_cls, src_cls)
     obj = NibObject(target_cls)
+    # Action connections store source=receiver / destination=sender; the NIB
+    # format flips the roles so NSSource is the control firing the action.
+    key_map = dict(_CONN_KEY_REMAP)
+    if src_cls == "IBActionConnection":
+        key_map["source"] = "NSDestination"
+        key_map["destination"] = "NSSource"
     for child in conn_elem:
         key = child.get("key")
         if key is None:
             continue
-        mapped = _CONN_KEY_REMAP.get(key, key)
+        mapped = key_map.get(key, key)
         obj[mapped] = state.value_for(child)
+    if src_cls == "IBOutletConnection":
+        obj["NSChildControllerCreationSelectorName"] = NibNil()
     return obj
 
 
