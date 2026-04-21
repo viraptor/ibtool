@@ -77,6 +77,18 @@ def _tag_constrained_views(state: "_ArchiveState") -> None:
             obj.setIfEmpty("NSDoNotTranslateAutoresizingMask", True)
 
 
+def _rewire_scrollview_next_key_views(state: "_ArchiveState") -> None:
+    """Point NSScrollView.NSNextKeyView at its NSContentView (NSClipView).
+    The archive routes it at one of the scrollers; Apple collapses the chain
+    so tabbing enters the clip view directly."""
+    for obj in state.id_to_obj.values():
+        if not hasattr(obj, "classname") or obj.classname() != "NSScrollView":
+            continue
+        content_view = obj.get("NSContentView")
+        if isinstance(content_view, NibObject):
+            obj["NSNextKeyView"] = content_view
+
+
 def _rewire_textview_next_key_views(state: "_ArchiveState") -> None:
     """Apple reroutes NSTextView's NSNextKeyView from the V-scroller to the
     scroller that bounces back into the enclosing clipview (typically the
@@ -831,6 +843,7 @@ def parse_archive(root: Element) -> NibObject:
     _apply_view_defaults(ns_objdata, set())
     _mark_main_menu_items(state)
     _rewire_textview_next_key_views(state)
+    _rewire_scrollview_next_key_views(state)
 
     top = NibObject("NSObject")
     top["IB.objectdata"] = ns_objdata
