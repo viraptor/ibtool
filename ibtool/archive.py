@@ -767,6 +767,16 @@ def _apply_view_defaults(obj: NibObject, seen: set) -> None:
     if cls == "NSImageCell":
         obj.setIfEmpty("NSImageAnimation", 0)
         obj.properties.pop("NSCellIdentifier", None)
+    if cls == "NSScrollView":
+        if obj.get("NSGestureRecognizers") is None:
+            gr = NibObject("NSPanGestureRecognizer")
+            gr["NSGestureRecognizer.allowedTouchTypes"] = 1
+            gr["NSGestureRecognizer.action"] = NibString.intern("_panWithGestureRecognizer:")
+            gr["NSGestureRecognizer.target"] = obj
+            gr["NSGestureRecognizer.delegate"] = obj
+            gr["NSPanGestureRecognizer.buttonMask"] = 0
+            gr["NSPanGestureRecognizer.numberOfTouchesRequired"] = 1
+            obj["NSGestureRecognizers"] = NibList([gr])
     if cls == "NSWindowTemplate":
         obj.setIfEmpty("NSWindowSubtitle", NibNil())
     if cls == "NSMenuItem":
