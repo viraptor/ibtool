@@ -52,30 +52,13 @@ _LIST_CLASSES = {"NSMutableArray", "NSArray"}
 _SET_CLASSES = {"NSMutableSet", "NSSet"}
 
 def _mark_main_menu_items(state: "_ArchiveState") -> None:
-    """Tag top-level main menu bar items with NSAllowedForLimitedAppMode=True."""
+    """Tag menu items that open submenus with NSAllowedForLimitedAppMode=True."""
     for obj in state.id_to_obj.values():
-        if not hasattr(obj, "classname") or obj.classname() != "NSMenu":
+        if not hasattr(obj, "classname") or obj.classname() != "NSMenuItem":
             continue
-        name = obj.get("NSName")
-        name_bytes = None
-        if isinstance(name, NibObject):
-            inner = name.get("NS.bytes")
-            if isinstance(inner, (bytes, bytearray)):
-                name_bytes = bytes(inner)
-            elif hasattr(inner, "text"):
-                text = inner.text() if callable(inner.text) else inner.text
-                if isinstance(text, (bytes, bytearray)):
-                    name_bytes = bytes(text)
-                elif isinstance(text, str):
-                    name_bytes = text.encode()
-        if name_bytes != b"_NSMainMenu":
-            continue
-        items = obj.get("NSMenuItems")
-        if items is None:
-            continue
-        for item in getattr(items, "_items", []):
-            if isinstance(item, NibObject) and item.classname() == "NSMenuItem":
-                item.setIfEmpty("NSAllowedForLimitedAppMode", True)
+        submenu = obj.get("NSSubmenu")
+        if isinstance(submenu, NibObject):
+            obj.setIfEmpty("NSAllowedForLimitedAppMode", True)
 
 
 def _attach_view_constraints(state: "_ArchiveState") -> None:
