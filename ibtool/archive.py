@@ -597,6 +597,17 @@ def _apply_view_defaults(obj: NibObject, seen: set) -> None:
         obj.setIfEmpty("NSAllowsKeyEquivalentLocalization", True)
         obj.setIfEmpty("NSAllowsKeyEquivalentMirroring", True)
         obj.setIfEmpty("NSHiddenInRepresentation", False)
+    if cls == "NSTextView":
+        tv_flags = obj.get("NSTVFlags")
+        if isinstance(tv_flags, int):
+            obj["NSTVFlags"] = tv_flags | 0x80
+        v_flags = obj.get("NSvFlags")
+        if isinstance(v_flags, int) and v_flags & 0x800:
+            obj["NSvFlags"] = v_flags & ~0x800
+    if cls == "NSClipView":
+        v_flags = obj.get("NSvFlags")
+        if isinstance(v_flags, int) and v_flags & 0x800:
+            obj["NSvFlags"] = v_flags & ~0x800
     if isinstance(obj, ArrayLike):
         for item in obj.items():
             if isinstance(item, NibObject):
