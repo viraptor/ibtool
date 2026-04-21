@@ -36,6 +36,7 @@ from .models import (
     NibMutableDictionary,
     NibInlineString,
 )
+from .system_images import system_image_size
 
 
 def _wrap_primitive(val):
@@ -620,6 +621,27 @@ def _apply_view_defaults(obj: NibObject, seen: set) -> None:
     if cls == "NSImage":
         obj.setIfEmpty("NSResizingMode", 0)
         obj.setIfEmpty("NSTintColor", NibNil())
+    if cls == "NSCustomResource":
+        obj.setIfEmpty("IBDesignImageConfiguration", NibNil())
+        obj.setIfEmpty("IBNamespaceID", NibNil())
+        if obj.get("IBDesignSize") is None:
+            class_name = obj.get("NSClassName")
+            resource_name = obj.get("NSResourceName")
+            if (isinstance(class_name, NibString) and class_name._text == "NSImage"
+                    and isinstance(resource_name, NibString)):
+                sz = system_image_size(resource_name._text)
+                if sz is not None:
+                    design_size = NibObject("NSValue", obj)
+                    design_size["NS.special"] = 2
+                    design_size["NS.sizeval"] = NibString.intern(f"{{{sz[0]}, {sz[1]}}}")
+                    obj["IBDesignSize"] = design_size
+    if cls == "NSImageView":
+        obj["NSControlWritingDirection"] = -1
+        obj.setIfEmpty("NSDoNotTranslateAutoresizingMask", True)
+        obj.setIfEmpty("NSImageViewPlaceholderPrecedence", 0)
+        obj.setIfEmpty("IBNSShadowedSymbolConfiguration", NibNil())
+    if cls == "NSImageCell":
+        obj.setIfEmpty("NSImageAnimation", 0)
     if cls == "NSMenuItem":
         obj.setIfEmpty("NSAllowsKeyEquivalentLocalization", True)
         obj.setIfEmpty("NSAllowsKeyEquivalentMirroring", True)
