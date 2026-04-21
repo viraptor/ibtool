@@ -334,7 +334,7 @@ class _ArchiveState:
                 text = base64.b64decode(raw).decode("utf-8", errors="replace")
             return NibString.intern(text)
         if tag == "characters":
-            return NibString.intern(elem.text or "")
+            return NibInlineString((elem.text or "").encode("utf-8"))
         if tag in ("int", "integer"):
             val = elem.get("value")
             if val is None:
