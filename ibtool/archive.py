@@ -289,6 +289,10 @@ _CONN_CLASS_REMAP = {
 
 def _build_connection(state: _ArchiveState, conn_elem: Element) -> NibObject:
     src_cls = conn_elem.get("class") or "NSObject"
+    if src_cls == "IBBindingConnection":
+        nested = conn_elem.find("object[@key='connector']")
+        if nested is not None:
+            return state.value_for(nested)
     target_cls = _CONN_CLASS_REMAP.get(src_cls, src_cls)
     obj = NibObject(target_cls)
     for child in conn_elem:
