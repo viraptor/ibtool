@@ -53,6 +53,37 @@ def _fixed_list() -> NibObject:
 _LIST_CLASSES = {"NSMutableArray", "NSArray"}
 _SET_CLASSES = {"NSMutableSet", "NSSet"}
 
+def _build_oids(ns_objdata: NibObject, data_elem: Element) -> None:
+    """Populate NSOidsKeys/Values with NSRoot + NSObjectsKeys + NSConnections
+    entries, numbered sequentially from archive maxID+9 (roughly the next free
+    slot above the XIB-assigned ids)."""
+    root = ns_objdata.get("NSRoot")
+    keys_arr = ns_objdata.get("NSObjectsKeys")
+    conns_arr = ns_objdata.get("NSConnections")
+    if not (isinstance(keys_arr, ArrayLike) and isinstance(conns_arr, ArrayLike)):
+        return
+    max_id = 0
+    for child in data_elem.iter():
+        if child.tag == "int" and child.get("key") == "maxID":
+            try:
+                max_id = int((child.text or "0").strip())
+            except ValueError:
+                pass
+    oid_keys: list[NibObject] = []
+    if isinstance(root, NibObject):
+        oid_keys.append(root)
+    for item in keys_arr.items():
+        if isinstance(item, NibObject):
+            oid_keys.append(item)
+    for item in conns_arr.items():
+        if isinstance(item, NibObject):
+            oid_keys.append(item)
+    ns_objdata["NSOidsKeys"] = NibList(oid_keys)
+    start = max_id + 9
+    oid_values = [NibNSNumber(start + i) for i in range(len(oid_keys))]
+    ns_objdata["NSOidsValues"] = NibList(oid_values)
+
+
 def _mark_main_menu_items(state: "_ArchiveState") -> None:
     """Tag menu items that open submenus with NSAllowedForLimitedAppMode=True
     and mirror NSSubmenu into NSTarget."""
@@ -412,6 +443,7 @@ def _build_nib_object_data(state: _ArchiveState, data_root: Element) -> NibObjec
     ns_objdata["NSObjectsValues"] = vals_arr
     ns_objdata["NSOidsKeys"] = NibList([])
     ns_objdata["NSOidsValues"] = NibList([])
+    state.ns_objdata = ns_objdata  # type: ignore[attr-defined]
     ns_objdata["NSAccessibilityConnectors"] = NibMutableList([])
     ns_objdata["NSAccessibilityOidsKeys"] = NibList([])
     ns_objdata["NSAccessibilityOidsValues"] = NibList([])
@@ -869,6 +901,7 @@ def parse_archive(root: Element) -> NibObject:
     _mark_main_menu_items(state)
     _rewire_textview_next_key_views(state)
     _rewire_scrollview_next_key_views(state)
+    _build_oids(ns_objdata, data_elem)
 
     top = NibObject("NSObject")
     top["IB.objectdata"] = ns_objdata
