@@ -517,7 +517,7 @@ def _build_object_map(state: _ArchiveState, records_elem: Optional[Element]):
                     continue
                 order.append((child_ref, parent_ref, child_rec))
                 walk(child_rec, child_ref)
-        walk(root_record, "")
+        walk(root_record, root_placeholder_id or "")
 
     # Also emit any records that weren't reachable via the children walk,
     # in their original XML order. Keeps objects that the archive registered
@@ -656,6 +656,8 @@ def _apply_view_defaults(obj: NibObject, seen: set) -> None:
     if cls == "NSImageCell":
         obj.setIfEmpty("NSImageAnimation", 0)
         obj.properties.pop("NSCellIdentifier", None)
+    if cls == "NSWindowTemplate":
+        obj.setIfEmpty("NSWindowSubtitle", NibNil())
     if cls == "NSMenuItem":
         obj.setIfEmpty("NSAllowsKeyEquivalentLocalization", True)
         obj.setIfEmpty("NSAllowsKeyEquivalentMirroring", True)
