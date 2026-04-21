@@ -781,8 +781,10 @@ def _apply_view_defaults(obj: NibObject, seen: set) -> None:
         obj.setIfEmpty("NSTextLayoutManager", NibNil())
     if cls == "NSScroller":
         obj.setIfEmpty("NSViewIsLayerTreeHost", True)
-        obj.setIfEmpty("NSsFlags", 0x1)
-        obj.setIfEmpty("NSCurValue", 1.0)
+        v_flags = obj.get("NSvFlags")
+        if isinstance(v_flags, int) and v_flags < 0:
+            obj.setIfEmpty("NSsFlags", 0x1)
+            obj.setIfEmpty("NSCurValue", 1.0)
     if isinstance(obj, ArrayLike):
         for item in obj.items():
             if isinstance(item, NibObject):
