@@ -51,6 +51,25 @@ def _fixed_list() -> NibObject:
 _LIST_CLASSES = {"NSMutableArray", "NSArray"}
 _SET_CLASSES = {"NSMutableSet", "NSSet"}
 
+_LAYOUT_KEY_REMAP = {
+    "firstItem": "NSFirstItem",
+    "firstAttribute": "NSFirstAttribute",
+    "relation": "NSRelation",
+    "secondItem": "NSSecondItem",
+    "secondAttribute": "NSSecondAttribute",
+    "multiplier": "NSMultiplier",
+    "constant": "NSConstant",
+    "priority": "NSPriority",
+    "containingView": "NSContainingView",
+    "scoringType": "NSScoringType",
+    "scoringTypeFloat": "NSScoringTypeFloat",
+    "contentType": "NSLayoutConstraintContentType",
+}
+
+_CLASS_REMAP = {
+    "IBNSLayoutConstraint": "NSLayoutConstraint",
+}
+
 
 class _ArchiveState:
     """Two-pass resolver: first collect all id="X" elements, then materialize
@@ -95,6 +114,7 @@ class _ArchiveState:
                 return NibMutableList([]) if cls == "NSMutableArray" else _fixed_list()
             if cls in _SET_CLASSES:
                 return NibMutableSet([])
+            cls = _CLASS_REMAP.get(cls, cls)
             return NibObject(cls)
         if tag == "array":
             cls = elem.get("class")
@@ -123,11 +143,21 @@ class _ArchiveState:
                         continue
                     obj.addItem(_wrap_primitive(self.value_for(child)))  # type: ignore[attr-defined]
                 return
+            is_layout = cls == "IBNSLayoutConstraint"
             for child in elem:
                 key = child.get("key")
                 if key is None:
                     continue
-                obj[key] = self.value_for(child)
+                value = self.value_for(child)
+                if is_layout and key in _LAYOUT_KEY_REMAP:
+                    key = _LAYOUT_KEY_REMAP[key]
+                if is_layout and key == "NSConstant" and isinstance(value, NibObject):
+                    inner = value.get("value")
+                    if inner is not None:
+                        value = inner
+                if is_layout and key == "NSSecondItem" and isinstance(value, NibNil):
+                    continue
+                obj[key] = value
             return
         if tag == "array" or tag == "set":
             for child in elem:
