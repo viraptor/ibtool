@@ -51,6 +51,26 @@ def _fixed_list() -> NibObject:
 _LIST_CLASSES = {"NSMutableArray", "NSArray"}
 _SET_CLASSES = {"NSMutableSet", "NSSet"}
 
+def _attach_view_constraints(state: "_ArchiveState") -> None:
+    """Attach constraints to their containing views as NSViewConstraints."""
+    if not state.view_constraints:
+        return
+    id_to_view: dict[int, NibObject] = {}
+    for obj in state.id_to_obj.values():
+        id_to_view[id(obj)] = obj
+    for view_id, constraints in state.view_constraints.items():
+        view = id_to_view.get(view_id)
+        if view is None:
+            continue
+        existing = view.get("NSViewConstraints")
+        if existing is None:
+            lst = NibList(constraints)
+            view["NSViewConstraints"] = lst
+        elif hasattr(existing, "addItem"):
+            for c in constraints:
+                existing.addItem(c)  # type: ignore[attr-defined]
+
+
 def _finalize_constraint(obj: NibObject) -> None:
     """Shape an archive IBNSLayoutConstraint to match Apple's compiled form."""
     for noisy in ("NSContainingView", "NSMultiplier", "NSPriority", "NSRelation",
@@ -100,6 +120,7 @@ class _ArchiveState:
         self.id_to_elem: dict[str, Element] = {}
         self.id_to_obj: dict[str, NibObject] = {}
         self.objectid_to_obj: dict[str, NibObject] = {}
+        self.view_constraints: dict[int, list[NibObject]] = {}
         for elem in root.iter():
             xid = elem.get("id")
             if xid is not None:
@@ -173,13 +194,23 @@ class _ArchiveState:
                 if is_layout and key in _LAYOUT_KEY_REMAP:
                     key = _LAYOUT_KEY_REMAP[key]
                 if is_layout and key == "NSConstant" and isinstance(value, NibObject):
+                    inner_cls = value.classname()
                     inner = value.get("value")
-                    if inner is not None:
+                    if inner_cls == "IBNSLayoutSymbolicConstant":
+                        key = "NSSymbolicConstant"
+                        if isinstance(inner, (int, float)) and float(inner) == 20.0:
+                            value = NibString.intern("NSSpace")
+                        else:
+                            value = NibString.intern(str(inner))
+                    elif inner is not None:
                         value = inner
                 if is_layout and key == "NSSecondItem" and isinstance(value, NibNil):
                     continue
                 obj[key] = value
             if is_layout:
+                container = obj.properties.get("NSContainingView")
+                if isinstance(container, NibObject):
+                    self.view_constraints.setdefault(id(container), []).append(obj)
                 _finalize_constraint(obj)
             return
         if tag == "array" or tag == "set":
@@ -499,6 +530,7 @@ def parse_archive(root: Element) -> NibObject:
         raise ValueError("archive: missing <data> element")
     state = _ArchiveState(root)
     ns_objdata = _build_nib_object_data(state, data_elem)
+    _attach_view_constraints(state)
     _apply_view_defaults(ns_objdata, set())
 
     top = NibObject("NSObject")
