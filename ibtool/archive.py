@@ -338,7 +338,10 @@ def _build_object_map(state: _ArchiveState, records_elem: Optional[Element]):
     vals = NibList([])
     if records_elem is None:
         return keys, vals
-    for rec in records_elem:
+    ordered = records_elem.find("array[@key='orderedObjects']")
+    if ordered is None:
+        ordered = records_elem
+    for rec in ordered:
         obj_child = rec.find("*[@key='object']")
         parent_child = rec.find("*[@key='parent']")
         id_child = rec.find("int[@key='objectID']")
@@ -367,6 +370,15 @@ _VIEW_DEFAULT_CLASSES = {
     "NSPathControl", "NSBrowser", "NSDatePicker", "NSStepper",
 }
 
+_CONTROL_CLASSES = {
+    "NSButton", "NSImageView", "NSTextField", "NSSecureTextField",
+    "NSSearchField", "NSTokenField", "NSComboBox", "NSPopUpButton",
+    "NSSlider", "NSScroller", "NSSegmentedControl", "NSLevelIndicator",
+    "NSColorWell", "NSPathControl", "NSBrowser", "NSDatePicker",
+    "NSStepper", "NSMatrix", "NSRuleEditor", "NSProgressIndicator",
+    "NSControl",
+}
+
 
 def _apply_view_defaults(obj: NibObject, seen: set) -> None:
     if id(obj) in seen:
@@ -378,6 +390,26 @@ def _apply_view_defaults(obj: NibObject, seen: set) -> None:
         obj.setIfEmpty("IBNSLayoutMarginsGuide", NibNil())
         obj.setIfEmpty("IBNSSafeAreaLayoutGuide", NibNil())
         obj.setIfEmpty("NSViewWantsBestResolutionOpenGLSurface", True)
+    if cls in _CONTROL_CLASSES:
+        action = obj.properties.pop("NSAction", None)
+        if action is not None and "NSControlAction" not in obj.properties:
+            obj["NSControlAction"] = action
+        target = obj.properties.get("NSTarget")
+        if target is not None and "NSControlTarget" not in obj.properties:
+            obj["NSControlTarget"] = target
+        obj.setIfEmpty("NSControlSize", 0)
+        obj.setIfEmpty("NSControlContinuous", False)
+        obj.setIfEmpty("NSControlRefusesFirstResponder", False)
+        obj.setIfEmpty("NSControlUsesSingleLineMode", False)
+        obj.setIfEmpty("NSControlTextAlignment", 0)
+        obj.setIfEmpty("NSControlLineBreakMode", 0)
+        obj.setIfEmpty("NSControlWritingDirection", 0)
+        obj.setIfEmpty("NSControlSendActionMask", 4)
+    if cls == "NSClipView":
+        obj.setIfEmpty("NSAutomaticallyAdjustsContentInsets", True)
+    if cls == "NSImage":
+        obj.setIfEmpty("NSResizingMode", 0)
+        obj.setIfEmpty("NSTintColor", NibNil())
     if isinstance(obj, ArrayLike):
         for item in obj.items():
             if isinstance(item, NibObject):
