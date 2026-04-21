@@ -37,6 +37,7 @@ from .models import (
     NibInlineString,
 )
 from .system_images import system_image_size
+from .parsers.helpers import makeSystemColor, _SYSTEM_COLOR_TABLE
 
 
 def _wrap_primitive(val):
@@ -595,6 +596,63 @@ _CONTROL_CLASSES = {
 }
 
 
+_KEY_TO_SYSTEM_COLOR_BY_GRAY = {
+    ("NSBackgroundColor", b"1\x00"): "textBackgroundColor",
+    ("NSBackgroundColor", b"0\x00"): "textColor",
+    ("NSInsertionColor", b"0\x00"): "textColor",
+    ("NSTextViewTextColor", b"0\x00"): "textColor",
+}
+
+
+def _canonicalize_system_color(obj: NibObject, parent_key: Optional[str] = None) -> Optional[NibObject]:
+    """If obj is a catalog-named system color whose inner gray/RGB matches a
+    known entry, return the canonical color object (with gamma-converted
+    NSWhite/NSRGB and NSCustomColorSpace). Otherwise return None."""
+    catalog = obj.get("NSCatalogName")
+    name_obj = obj.get("NSColorName")
+    if isinstance(catalog, NibString) and catalog._text == "System" and isinstance(name_obj, NibString):
+        name = name_obj._text
+        if name in _SYSTEM_COLOR_TABLE:
+            return makeSystemColor(name)
+    if parent_key is not None:
+        white = obj.get("NSWhite")
+        white_bytes: Optional[bytes] = None
+        if isinstance(white, NibInlineString):
+            text = white.text() if callable(white.text) else white.text
+            if isinstance(text, (bytes, bytearray)):
+                white_bytes = bytes(text)
+            elif isinstance(text, str):
+                white_bytes = text.encode()
+        if white_bytes is not None:
+            key = (parent_key, white_bytes)
+            if key in _KEY_TO_SYSTEM_COLOR_BY_GRAY:
+                return makeSystemColor(_KEY_TO_SYSTEM_COLOR_BY_GRAY[key])
+    return None
+
+
+def _rewrite_system_colors(obj: NibObject, seen: set) -> None:
+    if id(obj) in seen:
+        return
+    seen.add(id(obj))
+    if isinstance(obj, ArrayLike):
+        for i, item in enumerate(list(obj.items())):
+            if isinstance(item, NibObject) and item.classname() == "NSColor":
+                canon = _canonicalize_system_color(item)
+                if canon is not None:
+                    obj._items[i] = canon
+                    continue
+            if isinstance(item, NibObject):
+                _rewrite_system_colors(item, seen)
+    for key, val in list(obj.properties.items()):
+        if isinstance(val, NibObject) and val.classname() == "NSColor":
+            canon = _canonicalize_system_color(val, parent_key=key)
+            if canon is not None:
+                obj[key] = canon
+                continue
+        if isinstance(val, NibObject):
+            _rewrite_system_colors(val, seen)
+
+
 def _apply_view_defaults(obj: NibObject, seen: set) -> None:
     if id(obj) in seen:
         return
@@ -702,6 +760,7 @@ def parse_archive(root: Element) -> NibObject:
     state = _ArchiveState(root)
     ns_objdata = _build_nib_object_data(state, data_elem)
     _attach_view_constraints(state)
+    _rewrite_system_colors(ns_objdata, set())
     _apply_view_defaults(ns_objdata, set())
     _mark_main_menu_items(state)
 
