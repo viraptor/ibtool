@@ -300,7 +300,7 @@ class _ArchiveState:
             k = child.get("key")
             if k is None:
                 continue
-            keyed[k] = self.value_for(child)
+            keyed[k] = _wrap_primitive(self.value_for(child))
         pair_idx = 0
         while True:
             k = keyed.pop(f"NS.key.{pair_idx}", None)
