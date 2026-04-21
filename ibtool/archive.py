@@ -23,6 +23,7 @@ from xml.etree.ElementTree import Element
 from typing import Optional
 
 from .models import (
+    ArrayLike,
     NibObject,
     NibString,
     NibNil,
@@ -356,12 +357,43 @@ def _build_object_map(state: _ArchiveState, records_elem: Optional[Element]):
     return keys, vals
 
 
+_VIEW_DEFAULT_CLASSES = {
+    "NSView", "NSCustomView", "NSBox", "NSTextView", "NSTextField",
+    "NSButton", "NSImageView", "NSScrollView", "NSClipView", "NSScroller",
+    "NSSplitView", "NSTableView", "NSOutlineView", "NSTabView", "NSStackView",
+    "NSControl", "NSPopUpButton", "NSComboBox", "NSSlider", "NSProgressIndicator",
+    "NSSecureTextField", "NSSearchField", "NSTokenField", "NSColorWell",
+    "NSSegmentedControl", "NSLevelIndicator", "NSMatrix", "NSRuleEditor",
+    "NSPathControl", "NSBrowser", "NSDatePicker", "NSStepper",
+}
+
+
+def _apply_view_defaults(obj: NibObject, seen: set) -> None:
+    if id(obj) in seen:
+        return
+    seen.add(id(obj))
+    cls = obj.classname() if hasattr(obj, "classname") else None
+    if cls in _VIEW_DEFAULT_CLASSES:
+        obj.setIfEmpty("IBNSClipsToBounds", 0)
+        obj.setIfEmpty("IBNSLayoutMarginsGuide", NibNil())
+        obj.setIfEmpty("IBNSSafeAreaLayoutGuide", NibNil())
+        obj.setIfEmpty("NSViewWantsBestResolutionOpenGLSurface", True)
+    if isinstance(obj, ArrayLike):
+        for item in obj.items():
+            if isinstance(item, NibObject):
+                _apply_view_defaults(item, seen)
+    for v in list(obj.properties.values()):
+        if isinstance(v, NibObject):
+            _apply_view_defaults(v, seen)
+
+
 def parse_archive(root: Element) -> NibObject:
     data_elem = root.find("data")
     if data_elem is None:
         raise ValueError("archive: missing <data> element")
     state = _ArchiveState(root)
     ns_objdata = _build_nib_object_data(state, data_elem)
+    _apply_view_defaults(ns_objdata, set())
 
     top = NibObject("NSObject")
     top["IB.objectdata"] = ns_objdata
