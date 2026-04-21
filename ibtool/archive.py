@@ -51,6 +51,27 @@ def _fixed_list() -> NibObject:
 _LIST_CLASSES = {"NSMutableArray", "NSArray"}
 _SET_CLASSES = {"NSMutableSet", "NSSet"}
 
+def _finalize_constraint(obj: NibObject) -> None:
+    """Shape an archive IBNSLayoutConstraint to match Apple's compiled form."""
+    for noisy in ("NSContainingView", "NSMultiplier", "NSPriority", "NSRelation",
+                  "NSScoringType", "NSScoringTypeFloat", "NSLayoutConstraintContentType"):
+        obj.properties.pop(noisy, None)
+    first_attr = obj.properties.get("NSFirstAttribute")
+    if first_attr is not None and "NSFirstAttributeV2" not in obj.properties:
+        obj["NSFirstAttributeV2"] = first_attr
+    second_attr = obj.properties.get("NSSecondAttribute")
+    if second_attr is not None and "NSSecondAttributeV2" not in obj.properties:
+        obj["NSSecondAttributeV2"] = second_attr
+    if "NSSecondItem" not in obj.properties:
+        constant = obj.properties.get("NSConstant")
+        if constant is not None and "NSConstantV2" not in obj.properties:
+            obj["NSConstantV2"] = constant
+    else:
+        obj.properties.pop("NSConstant", None)
+        obj.properties.pop("NSConstantV2", None)
+    obj.setIfEmpty("NSShouldBeArchived", True)
+
+
 _LAYOUT_KEY_REMAP = {
     "firstItem": "NSFirstItem",
     "firstAttribute": "NSFirstAttribute",
@@ -158,6 +179,8 @@ class _ArchiveState:
                 if is_layout and key == "NSSecondItem" and isinstance(value, NibNil):
                     continue
                 obj[key] = value
+            if is_layout:
+                _finalize_constraint(obj)
             return
         if tag == "array" or tag == "set":
             for child in elem:
