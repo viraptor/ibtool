@@ -650,8 +650,12 @@ def _apply_view_defaults(obj: NibObject, seen: set) -> None:
         obj.setIfEmpty("NSDoNotTranslateAutoresizingMask", True)
         obj.setIfEmpty("NSImageViewPlaceholderPrecedence", 0)
         obj.setIfEmpty("IBNSShadowedSymbolConfiguration", NibNil())
+        inner_cell = obj.get("NSCell")
+        if isinstance(inner_cell, NibObject):
+            inner_cell.setIfEmpty("NSControlView", obj)
     if cls == "NSImageCell":
         obj.setIfEmpty("NSImageAnimation", 0)
+        obj.properties.pop("NSCellIdentifier", None)
     if cls == "NSMenuItem":
         obj.setIfEmpty("NSAllowsKeyEquivalentLocalization", True)
         obj.setIfEmpty("NSAllowsKeyEquivalentMirroring", True)
