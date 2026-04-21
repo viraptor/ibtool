@@ -45,6 +45,14 @@ def run():
                         help="Output format for diagnostics (default: xml1)")
     parser.add_argument("--module", metavar="MODULE",
                         help="Target module name for Swift class name mangling")
+    parser.add_argument("--output-partial-info-plist", metavar="PATH",
+                        help="Write a partial Info.plist with build-time metadata to PATH")
+    parser.add_argument("--auto-activate-custom-fonts", action="store_true",
+                        help="Emit bundled-font metadata into the partial Info.plist (no effect on NIB contents)")
+    parser.add_argument("--target-device", metavar="DEVICE",
+                        help="Target device; only 'mac' is supported")
+    parser.add_argument("--minimum-deployment-target", metavar="VERSION",
+                        help="Minimum deployment target (accepted but ignored)")
     parser.add_argument("--version", action="store_true", help="Version")
     args = parser.parse_args()
     
@@ -64,6 +72,10 @@ def run():
         print('</plist>')
         sys.exit()
 
+    if args.target_device is not None and args.target_device != "mac":
+        print(f"unsupported target device: {args.target_device!r} (only 'mac' is supported)")
+        sys.exit(1)
+
     if not args.input:
         print('input file required')
         sys.exit(1)
@@ -73,6 +85,9 @@ def run():
 
     elif args.compile:
         ibtool.ib_compile(args.input, args.compile, module=args.module)
+        if args.output_partial_info_plist:
+            with open(args.output_partial_info_plist, "wb") as f:
+                f.write(plistlib.dumps({}, fmt=plistlib.FMT_XML))
         _output_diagnostics(args)
 
     elif args.compare:
