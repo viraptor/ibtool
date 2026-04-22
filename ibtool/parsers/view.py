@@ -132,8 +132,34 @@ def parse(ctx: ArchiveContext, elem: Element, parent: XibObject, **kwargs) -> Xi
         obj["NSHuggingPriority"] = NibString.intern(f"{{{h}, {v}}}")
 
     if override := obj.extraContext.get("override_frame_size"):
-        w, h = override
-        obj["NSFrameSize"] = size_string(w, h)
+        new_w, new_h = override
+        # Shift direct subviews by the Y delta so they stay top-aligned in
+        # the enlarged content view (the extra height appears at the bottom).
+        xib_frame = obj.extraContext.get("NSFrame")
+        xib_size = obj.extraContext.get("NSFrameSize")
+        if xib_frame is not None:
+            xib_h = xib_frame[3]
+        elif xib_size is not None:
+            xib_h = xib_size[1]
+        else:
+            xib_h = new_h
+        dy = new_h - xib_h
+        if dy:
+            subviews = obj.get("NSSubviews")
+            if subviews:
+                for child in subviews:
+                    if not hasattr(child, 'extraContext'):
+                        continue
+                    cf = child.extraContext.get("NSFrame")
+                    cs = child.extraContext.get("NSFrameSize")
+                    if cf is not None:
+                        cx, cy, cw, ch = cf
+                    elif cs is not None:
+                        cx, cy, cw, ch = 0, 0, cs[0], cs[1]
+                    else:
+                        continue
+                    child.set_nib_frame(cx, cy + dy, cw, ch)
+        obj["NSFrameSize"] = size_string(new_w, new_h)
         if obj.get("NSFrame"):
             del obj["NSFrame"]
 
