@@ -142,9 +142,35 @@ def createTopLevel(toplevelObjects: list["XibObject"], context) -> NibObject:
     rootData = NibObject("NSIBObjectData")
     rootData["NSRoot"] = toplevelObjects[0]
     rootData["NSVisibleWindows"] = NibMutableSet(context.visibleWindows)
+    non_outlets = [conn for conn in context.connections if conn.classname() != "NSNibOutletConnector"]
+
+    def _label(conn):
+        l = conn.get("NSLabel") if hasattr(conn, "get") else None
+        return l._text if hasattr(l, "_text") else ""
+
+    def _src_xibid(conn):
+        src = conn.get("NSSource") if hasattr(conn, "get") else None
+        if src is None or not hasattr(src, "xibid") or src.xibid is None:
+            return ""
+        return src.xibid.val()
+
+    # Group connections by label preserving first-appearance order, then
+    # sort within each group by source's xib id alphabetically. This matches
+    # Apple's tie-break for duplicate-label action connectors (e.g. a menu
+    # item that exists both inside the main menu and inside a detached
+    # status-bar menu produces two "openConfig:" / "showAboutPanel:"
+    # connectors — Apple emits them in xibid order within the label group).
+    first_index: dict[str, int] = {}
+    for i, conn in enumerate(non_outlets):
+        first_index.setdefault(_label(conn), i)
+    non_outlets_sorted = sorted(
+        non_outlets,
+        key=lambda c: (first_index[_label(c)], _src_xibid(c)),
+    )
+
     rootData["NSConnections"] = NibMutableList(
         [conn for conn in context.connections if conn.classname() == "NSNibOutletConnector"] +
-        [conn for conn in context.connections if conn.classname() != "NSNibOutletConnector"]
+        non_outlets_sorted
         )
     rootData["NSObjectsKeys"] = NibList(context.extraNibObjects)
     # parents of XibObjects should be listed here with filesOwner as the highest parent
@@ -168,7 +194,7 @@ def createTopLevel(toplevelObjects: list["XibObject"], context) -> NibObject:
     oid_objects = [filesOwner] + \
         [o for o in context.extraNibObjects] + \
         [o for o in context.connections if o.classname() == "NSNibOutletConnector"] + \
-        [o for o in context.connections if o.classname() not in ("NSNibOutletConnector", "NSNibConnector")]
+        [o for o in non_outlets_sorted if o.classname() != "NSNibConnector"]
     rootData["NSOidsKeys"] = NibList(oid_objects)
     rootData["NSOidsValues"] = NibList([NibNSNumber(x+1) for x,_ in enumerate(oid_objects)])
     ax_connectors = []
