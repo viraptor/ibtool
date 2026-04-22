@@ -2,7 +2,8 @@ from ..models import ArchiveContext, NibObject, XibObject, NibInlineString
 from xml.etree.ElementTree import Element
 from .helpers import makeSystemColor, NibInlineString
 from ..constants import CellFlags
-from ..constant_objects import GENERIC_GREY_COLOR_SPACE
+from ..constant_objects import GENERIC_GREY_COLOR_SPACE, RGB_COLOR_SPACE
+from ..color_convert import srgb_to_calibrated_rgb
 
 def _strip_dot_if_int(s: str) -> str:
     s_val = float(s)
@@ -10,7 +11,7 @@ def _strip_dot_if_int(s: str) -> str:
 
 def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
     assert isinstance(parent, XibObject) or isinstance(parent, NibObject), type(parent)
-    assert elem.attrib["colorSpace"] in ["catalog", "calibratedWhite", "calibratedRGB", "deviceRGB"], elem.attrib["colorSpace"]
+    assert elem.attrib["colorSpace"] in ["catalog", "calibratedWhite", "calibratedRGB", "deviceRGB", "deviceWhite", "custom"], elem.attrib["colorSpace"]
 
     key = elem.attrib["key"]
 
@@ -127,6 +128,40 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
         color = NibObject("NSColor", None, {
             "NSColorSpace": color_space_id,
             "NSRGB": NibInlineString(f"{red} {green} {blue}\x00") if alpha == "1" else f"{red} {green} {blue} {alpha}\x00",
+        })
+        target_obj[target_attribute] = color
+    elif elem.attrib["colorSpace"] == "deviceWhite":
+        white_s = _strip_dot_if_int(elem.attrib["white"])
+        if "alpha" in elem.attrib and elem.attrib["alpha"] != "1":
+            alpha_s = _strip_dot_if_int(elem.attrib["alpha"])
+            payload = f"{white_s} {alpha_s}\x00"
+        else:
+            payload = f"{white_s}\x00"
+        color = NibObject("NSColor", None, {
+            "NSColorSpace": 4,
+            "NSWhite": NibInlineString(payload),
+        })
+        target_obj[target_attribute] = color
+    elif elem.attrib["colorSpace"] == "custom":
+        custom_cs = elem.attrib.get("customColorSpace")
+        if custom_cs != "sRGB":
+            raise Exception(f"unsupported custom colorSpace {custom_cs}")
+        red = float(elem.attrib["red"])
+        green = float(elem.attrib["green"])
+        blue = float(elem.attrib["blue"])
+        alpha = float(elem.attrib["alpha"])
+        converted = srgb_to_calibrated_rgb(red, green, blue, alpha)
+        if converted is None:
+            raise Exception("CoreGraphics unavailable; cannot convert custom sRGB colour")
+        r_lin, g_lin, b_lin, a_lin = converted
+        components = f"{_strip_dot_if_int(elem.attrib['red'])} {_strip_dot_if_int(elem.attrib['green'])} {_strip_dot_if_int(elem.attrib['blue'])} {_strip_dot_if_int(elem.attrib['alpha'])}"
+        rgb_payload = f"{r_lin:.10} {g_lin:.10} {b_lin:.10} {a_lin:.10}\x00"
+        color = NibObject("NSColor", None, {
+            "NSColorSpace": 1,
+            "NSRGB": NibInlineString(rgb_payload),
+            "NSCustomColorSpace": RGB_COLOR_SPACE,
+            "NSComponents": NibInlineString(components),
+            "NSLinearExposure": NibInlineString(b"1"),
         })
         target_obj[target_attribute] = color
     else:

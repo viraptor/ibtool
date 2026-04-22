@@ -396,6 +396,7 @@ _SYSTEM_COLOR_TABLE: dict[str, tuple] = {
     'headerColor':               ('gray', b'1 1', b'1\x00'),
     'windowBackgroundColor':     ('gray', b'0.5 1', b'0.4246723652\x00'),
     'secondaryLabelColor':       ('gray', b'0.3333333333 1', b'0.2637968361\x00'),
+    'tertiaryLabelColor':        ('gray', b'0.5 1', b'0.4246723652\x00'),
     'disabledControlTextColor':  ('gray', b'0.3333333333 1', b'0.2637968361\x00'),
     'linkColor':                 ('rgb', '0 0 1 1', b'0 0 0.9981992245\x00'),
     'systemRedColor':            ('rgb', b'1 0 0 1', b'0.9859541655 0 0.02694000863\x00'),
