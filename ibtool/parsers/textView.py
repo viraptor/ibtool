@@ -43,7 +43,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     }[elem.attrib.get("findStyle")]
 
     shared_data = XibObject(ctx, "NSTextViewSharedData", None, obj)
-    shared_data["NSAutomaticTextCompletionDisabled"] = False
+    shared_data["NSAutomaticTextCompletionDisabled"] = elem.attrib.get("textCompletion") == "NO"
     shared_data["NSBackgroundColor"] = NibNil()
     shared_data["NSDefaultParagraphStyle"] = NibNil()
     storyboard_defaults = 0x2008000 if ctx.isStoryboard else 0
@@ -64,7 +64,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
         NibNSNumber(1.0 if ctx.toolsVersion < 10000 else 1),
     ])
     shared_data["NSMarkedAttributes"] = NibNil()
-    shared_data["NSMoreFlags"] = 0x1
+    shared_data["NSMoreFlags"] = 0x1 | (0x2 if elem.attrib.get("textCompletion") == "NO" else 0)
     shared_data["NSPreferredTextFinderStyle"] = 0
     shared_data["NSSelectedAttributes"] = NibDictionary([
         NibString.intern("NSBackgroundColor"),
