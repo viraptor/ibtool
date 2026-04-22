@@ -8,6 +8,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
         "miniaturizable": 1 << 2,
         "resizable": 1 << 3,
         "utility": 1 << 4,
+        "nonactivatingPanel": 1 << 7,
         "fullSizeContentView": 1 << 15,
     }
     value = sum((elem.attrib.get(attr, "NO") == "YES") * val for attr, val in maskmap.items())

@@ -11,6 +11,8 @@ def parse(_ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
         value |= 1
     if elem.attrib.get("transient") == "YES":
         value |= 8
+    if elem.attrib.get("ignoresCycle") == "YES":
+        value |= 64
     if elem.attrib.get("fullScreenPrimary") == "YES":
         value |= 128
     if value:
