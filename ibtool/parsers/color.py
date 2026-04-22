@@ -9,6 +9,10 @@ def _strip_dot_if_int(s: str) -> str:
     s_val = float(s)
     return str(int(s_val)) if int(s_val) == s_val else f'{s_val:.12}'
 
+
+def _format_component(val: float) -> str:
+    return str(int(val)) if val == int(val) else f'{val:.10}'
+
 def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
     assert isinstance(parent, XibObject) or isinstance(parent, NibObject), type(parent)
     assert elem.attrib["colorSpace"] in ["catalog", "calibratedWhite", "calibratedRGB", "deviceRGB", "deviceWhite", "custom"], elem.attrib["colorSpace"]
@@ -154,8 +158,8 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
         if converted is None:
             raise Exception("CoreGraphics unavailable; cannot convert custom sRGB colour")
         r_lin, g_lin, b_lin, a_lin = converted
-        components = f"{_strip_dot_if_int(elem.attrib['red'])} {_strip_dot_if_int(elem.attrib['green'])} {_strip_dot_if_int(elem.attrib['blue'])} {_strip_dot_if_int(elem.attrib['alpha'])}"
-        rgb_payload = f"{r_lin:.10} {g_lin:.10} {b_lin:.10} {a_lin:.10}\x00"
+        components = f"{_format_component(float(elem.attrib['red']))} {_format_component(float(elem.attrib['green']))} {_format_component(float(elem.attrib['blue']))} {_format_component(float(elem.attrib['alpha']))}"
+        rgb_payload = f"{_format_component(r_lin)} {_format_component(g_lin)} {_format_component(b_lin)} {_format_component(a_lin)}\x00"
         color = NibObject("NSColor", None, {
             "NSColorSpace": 1,
             "NSRGB": NibInlineString(rgb_payload),
