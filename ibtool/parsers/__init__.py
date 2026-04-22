@@ -103,6 +103,7 @@ from . import view
 from . import viewController
 from . import viewLayoutGuide
 from . import visibilityPriorities
+from . import visualEffectView
 from . import webPreferences
 from . import webView
 from . import window
@@ -217,6 +218,7 @@ all = {
     "viewController": viewController,
     "viewLayoutGuide": viewLayoutGuide,
     "visibilityPriorities": visibilityPriorities,
+    "visualEffectView": visualEffectView,
     "webPreferences": webPreferences,
     "webView": webView,
     "window": window,

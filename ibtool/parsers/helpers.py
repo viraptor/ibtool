@@ -71,6 +71,8 @@ def _xibparser_common_view_attributes(ctx: ArchiveContext, elem: Element, parent
     if elem is not None and elem.attrib.get("horizontalHuggingPriority") is not None:
         obj.extraContext["horizontalHuggingPriority"] = elem.attrib.get("horizontalHuggingPriority")
     __xibparser_set_compression_priority(ctx, obj, elem)
+    if elem is not None and elem.attrib.get("wantsLayer") == "YES":
+        obj["NSViewIsLayerTreeHost"] = True
     if elem is not None and elem.attrib.get('translatesAutoresizingMaskIntoConstraints', "YES") == "NO":
         obj.extraContext["NSDoNotTranslateAutoresizingMask"] = True
 
