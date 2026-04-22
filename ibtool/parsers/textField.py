@@ -43,6 +43,8 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
         vp = v or "250"
         if hp != "250" or vp != "750":
             obj["NSHuggingPriority"] = hugging_priority_string(hp, vp)
+    elif "horizontalCompressionResistancePriority" in elem.attrib or "verticalCompressionResistancePriority" in elem.attrib:
+        obj["NSHuggingPriority"] = "{250, 250}"
     if not obj.extraContext.get("parsed_autoresizing"):
         obj.flagsOr("NSvFlags", vFlags.DEFAULT_VFLAGS_AUTOLAYOUT if ctx.useAutolayout else vFlags.DEFAULT_VFLAGS)
 
