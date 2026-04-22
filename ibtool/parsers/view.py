@@ -18,6 +18,9 @@ def parse(ctx: ArchiveContext, elem: Element, parent: XibObject, **kwargs) -> Xi
         if parent.originalclassname() == "NSWindowTemplate":
             parent["NSWindowView"] = obj
             obj["NSFrameSize"] = NibString.intern("{0, 0}")
+            if parent.extraContext.get("fullSizeContentView"):
+                if window_size := parent.extraContext.get("NSFrameSize"):
+                    obj.extraContext["override_frame_size"] = window_size
         elif parent.originalclassname() == "NSBox":
             parent["NSContentView"] = obj
             parent["NSSubviews"] = NibMutableList([obj])
@@ -127,6 +130,12 @@ def parse(ctx: ArchiveContext, elem: Element, parent: XibObject, **kwargs) -> Xi
     v = elem.attrib.get("verticalHuggingPriority", VIEW_DEFAULT_V_HUG)
     if h != VIEW_DEFAULT_H_HUG or v != VIEW_DEFAULT_V_HUG:
         obj["NSHuggingPriority"] = NibString.intern(f"{{{h}, {v}}}")
+
+    if override := obj.extraContext.get("override_frame_size"):
+        w, h = override
+        obj["NSFrameSize"] = size_string(w, h)
+        if obj.get("NSFrame"):
+            del obj["NSFrame"]
 
     return obj
 

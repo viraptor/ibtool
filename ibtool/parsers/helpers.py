@@ -131,9 +131,10 @@ def __xibparser_cell_flags(elem: Element, obj: NibObject, parent: NibObject) -> 
     focus_ring_type = elem.attrib.get("focusRingType")
     focus_ring_none = CellFlags2.FOCUS_RING_NONE if focus_ring_type == "none" else (CellFlags2.FOCUS_RING_EXTERIOR if focus_ring_type == "exterior" else 0)
     truncates_last_visible = CellFlags2.TRUNCATES_LAST_VISIBLE_LINE if elem.attrib.get("truncatesLastVisibleLine") == "YES" else 0
+    rich_text = CellFlags2.RICH_TEXT if elem.attrib.get("allowsEditingTextAttributes") == "YES" else 0
 
     obj.flagsOr("NSCellFlags", lineBreakModeMask | text_field_flag | selectable | state_on | scrollable | disabled | editable | bezeled | border)
-    obj.flagsOr("NSCellFlags2", textAlignmentMask | sendsActionMask | lineBreakModeMask2 | refuses_first_responder_mask | size_flag | allows_mixed_state | allows_undo | uses_single_line_mode | focus_ring_none | truncates_last_visible)
+    obj.flagsOr("NSCellFlags2", textAlignmentMask | sendsActionMask | lineBreakModeMask2 | refuses_first_responder_mask | size_flag | allows_mixed_state | allows_undo | uses_single_line_mode | focus_ring_none | truncates_last_visible | rich_text)
 
     if parent.originalclassname() == "NSTableColumn" and editable:
         parent["NSIsEditable"] = True

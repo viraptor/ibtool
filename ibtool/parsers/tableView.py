@@ -40,6 +40,8 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     if elem.attrib.get("viewBased") == "YES":
         obj["NSSubviews"] = NibMutableList([])
         obj["NSTableViewArchivedReusableViewsKey"] = NibMutableDictionary([])
+    if elem.attrib.get("usesAutomaticRowHeights") == "YES":
+        obj["NSTableViewUseARH"] = True
 
     is_elastic = elem.attrib.get("rowSizeStyle") == "automatic"
     with __handle_view_chain(ctx, obj):

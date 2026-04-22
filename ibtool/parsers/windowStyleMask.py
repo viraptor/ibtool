@@ -13,3 +13,5 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
     }
     value = sum((elem.attrib.get(attr, "NO") == "YES") * val for attr, val in maskmap.items())
     parent["NSWindowStyleMask"] = value
+    if elem.attrib.get("fullSizeContentView") == "YES":
+        parent.extraContext["fullSizeContentView"] = True
