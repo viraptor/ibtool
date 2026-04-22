@@ -286,7 +286,12 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     uses_predominant_axis_scrolling = sFlagsScrollView.USES_PREDOMINANT_AXIS_SCROLLING if elem.attrib.get("usesPredominantAxisScrolling", "YES") == "YES" else 0
     auto_hiding = sFlagsScrollView.AUTOHIDES_SCROLLERS if elem.attrib.get("autohidesScrollers") == "YES" else 0
     # COPY_ON_SCROLL is deferred until after children parsed (only for table/outline doc views)
-    obj["NSsFlags"] = 0x20800 | has_horizontal_scroller | has_vertical_scroller | uses_predominant_axis_scrolling | border_type | auto_hiding
+    h_elasticity = elem.attrib.get("horizontalScrollElasticity")
+    v_elasticity = elem.attrib.get("verticalScrollElasticity")
+    h_bits = {"none": 0x4000, "allowed": 0x8000}.get(h_elasticity, 0)
+    v_bits = {"none": 0x1000, "allowed": 0x2000}.get(v_elasticity, 0)
+    v_explicit_bit = 0x40 if v_elasticity in ("none", "allowed") else 0
+    obj["NSsFlags"] = 0x20800 | has_horizontal_scroller | has_vertical_scroller | uses_predominant_axis_scrolling | border_type | auto_hiding | h_bits | v_bits | v_explicit_bit
     if border_type in [sFlagsScrollView.BORDER_LINE, sFlagsScrollView.BORDER_BEZEL]:
         obj.extraContext["insets"] = (2, 2)
     if border_type == sFlagsScrollView.BORDER_GROOVE:
