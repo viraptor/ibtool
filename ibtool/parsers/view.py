@@ -133,8 +133,6 @@ def parse(ctx: ArchiveContext, elem: Element, parent: XibObject, **kwargs) -> Xi
 
     if override := obj.extraContext.get("override_frame_size"):
         new_w, new_h = override
-        # Shift direct subviews by the Y delta so they stay top-aligned in
-        # the enlarged content view (the extra height appears at the bottom).
         xib_frame = obj.extraContext.get("NSFrame")
         xib_size = obj.extraContext.get("NSFrameSize")
         if xib_frame is not None:
@@ -143,10 +141,15 @@ def parse(ctx: ArchiveContext, elem: Element, parent: XibObject, **kwargs) -> Xi
             xib_h = xib_size[1]
         else:
             xib_h = new_h
-        dy = new_h - xib_h
-        if dy:
+        # If the designer already extended the content view past the window
+        # contentRect height (e.g. to accommodate hidden chrome), keep the
+        # XIB size and leave subviews alone.
+        if xib_h < new_h:
+            dy = new_h - xib_h
             subviews = obj.get("NSSubviews")
             if subviews:
+                # Shift direct subviews by dy so they stay top-aligned in the
+                # enlarged content view (the extra height appears at the bottom).
                 for child in subviews:
                     if not hasattr(child, 'extraContext'):
                         continue
@@ -159,9 +162,9 @@ def parse(ctx: ArchiveContext, elem: Element, parent: XibObject, **kwargs) -> Xi
                     else:
                         continue
                     child.set_nib_frame(cx, cy + dy, cw, ch)
-        obj["NSFrameSize"] = size_string(new_w, new_h)
-        if obj.get("NSFrame"):
-            del obj["NSFrame"]
+            obj["NSFrameSize"] = size_string(new_w, new_h)
+            if obj.get("NSFrame"):
+                del obj["NSFrame"]
 
     return obj
 
