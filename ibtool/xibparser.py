@@ -148,16 +148,22 @@ def createTopLevel(toplevelObjects: list["XibObject"], context) -> NibObject:
         l = conn.get("NSLabel") if hasattr(conn, "get") else None
         return l._text if hasattr(l, "_text") else ""
 
-    def _src_xibid(conn):
+    def _src_key(conn):
         src = conn.get("NSSource") if hasattr(conn, "get") else None
         if src is None or not hasattr(src, "xibid") or src.xibid is None:
-            return ""
-        return src.xibid.val()
+            return (1, "")
+        xid = src.xibid.val()
+        # Numeric xibids (legacy XIB format) compare numerically; alphanumeric
+        # ones compare lexically. Bucket ints first so the two kinds sort
+        # independently when a label group mixes them.
+        if xid.isdigit():
+            return (0, int(xid))
+        return (1, xid)
 
     # Group connections by label preserving first-appearance order, then
-    # sort within each group by source's xib id alphabetically. This matches
-    # Apple's tie-break for duplicate-label action connectors (e.g. a menu
-    # item that exists both inside the main menu and inside a detached
+    # sort within each group by source's xib id. This matches Apple's
+    # tie-break for duplicate-label action connectors (e.g. a menu item
+    # that exists both inside the main menu and inside a detached
     # status-bar menu produces two "openConfig:" / "showAboutPanel:"
     # connectors — Apple emits them in xibid order within the label group).
     first_index: dict[str, int] = {}
@@ -165,7 +171,7 @@ def createTopLevel(toplevelObjects: list["XibObject"], context) -> NibObject:
         first_index.setdefault(_label(conn), i)
     non_outlets_sorted = sorted(
         non_outlets,
-        key=lambda c: (first_index[_label(c)], _src_xibid(c)),
+        key=lambda c: (first_index[_label(c)], _src_key(c)),
     )
 
     rootData["NSConnections"] = NibMutableList(
