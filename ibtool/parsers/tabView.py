@@ -111,56 +111,73 @@ def _collect_leaf_views(view):
             if frame:
                 x = frame[0] if len(frame) == 4 else 0
                 y = frame[1] if len(frame) == 4 else 0
+                w = frame[2] if len(frame) == 4 else frame[0]
                 h = frame[3] if len(frame) == 4 else frame[1]
             else:
-                x, y, h = 0, 0, 0
-            leaves.append((sv, x, y, h))
+                x, y, w, h = 0, 0, 0, 0
+            leaves.append((sv, x, y, h, w))
     return leaves
 
 
 def _sort_views_for_key_loop(leaves):
-    """Sort views using overlapping-row grouping for NSNextKeyView chain.
+    """Sort views into Apple's NSNextKeyView reading order.
 
-    Views whose Y-ranges [y, y+h] overlap are grouped into the same "row".
-    Within each row, views are sorted by X-ascending then Y-descending.
-    Rows are ordered by their maximum top edge (y+h) descending.
+    Two-level grouping:
+      Row groups — views whose Y-ranges [y, y+h] overlap belong to the same
+        row. Rows are ordered by max top edge (y+h) descending.
+      Column subgroups — within a row, views whose X-ranges [x, x+w] overlap
+        belong to the same column. Columns are ordered by min x ascending,
+        and views inside a column are ordered top-down (y descending).
     """
     if len(leaves) <= 1:
         return leaves
 
     n = len(leaves)
-    parent = list(range(n))
 
-    def find(i):
-        while parent[i] != i:
-            parent[i] = parent[parent[i]]
-            i = parent[i]
-        return i
+    def group_by_overlap(indices, axis_low, axis_size):
+        """Union-find groups of indices whose [axis_low, axis_low+axis_size]
+        ranges overlap (open interval — touching edges don't count)."""
+        parent = list(range(len(indices)))
 
-    def union(i, j):
-        pi, pj = find(i), find(j)
-        if pi != pj:
-            parent[pi] = pj
+        def find(i):
+            while parent[i] != i:
+                parent[i] = parent[parent[i]]
+                i = parent[i]
+            return i
 
-    for i in range(n):
-        y_i, h_i = leaves[i][2], leaves[i][3]
-        for j in range(i + 1, n):
-            y_j, h_j = leaves[j][2], leaves[j][3]
-            if y_i < y_j + h_j and y_j < y_i + h_i:
-                union(i, j)
+        def union(i, j):
+            pi, pj = find(i), find(j)
+            if pi != pj:
+                parent[pi] = pj
 
-    groups = {}
-    for i in range(n):
-        groups.setdefault(find(i), []).append(i)
+        for ii in range(len(indices)):
+            a, sa = axis_low(indices[ii]), axis_size(indices[ii])
+            for jj in range(ii + 1, len(indices)):
+                b, sb = axis_low(indices[jj]), axis_size(indices[jj])
+                if a < b + sb and b < a + sa:
+                    union(ii, jj)
 
-    for r in groups:
-        groups[r].sort(key=lambda i: (leaves[i][1], -leaves[i][2]))
+        buckets: dict[int, list[int]] = {}
+        for ii in range(len(indices)):
+            buckets.setdefault(find(ii), []).append(indices[ii])
+        return list(buckets.values())
 
-    sorted_groups = sorted(groups.values(),
-                           key=lambda g: max(leaves[i][2] + leaves[i][3] for i in g),
-                           reverse=True)
+    rows = group_by_overlap(list(range(n)),
+                            lambda i: leaves[i][2],
+                            lambda i: leaves[i][3])
+    rows.sort(key=lambda g: max(leaves[i][2] + leaves[i][3] for i in g), reverse=True)
 
-    return [leaves[i] for g in sorted_groups for i in g]
+    result = []
+    for row in rows:
+        cols = group_by_overlap(row,
+                                lambda i: leaves[i][1],
+                                lambda i: leaves[i][4])
+        cols.sort(key=lambda g: min(leaves[i][1] for i in g))
+        for col in cols:
+            col.sort(key=lambda i: -leaves[i][2])
+            result.extend(col)
+
+    return [leaves[i] for i in result]
 
 
 def _build_key_view_loop(tab_item, tab_view):
