@@ -98,6 +98,7 @@ from . import toolbar
 from . import url
 from . import userDefinedRuntimeAttributes
 from . import userDefaultsController
+from . import userGuides
 from . import value
 from . import view
 from . import viewController
@@ -213,6 +214,7 @@ all = {
     "url": url,
     "userDefinedRuntimeAttributes": userDefinedRuntimeAttributes,
     "userDefaultsController": userDefaultsController,
+    "userGuides": userGuides,
     "value": value,
     "view": view,
     "viewController": viewController,
