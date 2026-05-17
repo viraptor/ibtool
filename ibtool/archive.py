@@ -492,6 +492,29 @@ def _ordered_objects(records_elem: Element) -> Optional[Element]:
     return records_elem.find("object[@key='orderedObjects']")
 
 
+def _object_name_text(elem: Optional[Element]) -> str:
+    """Read a <string key="objectName"> value, transparently decoding the
+    base64-UTF8 form that legacy XIBs use for names containing punctuation
+    (e.g. "File's Owner"). Trailing NUL bytes are stripped."""
+    if elem is None:
+        return ""
+    raw = elem.text or ""
+    if elem.get("type") == "base64-UTF8":
+        text = raw.strip()
+        rem = len(text) % 4
+        if rem == 1:
+            text = text[:-1]
+            rem = len(text) % 4
+        if rem:
+            text += "=" * (4 - rem)
+        try:
+            decoded = base64.b64decode(text).decode("utf-8", errors="replace")
+        except Exception:
+            return raw
+        return decoded.rstrip("\x00")
+    return raw
+
+
 def _find_named(state: _ArchiveState, records_elem: Optional[Element], name: str) -> Optional[NibObject]:
     if records_elem is None:
         return None
@@ -500,7 +523,7 @@ def _find_named(state: _ArchiveState, records_elem: Optional[Element], name: str
         return None
     for rec in ordered:
         nm = rec.find("string[@key='objectName']")
-        if nm is not None and (nm.text or "") == name:
+        if nm is not None and _object_name_text(nm) == name:
             obj_ref = rec.find("*[@key='object']")
             if obj_ref is not None and obj_ref.tag == "reference":
                 return state.resolve_ref(obj_ref.get("ref", ""))
@@ -664,7 +687,7 @@ def _build_object_map(state: _ArchiveState, records_elem: Optional[Element]):
     seen_refs: set[str] = set()
     for ref_id, parent_ref, rec in order:
         name_child = rec.find("string[@key='objectName']")
-        if name_child is not None and (name_child.text or "") in ("First Responder", "File's Owner"):
+        if name_child is not None and _object_name_text(name_child) in ("First Responder", "File's Owner"):
             continue
         if ref_id in seen_refs:
             continue
