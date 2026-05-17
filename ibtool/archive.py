@@ -482,10 +482,20 @@ def _populate_visible_windows(state, flat_elem, root_objects, windows_set):
             windows_set.addItem(obj)
 
 
+def _ordered_objects(records_elem: Element) -> Optional[Element]:
+    """Locate the orderedObjects array regardless of whether the schema uses
+    `<array key="orderedObjects">` (modern) or
+    `<object class="NSArray" key="orderedObjects">` (legacy IB3)."""
+    ordered = records_elem.find("array[@key='orderedObjects']")
+    if ordered is not None:
+        return ordered
+    return records_elem.find("object[@key='orderedObjects']")
+
+
 def _find_named(state: _ArchiveState, records_elem: Optional[Element], name: str) -> Optional[NibObject]:
     if records_elem is None:
         return None
-    ordered = records_elem.find("array[@key='orderedObjects']")
+    ordered = _ordered_objects(records_elem)
     if ordered is None:
         return None
     for rec in ordered:
@@ -573,12 +583,13 @@ def _build_object_map(state: _ArchiveState, records_elem: Optional[Element]):
     vals = NibList([])
     if records_elem is None:
         return keys, vals
-    ordered = records_elem.find("array[@key='orderedObjects']")
+    ordered = _ordered_objects(records_elem)
     if ordered is None:
         ordered = records_elem
 
     # Index every record by the id of its `object` reference, and find the
-    # root placeholder (the synthetic array with id).
+    # root placeholder. The root record is the one whose `parent` is <nil/>
+    # (modern schema sometimes embeds the placeholder array directly).
     records_by_ref: dict[str, Element] = {}
     root_placeholder_id: Optional[str] = None
     root_record: Optional[Element] = None
@@ -586,8 +597,13 @@ def _build_object_map(state: _ArchiveState, records_elem: Optional[Element]):
         obj_child = rec.find("*[@key='object']")
         if obj_child is None:
             continue
-        if obj_child.tag == "array" and obj_child.get("id") is not None:
-            root_placeholder_id = obj_child.get("id")
+        parent_child = rec.find("*[@key='parent']")
+        is_root = parent_child is not None and parent_child.tag == "nil"
+        if is_root or (obj_child.tag == "array" and obj_child.get("id") is not None):
+            if obj_child.tag == "reference":
+                root_placeholder_id = obj_child.get("ref")
+            elif obj_child.get("id") is not None:
+                root_placeholder_id = obj_child.get("id")
             root_record = rec
             continue
         if obj_child.tag == "reference":
@@ -632,6 +648,8 @@ def _build_object_map(state: _ArchiveState, records_elem: Optional[Element]):
     # other than File's Owner, layout constraints, etc.).
     walked: set[str] = {entry[0] for entry in order}
     for rec in ordered:
+        if rec is root_record:
+            continue
         obj_child = rec.find("*[@key='object']")
         if obj_child is None or obj_child.tag != "reference":
             continue
@@ -646,7 +664,7 @@ def _build_object_map(state: _ArchiveState, records_elem: Optional[Element]):
     seen_refs: set[str] = set()
     for ref_id, parent_ref, rec in order:
         name_child = rec.find("string[@key='objectName']")
-        if name_child is not None and (name_child.text or "") == "First Responder":
+        if name_child is not None and (name_child.text or "") in ("First Responder", "File's Owner"):
             continue
         if ref_id in seen_refs:
             continue
