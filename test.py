@@ -39,6 +39,8 @@ def run_test(xib):
             return False, xib, output
 
         nib = xib.removesuffix(".xib") + ".nib"
+        if os.path.isdir(nib):
+            nib = os.path.join(nib, "keyedobjects-101300.nib")
         compare_result = subprocess.run(
             [sys.executable, "-m", "ibtool", "--compare", nib, test_out],
             capture_output=True,
