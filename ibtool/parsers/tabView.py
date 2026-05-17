@@ -168,13 +168,14 @@ def _build_key_view_loop(tab_item, tab_view):
     if not item_view:
         return
 
-    container = None
     subviews = item_view.get("NSSubviews")
-    if subviews and len(subviews) > 0:
-        container = subviews[0] if len(subviews) == 1 else None
-
-    if container is None:
+    if not subviews:
         return
+
+    if len(subviews) == 1:
+        container = subviews[0]
+    else:
+        container = item_view
 
     leaves = _collect_leaf_views(container)
     if not leaves:
@@ -186,7 +187,8 @@ def _build_key_view_loop(tab_item, tab_view):
     leaves = _sort_views_for_key_loop(leaves)
 
     tab_view["NSNextKeyView"] = item_view
-    item_view["NSNextKeyView"] = container
+    if container is not item_view:
+        item_view["NSNextKeyView"] = container
     container["NSNextKeyView"] = leaves[0][0]
     for i in range(len(leaves) - 1):
         leaves[i][0]["NSNextKeyView"] = leaves[i + 1][0]
