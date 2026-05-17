@@ -48,9 +48,10 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
         from ..parsers_base import _TabView_parse_children
         _TabView_parse_children(ctx, elem, obj, skip_tags={"tabViewItems"})
 
-    # Auto-generate NSNextKeyView chain for each tab view item
-    for _item_elem, tab_item in tab_item_objects:
-        _build_key_view_loop(tab_item, obj)
+    # Auto-generate NSNextKeyView chain for the selected tab only — Apple
+    # leaves background tabs without a chain.
+    if selected_item is not None:
+        _build_key_view_loop(selected_item, obj)
     _build_scrollview_chain(obj, tab_item_objects, selected_item)
 
     obj["NSTabViewItems"] = tab_view_items
