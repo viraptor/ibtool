@@ -193,6 +193,11 @@ def _build_key_view_loop(tab_item, tab_view):
     for i in range(len(leaves) - 1):
         leaves[i][0]["NSNextKeyView"] = leaves[i + 1][0]
     leaves[-1][0]["NSNextKeyView"] = tab_view
+    # Sliders don't continue the key view chain — predecessors still point at
+    # them but their own next is nil.
+    for leaf in leaves:
+        if leaf[0].originalclassname() == "NSSlider":
+            leaf[0]["NSNextKeyView"] = NibNil()
 
 
 def _find_scrollviews(view, found=None):
