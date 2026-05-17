@@ -377,6 +377,7 @@ class ArchiveContext:
         self.bindingConnectors: dict[str, NibObject] = {}
 
         self.deployment = False
+        self.hasDeploymentTarget = False
         self.isBaseLocalization = False
 
         # We need the list of constraints to be able to set the NSDoNotTranslateAutoresizingMask prop correctly
@@ -781,10 +782,14 @@ def _xibparser_handle_custom_class(ctx: ArchiveContext, elem: Element, obj: "Xib
                 obj["NSClassName"] = NibString.intern(f"_TtC{len(custom_module)}{custom_module}{len(custom_class)}{custom_class}")
             else:
                 obj["NSClassName"] = NibString.intern(class_name)
+            if custom_class:
+                obj["IBClassReference"] = make_class_reference(custom_class, custom_module, custom_module_provider)
         else:
             obj["NSClassName"] = NibString.intern("NSApplication")
-        if custom_class:
-            obj["IBClassReference"] = make_class_reference(custom_class, custom_module, custom_module_provider)
+            if custom_class:
+                obj["IBClassReference"] = make_class_reference(custom_class, custom_module, custom_module_provider)
+            elif ctx.hasDeploymentTarget:
+                obj["IBClassReference"] = make_class_reference("NSObject", custom_module, custom_module_provider)
     elif custom_class:
         #print(obj.xibid, obj.originalclassname(), obj.classname(), custom_class)
         if (ctx.customObjectInstantitationMethod == "direct" and not (obj.originalclassname() == "NSWindowTemplate" and not custom_module) and not (obj.originalclassname() == "NSCustomObject" and not custom_module and custom_class in _CUSTOM_OBJECT_NO_SWAP)) or obj.originalclassname() in ("NSView", "NSOutlineView", "NSButton", "NSTextField", "NSTextView", "NSProgressIndicator", "NSTableView", "NSTableHeaderView", "NSPopUpButtonCell", "NSScrollView", "NSLevelIndicatorCell", "NSImageView", "NSTableCellView", "NSCustomFormatter", "NSNumberFormatter", "NSSplitView", "NSTextFieldCell", "NSSearchFieldCell", "NSToolbarItem"):

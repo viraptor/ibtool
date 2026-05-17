@@ -68,10 +68,10 @@ def ParseXIBObjects(root: Element, context: Optional[ArchiveContext]=None, resol
         context.isBaseLocalization = True
     
     dependencies = [x for x in root.iter("dependencies")]
-    if not dependencies:
-        deployment = [x for x in dependencies[0].iter("deployment")]
+    if dependencies:
+        deployment = [x for x in dependencies[0].iter("deployment") if x.attrib.get("version")]
         if deployment:
-            context.deployment = True
+            context.hasDeploymentTarget = True
 
     for res_elem in root.iter("resources"):
         for img in res_elem.iter("image"):
