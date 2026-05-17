@@ -19,17 +19,25 @@ BOX_BORDER_TYPE_MAP = {
 
 BOX_TYPE_MAP = {
     None: 0,
+    "secondary": 1,
     "separator": 2,
+    "oldStyle": 3,
+    "custom": 4,
 }
 
 BOX_USING_CONTENT_VIEW_MAP = {
     None: True,
+    "secondary": True,
     "separator": None,
+    "oldStyle": True,
+    "custom": True,
 }
 
 def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
     obj = make_xib_object(ctx, "NSBox", elem, parent)
     obj.extraContext["titlePosition"] = elem.attrib.get("titlePosition")
+    obj.extraContext["boxType"] = elem.attrib.get("boxType")
+    obj.extraContext["box_border_width"] = elem.attrib.get("borderWidth")
     parse_children(ctx, elem, obj)
     _xibparser_common_translate_autoresizing(ctx, elem, parent, obj)
 
@@ -39,7 +47,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
         PropSchema(prop="NSBorderType", attrib="borderType", default=None, map=BOX_BORDER_TYPE_MAP, skip_default=False),
         PropSchema(prop="IBNSBoxIsUsingDocumentContentView", attrib="boxType", default=None, map=BOX_USING_CONTENT_VIEW_MAP, skip_default=False),
         PropSchema(prop="NSTransparent", const=False),
-        PropSchema(prop="NSOffsets", attrib="boxType", default=None, map={None: NibString.intern("{0, 0}"), "separator": NibString.intern("{5, 5}")}, skip_default=False),
+        PropSchema(prop="NSOffsets", attrib="boxType", default=None, map={None: NibString.intern("{0, 0}"), "secondary": NibString.intern("{0, 0}"), "separator": NibString.intern("{5, 5}"), "oldStyle": NibString.intern("{0, 0}"), "custom": NibString.intern("{0, 0}")}, skip_default=False),
         PropSchema(prop="NSSubviews", default=NibMutableList([])),
     ])
     
@@ -76,6 +84,14 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
         "NSSupport": font,
         "NSTextColor": makeSystemColor("labelColor"),
     })
+    if elem.attrib.get("boxType") == "custom":
+        border_width = elem.attrib.get("borderWidth")
+        if border_width is not None:
+            obj["NSBorderWidth2"] = NibNSNumber(float(border_width))
+        corner_radius = elem.attrib.get("cornerRadius")
+        if corner_radius is not None:
+            obj["NSCornerRadius2"] = float(corner_radius)
+
     if "verticalHuggingPriority" in obj.extraContext or "horizontalHuggingPriority" in obj.extraContext:
         v, h = obj.extraContext.get("verticalHuggingPriority", 250), obj.extraContext.get("horizontalHuggingPriority", 250)
         obj["NSHuggingPriority"] = f"{{{h}, {v}}}"

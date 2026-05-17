@@ -66,11 +66,24 @@ def parse(ctx: ArchiveContext, elem: Element, parent: XibObject, **kwargs) -> Xi
     if is_box_content:
         # Box content views should point to the box, not NibNil
         obj["NSNextResponder"] = parent
-        # Override frame using pre-computed box content size
-        if box_size := obj.extraContext.get("box_content_size"):
-            obj["NSFrameSize"] = size_string(box_size[0], box_size[1])
-            if obj.get("NSFrame"):
-                del obj["NSFrame"]
+        # Titled boxes flatten the content view to NSFrameSize (the box itself
+        # positions the content). oldStyle (boxType=3) keeps the XIB frame; custom
+        # (boxType=4) recomputes NSFrame from box size minus a uniform borderWidth
+        # inset (default 1) regardless of what the XIB content-view rect said.
+        parent_box_type = parent.extraContext.get("boxType")
+        if parent_box_type == "custom":
+            box_raw = parent.raw_frame()
+            if box_raw:
+                bw, bh = box_raw[2], box_raw[3]
+                inset_attr = parent.extraContext.get("box_border_width")
+                inset = float(inset_attr) if inset_attr is not None else 1.0
+                inset_i = int(inset) if inset == int(inset) else inset
+                obj.set_nib_frame(inset_i, inset_i, bw - 2 * inset_i, bh - 2 * inset_i)
+        elif parent_box_type != "oldStyle":
+            if box_size := obj.extraContext.get("box_content_size"):
+                obj["NSFrameSize"] = size_string(box_size[0], box_size[1])
+                if obj.get("NSFrame"):
+                    del obj["NSFrame"]
         # Adjust child coordinates and sizes for autoresizing when content view size differs from XIB
         x_off = obj.extraContext.get("box_child_x_offset", 0)
         y_off = obj.extraContext.get("box_child_y_offset", 0)

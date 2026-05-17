@@ -35,8 +35,8 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
             "backgroundColor": ["NSBackgroundColor"],
         },
         "NSBox": {
-            "borderColor": None,
-            "fillColor": None,
+            "borderColor": ["NSBorderColor2"],
+            "fillColor": ["NSFillColor2"],
             "textColor": ["NSTextColor"],
             "backgroundColor": ["NSBackgroundColor"],
             "color": ["NSColor"],
@@ -53,6 +53,9 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
     target_path = special_target_attributes.get(parent.originalclassname(), special_target_attributes[None])[key]
     if target_path is None:
         return
+    if parent.originalclassname() == "NSBox" and key in ("borderColor", "fillColor"):
+        if parent.extraContext.get("boxType") != "custom":
+            return
     target_obj = parent
     for step in target_path[:-1]:
         target_obj = target_obj[step]
