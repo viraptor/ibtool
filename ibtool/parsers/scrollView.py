@@ -442,7 +442,10 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
             _reduce_column_widths(doc_view, _get_ics_w(doc_view) * 3)
             border_col_reduced = True
         elif auto_hiding and obj.get("NSHeaderClipView") is not None and not is_small_offscreen:
-            reduction = 17 + _get_ics_w(doc_view) * 4
+            if (doc_view.get("NSTvFlags") or 0) & TVFLAGS.GRID_STYLE_SOLID:
+                reduction = _get_ics_w(doc_view) * 3
+            else:
+                reduction = 17 + _get_ics_w(doc_view) * 4
             _reduce_column_widths(doc_view, reduction)
             border_col_reduced = True
     elif border > 0 and _is_table_or_outline(doc_view) and not obj.get("NSHeaderClipView") and (vs_offscreen or (auto_hiding and is_regular_scroller and has_horizontal_scroller)):

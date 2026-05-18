@@ -128,6 +128,9 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     if elem.attrib.get("columnReordering") == "NO" and elem.attrib.get("multipleSelection", "YES") == "YES":
         obj.flagsAnd("NSTvFlags", ~TVFLAGS.GRID_STYLE_DASHED)
         obj.flagsOr("NSTvFlags", TVFLAGS.GRID_STYLE_SOLID)
+    if elem.attrib.get("multipleSelection", "YES") == "NO" and elem.attrib.get("columnReordering", "YES") == "YES":
+        obj.flagsAnd("NSTvFlags", ~TVFLAGS.GRID_STYLE_DASHED)
+        obj.flagsOr("NSTvFlags", TVFLAGS.GRID_STYLE_SOLID)
     # Swap DASHED → SOLID when columnResizing=NO and any column has resizeWithTable
     if elem.attrib.get("columnResizing", "YES") == "NO" and columns:
         for col in columns:
