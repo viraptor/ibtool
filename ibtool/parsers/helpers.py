@@ -228,12 +228,14 @@ def __xibparser_button_flags(elem: Element, obj: XibObject, parent: NibObject) -
     }
     if buttonType in ("square", "squareTextured"):
         behavior_elem = elem.find("behavior")
-        if behavior_elem is not None and behavior_elem.attrib.get("lightByContents") == "YES" and behavior_elem.attrib.get("pushIn") != "YES":
+        light_by_contents = behavior_elem is not None and behavior_elem.attrib.get("lightByContents") == "YES"
+        push_in = behavior_elem is not None and behavior_elem.attrib.get("pushIn") == "YES"
+        if light_by_contents and not push_in:
             obj["NSAuxButtonType"] = 5
-        elif behavior_elem is not None and behavior_elem.attrib.get("pushIn") == "YES":
-            obj["NSAuxButtonType"] = 7 if buttonType == "square" else 2
+        elif light_by_contents and push_in:
+            obj["NSAuxButtonType"] = 2
         else:
-            obj["NSAuxButtonType"] = 0
+            obj["NSAuxButtonType"] = 7
     else:
         obj["NSAuxButtonType"] = aux_type_map[buttonType]
 
@@ -387,6 +389,9 @@ _SYSTEM_COLOR_TABLE: dict[str, tuple] = {
     'controlColor':              ('gray', b'0.6666666667 1', b'0.602715373\x00'),
     'controlTextColor':          ('gray', b'0 1', b'0\x00'),
     'controlBackgroundColor':    ('gray', b'0.6666666667 1', b'0.602715373\x00'),
+    'controlDarkShadowColor':    ('gray', b'0 1', b'0\x00'),
+    'controlLightHighlightColor': ('gray', b'1 1', b'1\x00'),
+    'controlShadowColor':        ('gray', b'0.3333333333 1', b'0.2637968361\x00'),
     'textColor':                 ('gray', b'0 1', b'0\x00'),
     'textBackgroundColor':       ('gray', b'1 1', b'1\x00'),
     'labelColor':                ('gray', b'0 1', b'0\x00'),
@@ -395,6 +400,7 @@ _SYSTEM_COLOR_TABLE: dict[str, tuple] = {
     'gridColor':                 ('gray', b'0.5 1', b'0.4246723652\x00'),
     'headerTextColor':           ('gray', b'0 1', b'0\x00'),
     'headerColor':               ('gray', b'1 1', b'1\x00'),
+    'highlightColor':            ('gray', b'1 1', b'1\x00'),
     'windowBackgroundColor':     ('gray', b'0.5 1', b'0.4246723652\x00'),
     'secondaryLabelColor':       ('gray', b'0.3333333333 1', b'0.2637968361\x00'),
     'tertiaryLabelColor':        ('gray', b'0.5 1', b'0.4246723652\x00'),

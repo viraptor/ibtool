@@ -102,11 +102,12 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
         flags = vFlags.DEFAULT_VFLAGS_AUTOLAYOUT if ctx.useAutolayout else vFlags.DEFAULT_VFLAGS
         if obj.extraContext.get("no_autoresizes_subviews"):
             flags = flags & ~vFlags.AUTORESIZES_SUBVIEWS
-            ctx.connections.append(NibObject("NSIBUserDefinedRuntimeAttributesConnector", None, {
-                "NSObject": obj,
-                "NSValues": NibList([NibNSNumber(False)]),
-                "NSKeyPaths": NibList([NibString.intern("autoresizesSubviews")]),
-            }))
         obj.flagsOr("NSvFlags", flags)
+    if obj.extraContext.get("no_autoresizes_subviews"):
+        ctx.connections.append(NibObject("NSIBUserDefinedRuntimeAttributesConnector", None, {
+            "NSObject": obj,
+            "NSValues": NibList([NibNSNumber(False)]),
+            "NSKeyPaths": NibList([NibString.intern("autoresizesSubviews")]),
+        }))
 
     return obj

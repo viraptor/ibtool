@@ -70,6 +70,7 @@ from . import segment
 from . import segmentedCell
 from . import segmentedControl
 from . import segments
+from . import shadow
 from . import size
 from . import slider
 from . import sliderCell
@@ -186,6 +187,7 @@ all = {
     "segmentedCell": segmentedCell,
     "segmentedControl": segmentedControl,
     "segments": segments,
+    "shadow": shadow,
     "size": size,
     "slider": slider,
     "sliderCell": sliderCell,
