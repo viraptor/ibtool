@@ -974,6 +974,7 @@ def _apply_view_defaults(obj: NibObject, seen: set) -> None:
     if cls == "NSImageCell":
         obj.setIfEmpty("NSImageAnimation", 0)
         obj.properties.pop("NSCellIdentifier", None)
+        obj.properties.pop("NSSupport", None)
         obj["NSCellFlags"] = 0x8000000
     if cls == "NSTableHeaderCell":
         obj["NSCellFlags"] = 0x4800040
