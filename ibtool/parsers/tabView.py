@@ -93,29 +93,43 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     return obj
 
 
-def _collect_leaf_views(view):
-    """Collect interactive leaf views from a view hierarchy with their positions."""
+def _collect_leaf_views(view, offset_x=0, offset_y=0):
+    """Collect interactive leaf views with their positions in the original view's coords.
+
+    NSBox is collected as a leaf, and its NSContentView children are recursively
+    collected with an added offset so their coordinates remain comparable to
+    sibling leaves at the outer level.
+    """
     leaves = []
     subviews = view.get("NSSubviews")
     if not subviews:
         return leaves
     for sv in subviews:
         cls = sv.originalclassname()
-        if cls in ("NSCustomView",):
-            leaves.extend(_collect_leaf_views(sv))
-        elif cls in ("NSButton", "NSTextField", "NSPopUpButton", "NSSecureTextField",
-                      "NSComboBox", "NSDatePicker", "NSSlider", "NSColorWell",
-                      "NSStepper", "NSSegmentedControl", "NSSearchField",
-                      "NSClassSwapper", "NSBox", "NSProgressIndicator"):
-            frame = sv.extraContext.get("NSFrame") or sv.extraContext.get("NSFrameSize")
-            if frame:
-                x = frame[0] if len(frame) == 4 else 0
-                y = frame[1] if len(frame) == 4 else 0
-                w = frame[2] if len(frame) == 4 else frame[0]
-                h = frame[3] if len(frame) == 4 else frame[1]
-            else:
-                x, y, w, h = 0, 0, 0, 0
-            leaves.append((sv, x, y, h, w))
+        if cls == "NSCustomView":
+            leaves.extend(_collect_leaf_views(sv, offset_x, offset_y))
+            continue
+        if cls not in ("NSButton", "NSTextField", "NSPopUpButton", "NSSecureTextField",
+                       "NSComboBox", "NSDatePicker", "NSSlider", "NSColorWell",
+                       "NSStepper", "NSSegmentedControl", "NSSearchField",
+                       "NSClassSwapper", "NSBox", "NSProgressIndicator"):
+            continue
+        frame = sv.extraContext.get("NSFrame") or sv.extraContext.get("NSFrameSize")
+        if frame:
+            x = frame[0] if len(frame) == 4 else 0
+            y = frame[1] if len(frame) == 4 else 0
+            w = frame[2] if len(frame) == 4 else frame[0]
+            h = frame[3] if len(frame) == 4 else frame[1]
+        else:
+            x, y, w, h = 0, 0, 0, 0
+        leaves.append((sv, x + offset_x, y + offset_y, h, w))
+        if cls == "NSBox":
+            content = sv.get("NSContentView")
+            if content is not None and not isinstance(content, NibNil):
+                cv_frame = content.extraContext.get("NSFrame") or content.extraContext.get("NSFrameSize")
+                cv_x = cv_frame[0] if cv_frame and len(cv_frame) == 4 else 1
+                cv_y = cv_frame[1] if cv_frame and len(cv_frame) == 4 else 1
+                leaves.extend(_collect_leaf_views(content, offset_x + x + cv_x, offset_y + y + cv_y))
     return leaves
 
 
@@ -167,6 +181,9 @@ def _sort_views_for_key_loop(leaves):
                             lambda i: leaves[i][3])
     rows.sort(key=lambda g: max(leaves[i][2] + leaves[i][3] for i in g), reverse=True)
 
+    def _is_box(i):
+        return leaves[i][0].originalclassname() == "NSBox"
+
     result = []
     for row in rows:
         cols = group_by_overlap(row,
@@ -174,8 +191,17 @@ def _sort_views_for_key_loop(leaves):
                                 lambda i: leaves[i][4])
         cols.sort(key=lambda g: min(leaves[i][1] for i in g))
         for col in cols:
-            col.sort(key=lambda i: -leaves[i][2])
-            result.extend(col)
+            # When a column contains an NSBox it's almost always a wide row
+            # anchor that x-overlaps every neighbouring control. Apple places
+            # the box first then walks the rest left-to-right rather than
+            # top-down — the controls inside the row band read left-to-right.
+            if any(_is_box(i) for i in col):
+                boxes = sorted([i for i in col if _is_box(i)], key=lambda i: -leaves[i][2])
+                others = sorted([i for i in col if not _is_box(i)], key=lambda i: (leaves[i][1], -leaves[i][2]))
+                result.extend(boxes + others)
+            else:
+                col.sort(key=lambda i: -leaves[i][2])
+                result.extend(col)
 
     return [leaves[i] for i in result]
 
