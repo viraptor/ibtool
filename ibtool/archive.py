@@ -1084,6 +1084,30 @@ def _apply_view_defaults(obj: NibObject, seen: set) -> None:
         obj.setIfEmpty("NSWindowSubtitle", NibNil())
         obj.setIfEmpty("NSUserInterfaceItemIdentifier", NibNil())
         obj.setIfEmpty("NSWindowView", NibNil())
+        style_mask = obj.get("NSWindowStyleMask") or 0
+        if isinstance(style_mask, int):
+            if style_mask & 0x8000:
+                title_bar = 0
+            elif style_mask & 0x10:
+                title_bar = 24
+            elif style_mask & 1:
+                title_bar = 32
+            else:
+                title_bar = 0
+        else:
+            title_bar = 0
+        for content_key, total_key in (
+            ("NSWindowContentMaxSize", "NSMaxSize"),
+            ("NSWindowContentMinSize", "NSMinSize"),
+        ):
+            content_val = obj.get(content_key)
+            if isinstance(content_val, NibString):
+                m = re.match(r"^\{\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*\}$", content_val._text)
+                if m:
+                    w = m.group(1)
+                    h = float(m.group(2)) + title_bar
+                    h_str = str(int(h)) if h == int(h) else str(h)
+                    obj[total_key] = NibString.intern(f"{{{w}, {h_str}}}")
         max_size = obj.get("NSMaxSize")
         if isinstance(max_size, NibString) and ("3.40282e+38" in max_size._text or "1.79769e+308" in max_size._text):
             obj["NSMaxSize"] = NibString.intern("{10000000000000, 10000000000000}")

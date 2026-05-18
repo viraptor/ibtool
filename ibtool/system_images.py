@@ -63,6 +63,7 @@ SYSTEM_IMAGE_SIZES: dict[str, tuple[int, int]] = {
     "NSStatusUnavailable": (16, 16),
     "NSStopProgressFreestandingTemplate": (19, 19),
     "NSStopProgressTemplate": (17, 15),
+    "NSSwitch": (15, 15),
     "NSTrashEmpty": (32, 32),
     "NSTrashFull": (32, 32),
     "NSUser": (32, 32),
