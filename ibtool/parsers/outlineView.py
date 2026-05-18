@@ -1,7 +1,7 @@
 from ..models import ArchiveContext, NibObject, NibMutableList, NibMutableDictionary, XibObject, NibNil, NibString, NibFloat
 from xml.etree.ElementTree import Element
 from typing import Optional
-from .helpers import make_xib_object, __handle_view_chain, handle_props, PropSchema, MAP_YES_NO, MAP_TABLE_HIGHLIGHT_STYLE
+from .helpers import make_xib_object, __handle_view_chain, handle_props, PropSchema, MAP_YES_NO, MAP_TABLE_HIGHLIGHT_STYLE, MAP_FOCUS_RING
 from ..parsers_base import parse_children
 from ..constants import vFlags
 from .tableView import TVFLAGS, COLUMN_AUTORESIZE_STYLE_MAP
@@ -153,5 +153,9 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
 
     # Outline views always get WIDTH_SIZABLE | HEIGHT_SIZABLE
     obj.flagsOr("NSvFlags", vFlags.WIDTH_SIZABLE | vFlags.HEIGHT_SIZABLE)
+
+    focus_ring = MAP_FOCUS_RING.get(obj.extraContext.get("focusRingType"), 0)
+    if focus_ring:
+        obj.flagsOr("NSvFlags", focus_ring)
 
     return obj

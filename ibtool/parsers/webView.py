@@ -1,6 +1,6 @@
 from ..models import ArchiveContext, NibObject, XibObject, NibNil, NibMutableList, NibMutableSet, NibMutableDictionary, NibString, NibNSNumber
 from xml.etree.ElementTree import Element
-from .helpers import make_xib_object, _xibparser_common_translate_autoresizing
+from .helpers import make_xib_object, _xibparser_common_translate_autoresizing, MAP_FOCUS_RING
 from ..parsers_base import parse_children
 from ..constants import vFlags
 from .webPreferences import WEBKIT_PREFS
@@ -73,5 +73,9 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
 
     if not obj.extraContext.get("parsed_autoresizing"):
         obj.flagsOr("NSvFlags", vFlags.DEFAULT_VFLAGS_AUTOLAYOUT if ctx.useAutolayout else vFlags.DEFAULT_VFLAGS)
+
+    focus_ring = MAP_FOCUS_RING.get(obj.extraContext.get("focusRingType"), 0)
+    if focus_ring:
+        obj.flagsOr("NSvFlags", focus_ring)
 
     return obj
