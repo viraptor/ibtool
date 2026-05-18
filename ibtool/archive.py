@@ -1058,6 +1058,9 @@ def _apply_view_defaults(obj: NibObject, seen: set) -> None:
         ident = obj.get("NSToolbarItemIdentifier")
         if isinstance(ident, NibObject) and ident.classname() == "NSMutableString":
             ident.setclassname("NSString")
+    if cls == "NSToolbarFlexibleSpaceItem":
+        obj["NSToolbarItemMinSize"] = NibString.intern("{8, 24}")
+        obj["NSToolbarItemMaxSize"] = NibString.intern("{20000, 24}")
     if cls == "NSArrayController" or (
         cls == "NSClassSwapper"
         and isinstance(obj.get("NSOriginalClassName"), NibString)
