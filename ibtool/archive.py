@@ -946,6 +946,10 @@ def _apply_view_defaults(obj: NibObject, seen: set) -> None:
             obj["NSGestureRecognizers"] = NibList([gr])
     if cls == "NSWindowTemplate":
         obj.setIfEmpty("NSWindowSubtitle", NibNil())
+        obj.setIfEmpty("NSUserInterfaceItemIdentifier", NibNil())
+        obj.setIfEmpty("NSWindowView", NibNil())
+        obj.setIfEmpty("NSMaxSize", NibString.intern("{10000000000000, 10000000000000}"))
+        obj.setIfEmpty("NSWindowIsRestorable", True)
     if cls == "NSMenuItem":
         obj.setIfEmpty("NSAllowsKeyEquivalentLocalization", True)
         obj.setIfEmpty("NSAllowsKeyEquivalentMirroring", True)
