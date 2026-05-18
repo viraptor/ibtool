@@ -833,6 +833,16 @@ def _canonicalize_system_color(obj: NibObject, parent_key: Optional[str] = None)
     name_obj = obj.get("NSColorName")
     if isinstance(catalog, NibString) and catalog._text == "System" and isinstance(name_obj, NibString):
         name = name_obj._text
+        # Legacy XIBs still use the pre-Mojave "gridColor" name. Apple's
+        # ibtool wraps it in an outer "separatorColor" alias (same RGB).
+        if name == "gridColor":
+            inner = makeSystemColor("gridColor")
+            return NibObject("NSColor", None, {
+                "NSColorSpace": 6,
+                "NSCatalogName": NibString.intern("System"),
+                "NSColorName": NibString.intern("separatorColor"),
+                "NSColor": inner,
+            })
         if name in _SYSTEM_COLOR_TABLE:
             return makeSystemColor(name)
     if parent_key is not None:
