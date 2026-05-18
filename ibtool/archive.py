@@ -975,6 +975,9 @@ def _apply_view_defaults(obj: NibObject, seen: set) -> None:
         obj.setIfEmpty("NSImageAnimation", 0)
         obj.properties.pop("NSCellIdentifier", None)
     if cls == "NSScrollView":
+        obj.setIfEmpty("NSMagnification", 1.0)
+        obj.setIfEmpty("NSMaxMagnification", 4.0)
+        obj.setIfEmpty("NSMinMagnification", 0.25)
         if obj.get("NSGestureRecognizers") is None:
             gr = NibObject("NSPanGestureRecognizer")
             gr["NSGestureRecognizer.allowedTouchTypes"] = 1
