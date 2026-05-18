@@ -1005,11 +1005,11 @@ def _apply_view_defaults(obj: NibObject, seen: set) -> None:
         if isinstance(name, NibString):
             if name._text == "LucidaGrande":
                 obj["NSName"] = NibString.intern(".AppleSystemUIFont")
-                if flags in (0x10, 0x414):
+                if flags == 0x10:
                     obj["NSfFlags"] = 0xc1c
             elif name._text == "LucidaGrande-Bold":
                 obj["NSName"] = NibString.intern(".AppleSystemUIFontBold")
-                if flags in (0x10, 0x414):
+                if flags == 0x10:
                     obj["NSfFlags"] = 0x818
     if cls == "NSTextFieldCell":
         cell_flags = obj.get("NSCellFlags")
