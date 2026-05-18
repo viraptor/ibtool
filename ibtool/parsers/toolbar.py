@@ -236,14 +236,9 @@ def _make_custom_item(ctx, elem, toolbar):
     item["NSToolbarItemTitle"] = NibString.intern(cell_title)
     item["NSToolbarItemTarget"] = NibNil()
     item["NSToolbarItemAction"] = NibNil()
-    if min_size:
-        item["NSToolbarItemMinSize"] = NibString.intern(min_size)
-    else:
-        item["NSToolbarItemMinSize"] = NibString.intern("{0, 0}")
-    if max_size:
-        item["NSToolbarItemMaxSize"] = NibString.intern(max_size)
-    else:
-        item["NSToolbarItemMaxSize"] = NibString.intern("{0, 0}")
+    default_size = "{22, 22}" if view_elem is None else "{0, 0}"
+    item["NSToolbarItemMinSize"] = NibString.intern(min_size or default_size)
+    item["NSToolbarItemMaxSize"] = NibString.intern(max_size or default_size)
     item["NSToolbarItemIgnoreMinMaxSizes"] = False
     item["NSToolbarItemEnabled"] = True
     item["NSToolbarItemAutovalidates"] = True

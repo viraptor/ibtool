@@ -1,7 +1,7 @@
 from ..models import ArchiveContext, NibObject, NibMutableList, NibMutableDictionary, XibObject, NibNil, NibString, NibFloat
 from xml.etree.ElementTree import Element
 from typing import Optional
-from .helpers import make_xib_object, __handle_view_chain, handle_props, PropSchema, MAP_YES_NO
+from .helpers import make_xib_object, __handle_view_chain, handle_props, PropSchema, MAP_YES_NO, MAP_TABLE_HIGHLIGHT_STYLE
 from ..parsers_base import parse_children
 from ..constants import vFlags
 from .tableView import TVFLAGS, COLUMN_AUTORESIZE_STYLE_MAP
@@ -97,7 +97,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     indent = elem.attrib.get("indentationPerLevel")
     obj["NSOutlineViewIndentationPerLevelKey"] = NibFloat(float(indent) if indent else 0.0)
     obj.setIfNotDefault("NSOutlineViewIndentationMarkerFollowsCellKey", elem.attrib.get("indentationMarkerFollowsCell", "YES") == "YES", True)
-    obj["NSTableViewDraggingDestinationStyle"] = 0
+    obj["NSTableViewDraggingDestinationStyle"] = 1 if elem.attrib.get("selectionHighlightStyle") == "sourceList" else 0
     obj["NSTableViewGroupRowStyle"] = 1
 
     handle_props(ctx, elem, obj, [
@@ -113,6 +113,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
         PropSchema(prop="NSAutosaveName", attrib="autosaveName", skip_default=True),
         PropSchema(prop="NSOutlineViewAutosaveExpandedItemsKey", attrib="autosaveExpandedItems", default="NO", map=MAP_YES_NO),
         PropSchema(prop="NSRowHeight", attrib="rowHeight", default="17", filter=float, skip_default=False),
+        PropSchema(prop="NSTableViewSelectionHighlightStyle", attrib="selectionHighlightStyle", map=MAP_TABLE_HIGHLIGHT_STYLE, skip_default=True),
     ])
 
     # GRID_STYLE_SOLID when multipleSelection=YES AND (columnResizing=YES OR 3+ columns)

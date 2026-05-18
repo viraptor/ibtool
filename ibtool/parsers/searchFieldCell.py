@@ -52,7 +52,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> Xi
     })
     if parent.extraContext.get("textCompletionDisabled"):
         obj["NSAutomaticTextCompletionDisabled"] = True
-    elif elem.attrib.get("customClass") is None:
+    elif elem.attrib.get("customClass") is None and 11759 <= ctx.toolsVersion <= 12107:
         obj["NSCharacterPickerEnabled"] = True
 
     sends_immediately = 0x8 if elem.attrib.get("sendsSearchStringImmediately", "NO") == "YES" else 0
