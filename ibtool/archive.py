@@ -1015,6 +1015,21 @@ def _apply_view_defaults(obj: NibObject, seen: set) -> None:
         cell_flags = obj.get("NSCellFlags")
         if isinstance(cell_flags, int):
             obj["NSCellFlags"] = cell_flags & ~0x1FE00
+    if cls == "NSButton":
+        obj["NSControlWritingDirection"] = -1
+        obj.setIfEmpty("IBNSShadowedSymbolConfiguration", NibNil())
+    if cls == "NSButtonCell":
+        cell_flags = obj.get("NSCellFlags")
+        if isinstance(cell_flags, int):
+            obj["NSCellFlags"] = cell_flags & ~0x1FE00
+        obj.setIfEmpty("NSAuxButtonType", -1)
+        obj.setIfEmpty("NSBezelStyle", 0)
+        if obj.get("NSSupport") is None:
+            font = NibObject("NSFont", obj)
+            font["NSName"] = NibString.intern(".AppleSystemUIFont")
+            font["NSSize"] = 13.0
+            font["NSfFlags"] = 0x414
+            obj["NSSupport"] = font
     if cls == "NSTableHeaderCell":
         obj["NSCellFlags"] = 0x4800040
         obj["NSCellFlags2"] = 0x800
