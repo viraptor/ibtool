@@ -450,8 +450,65 @@ def _build_nib_object_data(state: _ArchiveState, data_root: Element) -> NibObjec
 
     _populate_visible_windows(state, container_keyed.get("flattenedProperties"),
                               root_objects, ns_objdata["NSVisibleWindows"])
+    _apply_custom_class_names(state, container_keyed.get("flattenedProperties"))
 
     return ns_objdata
+
+
+def _flattened_property_pairs(flat_elem: Optional[Element]) -> list[tuple[str, Element]]:
+    """Return (key_str, value_element) pairs from a flattenedProperties
+    NSMutableDictionary. Legacy archives store it as paired dict.sortedKeys /
+    dict.values arrays rather than NS.key.N / NS.object.N children."""
+    if flat_elem is None:
+        return []
+    sorted_keys = flat_elem.find("*[@key='dict.sortedKeys']")
+    values = flat_elem.find("*[@key='dict.values']")
+    if sorted_keys is None or values is None:
+        return []
+    key_strs: list[str] = []
+    for child in sorted_keys:
+        if child.tag != "string":
+            continue
+        key_strs.append(child.text or "")
+    value_elems: list[Element] = []
+    for child in values:
+        if child.get("key") is not None:
+            continue
+        value_elems.append(child)
+    return list(zip(key_strs, value_elems))
+
+
+def _apply_custom_class_names(state: "_ArchiveState", flat_elem: Optional[Element]) -> None:
+    """Rewrite objects flagged via flattenedProperties `<id>.CustomClassName`
+    into NSClassSwapper, mirroring what /usr/bin/ibtool emits for legacy
+    archives that carried the custom class out-of-band."""
+    if flat_elem is None:
+        return
+    custom_classes: dict[str, str] = {}
+    for key, value_elem in _flattened_property_pairs(flat_elem):
+        if not key.endswith(".CustomClassName"):
+            continue
+        oid = key.split(".", 1)[0]
+        if value_elem.tag != "string":
+            continue
+        text = value_elem.text or ""
+        if not text:
+            continue
+        custom_classes[oid] = text
+    if not custom_classes:
+        return
+    for oid, custom_class in custom_classes.items():
+        obj = state.objectid_to_obj.get(oid)
+        if obj is None:
+            continue
+        original_cls = obj.classname()
+        existing = list(obj.properties.items())
+        obj.properties.clear()
+        obj["NSClassName"] = NibString.intern(custom_class)
+        obj["NSOriginalClassName"] = NibString.intern(original_cls)
+        for k, v in existing:
+            obj.properties[k] = v
+        obj.setclassname("NSClassSwapper")
 
 
 def _populate_visible_windows(state, flat_elem, root_objects, windows_set):
@@ -920,6 +977,12 @@ def _apply_view_defaults(obj: NibObject, seen: set) -> None:
         if isinstance(v_flags, int) and v_flags < 0:
             obj.setIfEmpty("NSsFlags", 0x1)
             obj.setIfEmpty("NSCurValue", 1.0)
+    if cls == "NSArrayController" or (
+        cls == "NSClassSwapper"
+        and isinstance(obj.get("NSOriginalClassName"), NibString)
+        and obj.get("NSOriginalClassName")._text == "NSArrayController"
+    ):
+        obj.setIfEmpty("_NSManagedProxy", NibObject("_NSManagedProxy"))
     if isinstance(obj, ArrayLike):
         for item in obj.items():
             if isinstance(item, NibObject):
