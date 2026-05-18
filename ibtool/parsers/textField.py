@@ -28,7 +28,12 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
     obj.setIfEmpty("NSControlLineBreakMode", 0)
     obj["NSControlSendActionMask"] = 4
     pmlw = elem.attrib.get("preferredMaxLayoutWidth")
-    if pmlw is not None and float(pmlw) != 0:
+    cell_elem = elem.find("textFieldCell[@key='cell']")
+    cell_line_break = cell_elem.attrib.get("lineBreakMode") if cell_elem is not None else None
+    if (ctx.useAutolayout and ctx.toolsVersion <= 9050
+            and cell_line_break in (None, "wordWrapping", "charWrapping")):
+        obj["NSPreferredMaxLayoutWidth"] = float(w) - 4.0
+    elif pmlw is not None and float(pmlw) != 0:
         obj["NSPreferredMaxLayoutWidth"] = float(pmlw)
     obj.setIfNotDefault("NSControlAllowsExpansionToolTips", elem.attrib.get("allowsExpansionToolTips") == "YES", False)
     obj["NSTextFieldAlignmentRectInsetsVersion"] = 2
