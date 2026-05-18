@@ -1085,12 +1085,12 @@ def _apply_view_defaults(obj: NibObject, seen: set) -> None:
         obj.setIfEmpty("NSUserInterfaceItemIdentifier", NibNil())
         obj.setIfEmpty("NSWindowView", NibNil())
         max_size = obj.get("NSMaxSize")
-        if isinstance(max_size, NibString) and "3.40282e+38" in max_size._text:
+        if isinstance(max_size, NibString) and ("3.40282e+38" in max_size._text or "1.79769e+308" in max_size._text):
             obj["NSMaxSize"] = NibString.intern("{10000000000000, 10000000000000}")
         obj.setIfEmpty("NSMaxSize", NibString.intern("{10000000000000, 10000000000000}"))
         obj.setIfEmpty("NSWindowIsRestorable", True)
         content_max = obj.get("NSWindowContentMaxSize")
-        if isinstance(content_max, NibString) and "3.40282e+38" in content_max._text:
+        if isinstance(content_max, NibString) and ("3.40282e+38" in content_max._text or "1.79769e+308" in content_max._text):
             obj.properties.pop("NSWindowContentMaxSize", None)
     if cls == "NSMenuItem":
         obj.setIfEmpty("NSAllowsKeyEquivalentLocalization", True)
