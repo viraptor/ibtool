@@ -338,6 +338,23 @@ class _ArchiveState:
             return
 
     def _fill_dict(self, elem: Element, d: NibObject) -> None:
+        sorted_keys_elem = elem.find("*[@key='dict.sortedKeys']")
+        values_elem = elem.find("*[@key='dict.values']")
+        if sorted_keys_elem is not None and values_elem is not None:
+            key_items: list[object] = []
+            for child in sorted_keys_elem:
+                if child.get("key") is not None:
+                    continue
+                key_items.append(_wrap_primitive(self.value_for(child)))
+            value_items: list[object] = []
+            for child in values_elem:
+                if child.get("key") is not None:
+                    continue
+                value_items.append(_wrap_primitive(self.value_for(child)))
+            for k, v in zip(key_items, value_items):
+                d.addItem(k)  # type: ignore[attr-defined]
+                d.addItem(v)  # type: ignore[attr-defined]
+            return
         keyed: dict[str, "object"] = {}
         for child in elem:
             k = child.get("key")
