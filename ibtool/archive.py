@@ -1037,6 +1037,8 @@ def _apply_view_defaults(obj: NibObject, seen: set) -> None:
         obj.setIfEmpty("NSAllowsTypeSelect", True)
         obj.setIfEmpty("NSTableViewDraggingDestinationStyle", 0)
         obj.setIfEmpty("NSTableViewGroupRowStyle", 1)
+    if cls == "NSToolbar":
+        obj.setIfEmpty("NSToolbarCenteredItemIdentifier", NibNil())
     if cls == "NSToolbarItem":
         obj.setIfEmpty("NSToolbarItemBordered", False)
         obj.setIfEmpty("NSToolbarItemIgnoreMinMaxSizes", False)
