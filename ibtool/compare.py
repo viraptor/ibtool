@@ -481,7 +481,8 @@ def fixup_connections(collection):
         rt_obj = c.entries.get("NSObject")
         rt_cls = rt_obj.classname if rt_obj is not None else ""
         rt_subviews = _subview_count(rt_obj) if rt_obj is not None else -1
-        return (cls, label_val, dest_cls, src_cls, binding_name, binding_key, _content_key(src), _content_key(dest), _frame_bytes(dest), _frame_bytes(src), _obj_scalars(src), _obj_scalars(dest), rt_cls, rt_subviews)
+        rt_frame = _frame_bytes(rt_obj)
+        return (cls, label_val, dest_cls, src_cls, binding_name, binding_key, _content_key(src), _content_key(dest), _frame_bytes(dest), _frame_bytes(src), _obj_scalars(src), _obj_scalars(dest), rt_cls, rt_subviews, rt_frame)
     connectors.sort(key=conn_sort_key)
     collection[:] = non_connectors + connectors
 

@@ -234,8 +234,10 @@ def __xibparser_button_flags(elem: Element, obj: XibObject, parent: NibObject) -
             obj["NSAuxButtonType"] = 5
         elif light_by_contents and push_in:
             obj["NSAuxButtonType"] = 2
-        else:
+        elif push_in:
             obj["NSAuxButtonType"] = 7
+        else:
+            obj["NSAuxButtonType"] = 0
     else:
         obj["NSAuxButtonType"] = aux_type_map[buttonType]
 

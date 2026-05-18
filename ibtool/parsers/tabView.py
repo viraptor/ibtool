@@ -106,7 +106,7 @@ def _collect_leaf_views(view):
         elif cls in ("NSButton", "NSTextField", "NSPopUpButton", "NSSecureTextField",
                       "NSComboBox", "NSDatePicker", "NSSlider", "NSColorWell",
                       "NSStepper", "NSSegmentedControl", "NSSearchField",
-                      "NSClassSwapper", "NSBox"):
+                      "NSClassSwapper", "NSBox", "NSProgressIndicator"):
             frame = sv.extraContext.get("NSFrame") or sv.extraContext.get("NSFrameSize")
             if frame:
                 x = frame[0] if len(frame) == 4 else 0
