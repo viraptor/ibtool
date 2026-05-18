@@ -834,6 +834,7 @@ _KEY_TO_SYSTEM_COLOR_BY_GRAY = {
     ("NSBackgroundColor", b"0\x00"): "textColor",
     ("NSInsertionColor", b"0\x00"): "textColor",
     ("NSTextViewTextColor", b"0\x00"): "textColor",
+    ("NSTextColor", b"0 0.80000001\x00"): "labelColor",
 }
 
 
@@ -976,6 +977,18 @@ def _apply_view_defaults(obj: NibObject, seen: set) -> None:
         obj.properties.pop("NSCellIdentifier", None)
         obj.properties.pop("NSSupport", None)
         obj["NSCellFlags"] = 0x8000000
+    if cls == "NSFont":
+        name = obj.get("NSName")
+        flags = obj.get("NSfFlags")
+        if isinstance(name, NibString):
+            if name._text == "LucidaGrande":
+                obj["NSName"] = NibString.intern(".AppleSystemUIFont")
+                if flags == 0x10:
+                    obj["NSfFlags"] = 0xc1c
+            elif name._text == "LucidaGrande-Bold":
+                obj["NSName"] = NibString.intern(".AppleSystemUIFontBold")
+                if flags == 0x10:
+                    obj["NSfFlags"] = 0x818
     if cls == "NSTextFieldCell":
         cell_flags = obj.get("NSCellFlags")
         if isinstance(cell_flags, int):
@@ -1002,6 +1015,21 @@ def _apply_view_defaults(obj: NibObject, seen: set) -> None:
             gr["NSPanGestureRecognizer.buttonMask"] = 0
             gr["NSPanGestureRecognizer.numberOfTouchesRequired"] = 1
             obj["NSGestureRecognizers"] = NibList([gr])
+    if cls == "NSBox":
+        is_separator_box = obj.get("NSBoxType") == 2
+        if not is_separator_box:
+            obj.setIfEmpty("NSContentView", NibNil())
+        obj.setIfEmpty("NSSubviews", NibMutableList([]))
+        title_cell = obj.get("NSTitleCell")
+        if isinstance(title_cell, NibObject):
+            if not is_separator_box:
+                title_cell.setIfEmpty("NSControlView", NibNil())
+            if title_cell.get("NSSupport") is None:
+                title_cell["NSSupport"] = NibObject("NSFont", None, {
+                    "NSName": NibString.intern(".AppleSystemUIFont"),
+                    "NSSize": 12.0,
+                    "NSfFlags": 0x414,
+                })
     if cls == "NSWindowTemplate":
         obj.setIfEmpty("NSWindowSubtitle", NibNil())
         obj.setIfEmpty("NSUserInterfaceItemIdentifier", NibNil())
