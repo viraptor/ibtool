@@ -533,6 +533,17 @@ def _populate_visible_windows(state, flat_elem, root_objects, windows_set):
     if flat_elem is None:
         return
     visible_ids: set[str] = set()
+    # IB3-format dictionaries carry the entries in dict.sortedKeys/dict.values.
+    for key, value_elem in _flattened_property_pairs(flat_elem):
+        if not key.endswith(".NSWindowTemplate.visibleAtLaunch"):
+            continue
+        oid = key.split(".", 1)[0]
+        val = value_elem.get("value")
+        if val is None:
+            val = (value_elem.text or "").strip()
+        if val in ("1", "YES", "true"):
+            visible_ids.add(oid)
+    # Modern documents flatten the entries inline as keyed children.
     for child in flat_elem:
         k = child.get("key") or ""
         if k.endswith(".NSWindowTemplate.visibleAtLaunch"):
