@@ -18,6 +18,7 @@ Schema notes:
   connection records). These are lifted into the NIB's NSIBObjectData.
 """
 import base64
+import re
 
 from xml.etree.ElementTree import Element
 from typing import Optional
@@ -924,6 +925,13 @@ def _apply_view_defaults(obj: NibObject, seen: set) -> None:
             obj.properties.pop("NSSuperview", None)
         if cls != "NSClipView":
             obj.properties.pop("NSReuseIdentifierKey", None)
+        obj.setIfEmpty("NSNextResponder", NibNil())
+        frame = obj.properties.get("NSFrame")
+        if isinstance(frame, NibString):
+            m = re.match(r"^\{\{\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*\}\s*,\s*\{\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*\}\s*\}$", frame._text)
+            if m and float(m.group(1)) == 0 and float(m.group(2)) == 0:
+                obj["NSFrameSize"] = NibString.intern(f"{{{m.group(3)}, {m.group(4)}}}")
+                obj.properties.pop("NSFrame", None)
     if cls in _CONTROL_CLASSES:
         action = obj.properties.get("NSAction")
         if action is not None and "NSControlAction" not in obj.properties:
@@ -961,6 +969,7 @@ def _apply_view_defaults(obj: NibObject, seen: set) -> None:
                     obj["IBDesignSize"] = design_size
     if cls == "NSImageView":
         obj["NSControlWritingDirection"] = -1
+        obj["NSControlRefusesFirstResponder"] = True
         obj.setIfEmpty("NSImageViewPlaceholderPrecedence", 0)
         obj.setIfEmpty("IBNSShadowedSymbolConfiguration", NibNil())
         nk = obj.properties.get("NSNextKeyView")
@@ -985,7 +994,8 @@ def _apply_view_defaults(obj: NibObject, seen: set) -> None:
             names.update(extras)
             drag_types._items = [NibString.intern(t) for t in sorted(names)]
     if cls == "NSImageCell":
-        obj.setIfEmpty("NSImageAnimation", 0)
+        animates = obj.get("NSAnimates")
+        obj.setIfEmpty("NSImageAnimation", 1 if animates is True else 0)
         obj.properties.pop("NSCellIdentifier", None)
         obj.properties.pop("NSSupport", None)
         obj["NSCellFlags"] = 0x8000000
