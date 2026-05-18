@@ -910,6 +910,7 @@ def _apply_view_defaults(obj: NibObject, seen: set) -> None:
         target = obj.properties.get("NSTarget")
         if target is not None and "NSControlTarget" not in obj.properties:
             obj["NSControlTarget"] = target
+        obj.setIfEmpty("NSAllowsLogicalLayoutDirection", False)
         obj.setIfEmpty("NSControlSize", 0)
         obj.setIfEmpty("NSControlContinuous", False)
         obj.setIfEmpty("NSControlRefusesFirstResponder", False)
