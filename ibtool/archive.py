@@ -1044,6 +1044,7 @@ def _apply_view_defaults(obj: NibObject, seen: set) -> None:
         obj.setIfEmpty("NSTextFieldAllowsWritingToolsAffordance", False)
     if cls == "NSToolbar":
         obj.setIfEmpty("NSToolbarCenteredItemIdentifier", NibNil())
+        obj.properties.pop("NSToolbarShowsBaselineSeparator", None)
         default_items = obj.get("NSToolbarIBDefaultItems")
         if isinstance(default_items, NibObject) and default_items.classname() == "NSMutableArray":
             default_items.setclassname("NSArray")
