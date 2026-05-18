@@ -1022,6 +1022,15 @@ def _apply_view_defaults(obj: NibObject, seen: set) -> None:
     if cls == "NSButton":
         obj["NSControlWritingDirection"] = -1
         obj.setIfEmpty("IBNSShadowedSymbolConfiguration", NibNil())
+        cell = obj.get("NSCell")
+        cell_flags2 = cell.get("NSCellFlags2") if isinstance(cell, NibObject) else None
+        if isinstance(cell_flags2, int):
+            if cell_flags2 & 0x10000000:
+                obj["NSControlTextAlignment"] = 4
+            elif cell_flags2 & 0x8000000:
+                obj["NSControlTextAlignment"] = 1
+            elif cell_flags2 & 0x4000000:
+                obj["NSControlTextAlignment"] = 2
     if cls == "NSButtonCell":
         cell_flags = obj.get("NSCellFlags")
         if isinstance(cell_flags, int):
@@ -1180,7 +1189,7 @@ def _apply_view_defaults(obj: NibObject, seen: set) -> None:
             }.get(line_break_bits)
             if line_break_mode is not None:
                 obj["NSControlLineBreakMode"] = line_break_mode
-            if obj.get("NSControlLineBreakMode"):
+            if obj.get("NSControlLineBreakMode") or cell_flags2 & 0x10000000:
                 obj.setIfEmpty("NSLineBreakStrategy", 65535)
                 obj.setIfEmpty("NSTextFieldLineBreakStrategyVersion", 2)
             if cell_flags2 & 0x10000000:
