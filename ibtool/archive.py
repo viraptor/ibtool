@@ -1015,6 +1015,27 @@ def _apply_view_defaults(obj: NibObject, seen: set) -> None:
         if isinstance(v_flags, int) and v_flags < 0 and obj.get("NSPercent") is None:
             obj.setIfEmpty("NSsFlags", 0x1)
             obj.setIfEmpty("NSCurValue", 1.0)
+    if cls == "NSTableView":
+        obj.setIfEmpty("NSAllowsLogicalLayoutDirection", False)
+        obj.setIfEmpty("NSControlAllowsExpansionToolTips", True)
+        obj.setIfEmpty("NSControlSize", 0)
+        obj.setIfEmpty("NSControlContinuous", False)
+        obj.setIfEmpty("NSControlRefusesFirstResponder", False)
+        obj.setIfEmpty("NSControlUsesSingleLineMode", False)
+        obj.setIfEmpty("NSControlTextAlignment", 0)
+        obj.setIfEmpty("NSControlLineBreakMode", 0)
+        obj.setIfEmpty("NSControlWritingDirection", 0)
+        obj.setIfEmpty("NSControlSendActionMask", 0)
+        obj.setIfEmpty("NSIntercellSpacingWidth", 0.0)
+        obj.setIfEmpty("NSIntercellSpacingHeight", 0.0)
+        obj.setIfEmpty("NSDelegate", NibNil())
+        obj.setIfEmpty("NSDataSource", NibNil())
+        obj.setIfEmpty("NSColumnAutoresizingStyle", 4)
+        obj.setIfEmpty("NSDraggingSourceMaskForLocal", -1)
+        obj.setIfEmpty("NSDraggingSourceMaskForNonLocal", 0)
+        obj.setIfEmpty("NSAllowsTypeSelect", True)
+        obj.setIfEmpty("NSTableViewDraggingDestinationStyle", 0)
+        obj.setIfEmpty("NSTableViewGroupRowStyle", 1)
     if cls == "NSArrayController" or (
         cls == "NSClassSwapper"
         and isinstance(obj.get("NSOriginalClassName"), NibString)
