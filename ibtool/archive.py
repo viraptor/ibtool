@@ -1037,6 +1037,12 @@ def _apply_view_defaults(obj: NibObject, seen: set) -> None:
         obj.setIfEmpty("NSAllowsTypeSelect", True)
         obj.setIfEmpty("NSTableViewDraggingDestinationStyle", 0)
         obj.setIfEmpty("NSTableViewGroupRowStyle", 1)
+    if cls == "NSToolbarItem":
+        obj.setIfEmpty("NSToolbarItemBordered", False)
+        obj.setIfEmpty("NSToolbarItemIgnoreMinMaxSizes", False)
+        obj.setIfEmpty("NSToolbarItemNavigational", False)
+        obj.setIfEmpty("NSToolbarItemStyle", 0)
+        obj.setIfEmpty("NSToolbarItemTitle", NibString.intern(""))
     if cls == "NSArrayController" or (
         cls == "NSClassSwapper"
         and isinstance(obj.get("NSOriginalClassName"), NibString)
