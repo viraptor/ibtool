@@ -1,3 +1,5 @@
+import struct
+
 from ..models import ArchiveContext, NibObject, XibObject, NibList, XibId, NibString
 from xml.etree.ElementTree import Element
 from typing import Optional, cast
@@ -30,6 +32,11 @@ def parse(ctx: ArchiveContext, elem: Element, parent: Optional[NibObject]) -> No
         obj["NSRelation"] = {"greaterThanOrEqual": 1, "lessThanOrEqual": -1}[relation]
     if (priority := elem.attrib.get("priority")) is not None:
         obj["NSPriority"] = int(priority)
+
+    if (multiplier := elem.attrib.get("multiplier")) is not None and ":" not in multiplier:
+        m = struct.unpack("<f", struct.pack("<f", float(multiplier)))[0]
+        if m != 1.0:
+            obj["NSMultiplier"] = m
 
     symbolic = elem.attrib.get("symbolic") == "YES"
     if (constant := elem.attrib.get("constant")) is not None and symbolic is False:

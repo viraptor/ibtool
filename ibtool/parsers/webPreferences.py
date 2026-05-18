@@ -1,25 +1,18 @@
-from ..models import ArchiveContext, NibObject, NibString, NibNSNumber
+from ..models import ArchiveContext, NibObject
 from xml.etree.ElementTree import Element
 
 WEBKIT_PREFS = [
-    ("defaultFixedFontSize", "WebKitDefaultFixedFontSize", int),
-    ("defaultFontSize", "WebKitDefaultFontSize", int),
-    ("javaScriptCanOpenWindowsAutomatically", "WebKitJavaScriptCanOpenWindowsAutomatically", lambda v: v == "YES"),
+    ("defaultFixedFontSize", "WebKitDefaultFixedFontSize", "12", int),
+    ("defaultFontSize", "WebKitDefaultFontSize", "12", int),
+    ("javaScriptCanOpenWindowsAutomatically", "WebKitJavaScriptCanOpenWindowsAutomatically", "YES", lambda v: v == "YES"),
+    ("minimumFontSize", "WebKitMinimumFontSize", None, int),
+    ("plugInsEnabled", "WebKitLegacyPluginQuirkForMailSignaturesEnabled", "YES", lambda v: v == "YES"),
 ]
 
+
 def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
-    identifier = elem.attrib.get("identifier")
-    if not identifier:
-        return
-
+    identifier_elem = elem.find('string[@key="identifier"]')
+    identifier = identifier_elem.text if identifier_elem is not None else elem.attrib.get("identifier")
+    parent.extraContext["webPrefsHasIdentifier"] = identifier is not None
     parent.extraContext["webPrefsIdentifier"] = identifier
-
-    values = []
-    for attrib, webkit_key, convert in WEBKIT_PREFS:
-        val = elem.attrib.get(attrib)
-        if val is not None:
-            values.append(NibString.intern(f"{identifier}{webkit_key}"))
-            values.append(NibNSNumber(convert(val)))
-
-    if values:
-        parent.extraContext["webPrefsValues"] = values
+    parent.extraContext["webPrefsAttribs"] = dict(elem.attrib)

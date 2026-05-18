@@ -97,8 +97,11 @@ def parse(ctx: ArchiveContext, elem: Element, parent: XibObject, **kwargs) -> Xi
                         continue
                     cx, cy, cw, ch = child_frame
                     ar = child.extraContext.get("parsed_autoresizing") if hasattr(child, 'extraContext') else None
+                    uses_autolayout = child.extraContext.get("NSDoNotTranslateAutoresizingMask") if hasattr(child, 'extraContext') else False
                     changed = False
-                    if ar and isinstance(ar, dict):
+                    if uses_autolayout:
+                        pass
+                    elif ar and isinstance(ar, dict):
                         if x_off and ar.get("widthSizable"):
                             cw += x_off
                             changed = True
