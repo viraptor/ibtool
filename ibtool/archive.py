@@ -1044,7 +1044,7 @@ def _apply_view_defaults(obj: NibObject, seen: set) -> None:
         obj.setIfEmpty("NSTextFieldAllowsWritingToolsAffordance", False)
     if cls == "NSToolbar":
         obj.setIfEmpty("NSToolbarCenteredItemIdentifier", NibNil())
-    if cls == "NSToolbarItem":
+    if cls in ("NSToolbarItem", "NSToolbarFlexibleSpaceItem"):
         obj.setIfEmpty("NSToolbarItemBordered", False)
         obj.setIfEmpty("NSToolbarItemIgnoreMinMaxSizes", False)
         obj.setIfEmpty("NSToolbarItemNavigational", False)
