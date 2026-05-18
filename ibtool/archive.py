@@ -805,6 +805,7 @@ _VIEW_DEFAULT_CLASSES = {
     "NSSecureTextField", "NSSearchField", "NSTokenField", "NSColorWell",
     "NSSegmentedControl", "NSLevelIndicator", "NSMatrix", "NSRuleEditor",
     "NSPathControl", "NSBrowser", "NSDatePicker", "NSStepper",
+    "_NSCornerView",
 }
 
 _CONTROL_CLASSES = {
