@@ -106,7 +106,7 @@ def _collect_leaf_views(view):
         elif cls in ("NSButton", "NSTextField", "NSPopUpButton", "NSSecureTextField",
                       "NSComboBox", "NSDatePicker", "NSSlider", "NSColorWell",
                       "NSStepper", "NSSegmentedControl", "NSSearchField",
-                      "NSClassSwapper"):
+                      "NSClassSwapper", "NSBox"):
             frame = sv.extraContext.get("NSFrame") or sv.extraContext.get("NSFrameSize")
             if frame:
                 x = frame[0] if len(frame) == 4 else 0
@@ -208,9 +208,21 @@ def _build_key_view_loop(tab_item, tab_view):
     if container is not item_view:
         item_view["NSNextKeyView"] = container
     container["NSNextKeyView"] = leaves[0][0]
+
+    def _set_next(view, target):
+        # NSBox keeps its own NSNextKeyView=nil; the chain continuation lives
+        # on its NSContentView so the box acts as a transparent waypoint.
+        if view.originalclassname() == "NSBox":
+            view["NSNextKeyView"] = NibNil()
+            content = view.get("NSContentView")
+            if content is not None:
+                content["NSNextKeyView"] = target
+        else:
+            view["NSNextKeyView"] = target
+
     for i in range(len(leaves) - 1):
-        leaves[i][0]["NSNextKeyView"] = leaves[i + 1][0]
-    leaves[-1][0]["NSNextKeyView"] = tab_view
+        _set_next(leaves[i][0], leaves[i + 1][0])
+    _set_next(leaves[-1][0], tab_view)
     # Sliders don't continue the key view chain — predecessors still point at
     # them but their own next is nil.
     for leaf in leaves:
