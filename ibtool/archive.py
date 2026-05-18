@@ -293,6 +293,14 @@ class _ArchiveState:
             if cls == "NSMutableDictionary" or cls == "NSDictionary":
                 self._fill_dict(elem, obj)
                 return
+            if cls in _SET_CLASSES:
+                sorted_elem = elem.find("*[@key='set.sortedObjects']")
+                if sorted_elem is not None:
+                    for child in sorted_elem:
+                        if child.get("key") is not None:
+                            continue
+                        obj.addItem(_wrap_primitive(self.value_for(child)))  # type: ignore[attr-defined]
+                    return
             if cls in _LIST_CLASSES or cls in _SET_CLASSES:
                 for child in elem:
                     if child.get("key") is not None:
@@ -964,14 +972,18 @@ def _apply_view_defaults(obj: NibObject, seen: set) -> None:
         drag_types = obj.get("NSDragTypes")
         if isinstance(drag_types, ArrayLike):
             extras = [
+                "Apple PDF pasteboard type",
+                "Apple PICT pasteboard type",
+                "Apple PNG pasteboard type",
+                "NSFilenamesPboardType",
+                "NeXT TIFF v4.0 pasteboard type",
                 "com.apple.NSFilePromiseItemMetaData",
                 "com.apple.pasteboard.promised-file-content-type",
                 "dyn.ah62d4rv4gu8yc6durvwwa3xmrvw1gkdusm1044pxqyuha2pxsvw0e55bsmwca7d3sbwu",
             ]
-            existing = {t._text for t in drag_types.items() if isinstance(t, NibString)}
-            for t in extras:
-                if t not in existing:
-                    drag_types.addItem(NibString.intern(t))
+            names = {t._text for t in drag_types.items() if isinstance(t, NibString)}
+            names.update(extras)
+            drag_types._items = [NibString.intern(t) for t in sorted(names)]
     if cls == "NSImageCell":
         obj.setIfEmpty("NSImageAnimation", 0)
         obj.properties.pop("NSCellIdentifier", None)
