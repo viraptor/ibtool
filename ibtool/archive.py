@@ -1061,6 +1061,9 @@ def _apply_view_defaults(obj: NibObject, seen: set) -> None:
         obj.setIfEmpty("NSDraggingSourceMaskForLocal", -1)
         obj.setIfEmpty("NSDraggingSourceMaskForNonLocal", 0)
         obj.setIfEmpty("NSAllowsTypeSelect", True)
+        if obj.get("NSTableViewSelectionHighlightStyle") == 1:
+            obj["NSTableViewDraggingDestinationStyle"] = 1
+            obj.setIfEmpty("NSTableViewStyle", 4)
         obj.setIfEmpty("NSTableViewDraggingDestinationStyle", 0)
         obj.setIfEmpty("NSTableViewGroupRowStyle", 1)
         columns = obj.get("NSTableColumns")
