@@ -990,6 +990,9 @@ def _apply_view_defaults(obj: NibObject, seen: set) -> None:
         obj.setIfEmpty("NSMagnification", 1.0)
         obj.setIfEmpty("NSMaxMagnification", 4.0)
         obj.setIfEmpty("NSMinMagnification", 0.25)
+        s_flags = obj.get("NSsFlags")
+        if isinstance(s_flags, int):
+            obj["NSsFlags"] = s_flags | 0x20800
         if obj.get("NSGestureRecognizers") is None:
             gr = NibObject("NSPanGestureRecognizer")
             gr["NSGestureRecognizer.allowedTouchTypes"] = 1
