@@ -975,6 +975,12 @@ def _apply_view_defaults(obj: NibObject, seen: set) -> None:
         obj.setIfEmpty("NSImageAnimation", 0)
         obj.properties.pop("NSCellIdentifier", None)
         obj["NSCellFlags"] = 0x8000000
+    if cls == "NSTableHeaderCell":
+        obj["NSCellFlags"] = 0x4800040
+        obj["NSCellFlags2"] = 0x800
+        support = obj.get("NSSupport")
+        if isinstance(support, NibObject) and support.classname() == "NSFont":
+            support["NSName"] = NibString.intern(".AppleSystemUIFont")
     if cls == "NSScrollView":
         obj.setIfEmpty("NSMagnification", 1.0)
         obj.setIfEmpty("NSMaxMagnification", 4.0)
