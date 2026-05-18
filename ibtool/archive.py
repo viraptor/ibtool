@@ -965,6 +965,9 @@ def _apply_view_defaults(obj: NibObject, seen: set) -> None:
         obj.setIfEmpty("NSWindowSubtitle", NibNil())
         obj.setIfEmpty("NSUserInterfaceItemIdentifier", NibNil())
         obj.setIfEmpty("NSWindowView", NibNil())
+        max_size = obj.get("NSMaxSize")
+        if isinstance(max_size, NibString) and "3.40282e+38" in max_size._text:
+            obj["NSMaxSize"] = NibString.intern("{10000000000000, 10000000000000}")
         obj.setIfEmpty("NSMaxSize", NibString.intern("{10000000000000, 10000000000000}"))
         obj.setIfEmpty("NSWindowIsRestorable", True)
         content_max = obj.get("NSWindowContentMaxSize")
