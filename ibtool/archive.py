@@ -1012,7 +1012,7 @@ def _apply_view_defaults(obj: NibObject, seen: set) -> None:
     if cls == "NSScroller":
         obj.setIfEmpty("NSViewIsLayerTreeHost", True)
         v_flags = obj.get("NSvFlags")
-        if isinstance(v_flags, int) and v_flags < 0:
+        if isinstance(v_flags, int) and v_flags < 0 and obj.get("NSPercent") is None:
             obj.setIfEmpty("NSsFlags", 0x1)
             obj.setIfEmpty("NSCurValue", 1.0)
     if cls == "NSArrayController" or (
