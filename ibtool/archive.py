@@ -1043,6 +1043,9 @@ def _apply_view_defaults(obj: NibObject, seen: set) -> None:
         obj.setIfEmpty("NSToolbarItemNavigational", False)
         obj.setIfEmpty("NSToolbarItemStyle", 0)
         obj.setIfEmpty("NSToolbarItemTitle", NibString.intern(""))
+        ident = obj.get("NSToolbarItemIdentifier")
+        if isinstance(ident, NibObject) and ident.classname() == "NSMutableString":
+            ident.setclassname("NSString")
     if cls == "NSArrayController" or (
         cls == "NSClassSwapper"
         and isinstance(obj.get("NSOriginalClassName"), NibString)
