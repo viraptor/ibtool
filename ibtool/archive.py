@@ -290,7 +290,7 @@ class _ArchiveState:
         tag = elem.tag
         cls = elem.get("class")
         if tag == "object":
-            if cls == "NSMutableDictionary":
+            if cls == "NSMutableDictionary" or cls == "NSDictionary":
                 self._fill_dict(elem, obj)
                 return
             if cls in _LIST_CLASSES or cls in _SET_CLASSES:
