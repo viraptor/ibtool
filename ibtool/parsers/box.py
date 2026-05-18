@@ -70,7 +70,7 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
                 "NSSize": 11.0,
                 "NSfFlags": to_flags_val(FontFlags.ROLE_SMALL_SYSTEM_FONT.value),
             })
-        title = elem.attrib.get("title", "" if elem.attrib.get("titlePosition") == "noTitle" else "Title")
+        title = elem.attrib.get("title", "")
         title_position = BOX_TITLE_POSITION_MAP.get(elem.attrib.get("titlePosition"), 2)
 
     obj["NSTitlePosition"] = title_position

@@ -94,6 +94,15 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> XibObject:
         ctx.visibleWindows.append(item)
     if (frame_autosave_name := elem.attrib.get("frameAutosaveName")) is not None:
         item["NSFrameAutosaveName"] = NibString.intern(frame_autosave_name)
+    animation_behavior = elem.attrib.get("animationBehavior")
+    animation_behavior_map = {
+        "none": 2,
+        "documentWindow": 3,
+        "utilityWindow": 4,
+        "alertPanel": 5,
+    }
+    if animation_behavior in animation_behavior_map:
+        item["NSWindowAnimationBehavior"] = animation_behavior_map[animation_behavior]
 
     # fixup the rects - expose content dimensions for child frame calculation
     if item.extraContext.get("NSWindowRect"):
