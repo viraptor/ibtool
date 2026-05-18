@@ -1086,6 +1086,37 @@ def _apply_view_defaults(obj: NibObject, seen: set) -> None:
         obj.setIfEmpty("NSAllowsWritingTools", True)
         obj.setIfEmpty("NSTextFieldAlignmentRectInsetsVersion", 2)
         obj.setIfEmpty("NSTextFieldAllowsWritingToolsAffordance", False)
+        cell = obj.get("NSCell")
+        cell_flags2 = cell.get("NSCellFlags2") if isinstance(cell, NibObject) else None
+        if isinstance(cell_flags2, int):
+            # Decode control properties stamped into the NSTextFieldCell flags.
+            if cell_flags2 & 0x40000:
+                obj["NSControlSize"] = 2  # mini
+            elif cell_flags2 & 0x20000:
+                obj["NSControlSize"] = 1  # small
+            if cell_flags2 & 0x10000000:
+                obj["NSControlTextAlignment"] = 4  # justified / "none"
+            elif cell_flags2 & 0x8000000:
+                obj["NSControlTextAlignment"] = 1  # center
+            elif cell_flags2 & 0x4000000:
+                obj["NSControlTextAlignment"] = 2  # right
+            line_break_bits = cell_flags2 & 0xE00
+            line_break_mode = {
+                0x0:   None,        # default word-wrap
+                0x200: 1,           # char wrap
+                0x400: 2,           # clipping
+                0x600: 3,           # truncating head
+                0x800: 4,           # truncating tail
+                0xA00: 5,           # truncating middle
+            }.get(line_break_bits)
+            if line_break_mode is not None:
+                obj["NSControlLineBreakMode"] = line_break_mode
+            if obj.get("NSControlLineBreakMode"):
+                obj.setIfEmpty("NSLineBreakStrategy", 65535)
+                obj.setIfEmpty("NSTextFieldLineBreakStrategyVersion", 2)
+            if cell_flags2 & 0x10000000:
+                # TEXT_ALIGN_NONE → Apple flips writing direction to natural (-1).
+                obj["NSControlWritingDirection"] = -1
     if cls == "NSToolbar":
         obj.setIfEmpty("NSToolbarCenteredItemIdentifier", NibNil())
         obj.properties.pop("NSToolbarShowsBaselineSeparator", None)
