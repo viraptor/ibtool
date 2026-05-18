@@ -1059,6 +1059,14 @@ def _apply_view_defaults(obj: NibObject, seen: set) -> None:
         obj.setIfEmpty("NSAllowsTypeSelect", True)
         obj.setIfEmpty("NSTableViewDraggingDestinationStyle", 0)
         obj.setIfEmpty("NSTableViewGroupRowStyle", 1)
+        columns = obj.get("NSTableColumns")
+        if isinstance(columns, ArrayLike):
+            for col in columns.items():
+                if not isinstance(col, NibObject):
+                    continue
+                data_cell = col.get("NSDataCell")
+                if isinstance(data_cell, NibObject):
+                    data_cell.setIfEmpty("NSControlView", obj)
     if cls == "NSTextField":
         obj.setIfEmpty("NS.resolvesNaturalAlignmentWithBaseWritingDirection", False)
         obj.setIfEmpty("NSAllowsWritingTools", True)
