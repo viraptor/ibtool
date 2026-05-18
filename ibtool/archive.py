@@ -976,6 +976,10 @@ def _apply_view_defaults(obj: NibObject, seen: set) -> None:
         obj.properties.pop("NSCellIdentifier", None)
         obj.properties.pop("NSSupport", None)
         obj["NSCellFlags"] = 0x8000000
+    if cls == "NSTextFieldCell":
+        cell_flags = obj.get("NSCellFlags")
+        if isinstance(cell_flags, int):
+            obj["NSCellFlags"] = cell_flags & ~0x1FE00
     if cls == "NSTableHeaderCell":
         obj["NSCellFlags"] = 0x4800040
         obj["NSCellFlags2"] = 0x800
