@@ -51,6 +51,8 @@ from . import pathCell
 from . import pathControl
 from . import placeholder
 from . import allowedInputSourceLocales
+from . import arrayController
+from . import declaredKeys
 from . import pdfView
 from . import point
 from . import popUpButton
@@ -116,6 +118,8 @@ all = {
     "application": application,
     "accessibility": accessibility,
     "allowedInputSourceLocales": allowedInputSourceLocales,
+    "arrayController": arrayController,
+    "declaredKeys": declaredKeys,
     "allowedTypes": allowedTypes,
     "action": action,
     "animations": animations,
