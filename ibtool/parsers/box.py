@@ -20,16 +20,19 @@ BOX_BORDER_TYPE_MAP = {
 BOX_TYPE_MAP = {
     None: 0,
     "separator": 2,
+    "custom": 4,
 }
 
 BOX_USING_CONTENT_VIEW_MAP = {
     None: True,
     "separator": None,
+    "custom": True,
 }
 
 def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
     obj = make_xib_object(ctx, "NSBox", elem, parent)
     obj.extraContext["titlePosition"] = elem.attrib.get("titlePosition")
+    obj.extraContext["boxType"] = elem.attrib.get("boxType")
     parse_children(ctx, elem, obj)
     _xibparser_common_translate_autoresizing(ctx, elem, parent, obj)
 
@@ -39,7 +42,8 @@ def parse(ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
         PropSchema(prop="NSBorderType", attrib="borderType", default=None, map=BOX_BORDER_TYPE_MAP, skip_default=False),
         PropSchema(prop="IBNSBoxIsUsingDocumentContentView", attrib="boxType", default=None, map=BOX_USING_CONTENT_VIEW_MAP, skip_default=False),
         PropSchema(prop="NSTransparent", const=False),
-        PropSchema(prop="NSOffsets", attrib="boxType", default=None, map={None: NibString.intern("{0, 0}"), "separator": NibString.intern("{5, 5}")}, skip_default=False),
+        PropSchema(prop="NSOffsets", attrib="boxType", default=None, map={None: NibString.intern("{0, 0}"), "separator": NibString.intern("{5, 5}"), "custom": NibString.intern("{0, 0}")}, skip_default=False),
+        PropSchema(prop="NSCornerRadius2", attrib="cornerRadius", default=None, filter=lambda v: float(v) if isinstance(v, str) else None),
         PropSchema(prop="NSSubviews", default=NibMutableList([])),
     ])
     

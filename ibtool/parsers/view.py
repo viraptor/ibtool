@@ -26,9 +26,12 @@ def parse(ctx: ArchiveContext, elem: Element, parent: XibObject, **kwargs) -> Xi
             parent["NSSubviews"] = NibMutableList([obj])
             obj["NSSuperview"] = parent
             is_box_content = True
+            # Custom boxes keep the content view's explicit XIB frame; only
+            # titled/primary boxes derive the content view size from the box.
+            is_custom_box = parent.extraContext.get("boxType") == "custom"
             # Store box outer size so subviews' frame() uses it as parent size
             box_raw = parent.raw_frame()
-            if box_raw:
+            if box_raw and not is_custom_box:
                 bw, bh = box_raw[2], box_raw[3]
                 # Titled boxes have a 12px title area
                 title_offset = 12 if parent.extraContext.get("titlePosition") != "noTitle" else 0

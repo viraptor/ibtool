@@ -15,5 +15,7 @@ def parse(_ctx: ArchiveContext, elem: Element, parent: NibObject) -> None:
         value |= 64
     if elem.attrib.get("fullScreenPrimary") == "YES":
         value |= 128
+    if elem.attrib.get("fullScreenAuxiliary") == "YES":
+        value |= 256
     if value:
         parent["NSWindowCollectionBehavior"] = value
