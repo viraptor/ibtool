@@ -110,6 +110,19 @@ def _relayout_children(ctx, elem, obj):
         _relayout_horizontal(visible, distribution, spacing, total_size)
     elif is_horizontal and distribution == "fillProportionally":
         _relayout_fill_proportionally(visible, spacing, total_size)
+    elif not is_horizontal and elem.attrib.get("alignment") == "leading":
+        _relayout_vertical_leading(visible)
+
+
+def _relayout_vertical_leading(visible):
+    """Apple only refits leaf controls whose horizontal hugging is required;
+    nested stack views and lower-priority children keep their XIB frames."""
+    for (i, ce, nib_child, iw) in visible:
+        if iw is None or ce.tag == "stackView" or float(ce.get("horizontalHuggingPriority", "250")) < 1000:
+            continue
+        x, y, w, h = nib_child.frame()
+        if iw != w:
+            nib_child.set_nib_frame(x, y, iw, h)
 
 
 def _relayout_horizontal(visible, distribution, spacing, total_width):

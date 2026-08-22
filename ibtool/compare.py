@@ -435,11 +435,12 @@ def fixup_connections(collection):
         def _frame_bytes(obj):
             if obj is None:
                 return b""
-            f = obj.entries.get("NSFrame")
-            if f is not None and hasattr(f, "entries"):
-                fb = f.entries.get("NS.bytes")
-                if fb is not None and hasattr(fb, "value"):
-                    return fb.value if isinstance(fb.value, bytes) else str(fb.value).encode()
+            for key in ("NSFrame", "NSFrameSize"):
+                f = obj.entries.get(key)
+                if f is not None and hasattr(f, "entries"):
+                    fb = f.entries.get("NS.bytes")
+                    if fb is not None and hasattr(fb, "value"):
+                        return fb.value if isinstance(fb.value, bytes) else str(fb.value).encode()
             return b""
         def _obj_scalars(obj):
             if obj is None:
@@ -452,7 +453,16 @@ def fixup_connections(collection):
                 tb = title.entries.get("NS.bytes")
                 if tb is not None and hasattr(tb, "value"):
                     title_val = tb.value if isinstance(tb.value, bytes) else str(tb.value).encode()
-            return (tag_val, title_val)
+            orient = obj.entries.get("NSStackViewOrientation")
+            orient_val = orient.value if orient is not None and hasattr(orient, "value") else -1
+            submenu = obj.entries.get("NSMenu")
+            submenu_key = (-1, b"")
+            if submenu is not None and hasattr(submenu, "entries"):
+                items = submenu.entries.get("NSMenuItems")
+                if items is not None and hasattr(items, "entries"):
+                    first = items.entries[0] if items.entries else None
+                    submenu_key = (len(items.entries), _str_entry(first, "NSTitle"))
+            return (tag_val, title_val, orient_val, submenu_key)
         def _str_entry(obj, key):
             if obj is None:
                 return b""
